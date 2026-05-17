@@ -8,18 +8,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size as ComposeSize
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
+import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
 
 /**
  * Màn hình xử lý và vẽ bounding box cho ảnh tĩnh (Gallery/Chụp).
@@ -63,22 +57,14 @@ fun StaticDetectionScreen(bitmap: Bitmap?, frameResult: FrameResult, modifier: M
             val right = (nx2 * drawWidth + offsetX).coerceIn(offsetX, offsetX + drawWidth)
             val bottom = (ny2 * drawHeight + offsetY).coerceIn(offsetY, offsetY + drawHeight)
 
-            val width = right - left
-            val height = bottom - top
-
-            if (width <= 0f || height <= 0f) return@forEach
-
-            drawRect(
-                color = Color.Green,
-                topLeft = Offset(left, top),
-                size = ComposeSize(width, height),
-                style = Stroke(width = 8f)
-            )
-            drawText(
+            drawYoloBoundingBox(
                 textMeasurer = textMeasurer,
-                text = "${box.className} ${(box.score * 100).toInt()}%",
-                topLeft = Offset(left, maxOf(0f, top - 50f)),
-                style = TextStyle(color = Color.White, fontSize = 20.sp, background = Color.Red)
+                className = box.className,
+                score = box.score,
+                left = left,
+                top = top,
+                right = right,
+                bottom = bottom
             )
         }
     }

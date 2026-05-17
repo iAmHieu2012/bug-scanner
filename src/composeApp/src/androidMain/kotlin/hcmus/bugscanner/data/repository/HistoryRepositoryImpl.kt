@@ -1,22 +1,20 @@
-package hcmus.bugscanner.data.remote
+package hcmus.bugscanner.data.repository
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import hcmus.bugscanner.domain.model.ScanHistory
+import hcmus.bugscanner.domain.repository.HistoryRepository
 import kotlinx.coroutines.tasks.await
 
 /**
- * Repository quản lý các thao tác truy xuất và lưu trữ lịch sử trên Firebase.
+ * Implementation quản lý các thao tác truy xuất và lưu trữ lịch sử trên Firebase.
  */
-class HistoryRepository {
+class HistoryRepositoryImpl : HistoryRepository {
     private val db = FirebaseFirestore.getInstance()
     private val historyCollection = db.collection("scan_history")
 
-    /**
-     * Lưu một bản ghi lịch sử mới lên Firestore.
-     */
-    suspend fun saveHistory(history: ScanHistory): Boolean {
+    override suspend fun saveHistory(history: ScanHistory): Boolean {
         return try {
             val docRef = historyCollection.document()
             val historyWithId = history.copy(id = docRef.id)
@@ -29,10 +27,7 @@ class HistoryRepository {
         }
     }
 
-    /**
-     * Truy xuất danh sách lịch sử của người dùng, sắp xếp theo thời gian mới nhất.
-     */
-    suspend fun getUserHistory(userId: String): List<ScanHistory> {
+    override suspend fun getUserHistory(userId: String): List<ScanHistory> {
         return try {
             val snapshot = historyCollection
                 .whereEqualTo("userId", userId)

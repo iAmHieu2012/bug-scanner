@@ -1,4 +1,4 @@
-package hcmus.bugscanner.ui.components
+package hcmus.bugscanner.core.state
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

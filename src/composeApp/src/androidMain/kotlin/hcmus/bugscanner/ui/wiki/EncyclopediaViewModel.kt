@@ -2,8 +2,8 @@ package hcmus.bugscanner.ui.wiki
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import hcmus.bugscanner.data.remote.EncyclopediaRepository
 import hcmus.bugscanner.data.remote.RetrofitClient
+import hcmus.bugscanner.data.repository.EncyclopediaRepositoryImpl
 import hcmus.bugscanner.domain.model.BugInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,17 +13,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * ViewModel quản lý trạng thái và logic gọi API/Firebase cho Bách khoa toàn thư.
  */
 class EncyclopediaViewModel : ViewModel() {
-    private val repository = EncyclopediaRepository()
+    private val repository = EncyclopediaRepositoryImpl()
 
     // Danh sách dành cho tab Khám phá (kéo từ Firebase)
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
     val exploreList: StateFlow<List<BugInfo>> = _exploreList.asStateFlow()
 
+    // Lưu trữ từ khóa tìm kiếm cho tab Khám phá
+    private val _exploreSearchQuery = MutableStateFlow("")
+    val exploreSearchQuery: StateFlow<String> = _exploreSearchQuery.asStateFlow()
+
+    private var exploreSearchJob: Job? = null
     // Danh sách dành cho tab Tra cứu (kéo từ Wikipedia API)
     private val _searchResults = MutableStateFlow<List<BugInfo>>(emptyList())
     val searchResults: StateFlow<List<BugInfo>> = _searchResults.asStateFlow()
@@ -36,11 +42,23 @@ class EncyclopediaViewModel : ViewModel() {
     init {
         fetchExploreList()
     }
+    fun onExploreSearchQueryChange(query: String) {
+        _exploreSearchQuery.value = query
+
+        exploreSearchJob?.cancel()
+        exploreSearchJob = viewModelScope.launch {
+            delay(500.milliseconds) // Chống spam API khi user đang gõ
+            fetchExploreList()
+        }
+    }
 
     private fun fetchExploreList() {
         viewModelScope.launch {
             _isLoading.value = true
-            _exploreList.value = repository.getExploreInsects()
+            _exploreList.value = repository.getExploreInsects(
+                searchQuery = _exploreSearchQuery.value,
+                limit = 20
+            )
             _isLoading.value = false
         }
     }
@@ -54,7 +72,7 @@ class EncyclopediaViewModel : ViewModel() {
 
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            delay(500)
+            delay(500.milliseconds)
             _isLoading.value = true
             try {
                 val response = withContext(Dispatchers.IO) {

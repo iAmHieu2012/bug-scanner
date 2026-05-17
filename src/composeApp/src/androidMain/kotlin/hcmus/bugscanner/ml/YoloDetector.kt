@@ -88,7 +88,7 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
         val numColumns = 16464
         val numRows = 106
 
-        val maxScores = FloatArray(numColumns) { 0f }
+        val maxScores = FloatArray(numColumns)
         val classIds = IntArray(numColumns) { -1 }
 
         for (r in 4 until numRows) {

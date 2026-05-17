@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +21,7 @@ import hcmus.bugscanner.ui.detail.BugDetailScreen
 import hcmus.bugscanner.ui.history.HistoryScreen
 import hcmus.bugscanner.ui.history.HistoryViewModel
 import hcmus.bugscanner.ui.chat.ChatScreen
-import hcmus.bugscanner.ui.components.RequireAuthScreen
+import hcmus.bugscanner.core.state.RequireAuthScreen
 import hcmus.bugscanner.ui.scan.ScanScreen
 import hcmus.bugscanner.ui.wiki.EncyclopediaScreen
 
@@ -45,6 +46,7 @@ fun HomeScreen(
 ) {
     var currentTab by remember { mutableStateOf(AppTab.SCAN) }
     var selectedBug by remember { mutableStateOf<BugInfo?>(null) }
+    var initialChatPrompt by remember { mutableStateOf<String?>(null) }
 
     MaterialTheme(
         colorScheme = lightColorScheme(
@@ -64,6 +66,7 @@ fun HomeScreen(
                 bug = bugToShow,
                 onBackClick = { selectedBug = null },
                 onAskChatbotClick = { prompt ->
+                    initialChatPrompt = prompt
                     selectedBug = null
                     currentTab = AppTab.CHATBOT
                 }
@@ -86,7 +89,7 @@ fun HomeScreen(
                             val items: List<Triple<AppTab, String, ImageVector>> = listOf(
                                 Triple(AppTab.SCAN, "Nhận diện", Icons.Rounded.CenterFocusWeak),
                                 Triple(AppTab.HISTORY, "Lịch sử", Icons.Rounded.History),
-                                Triple(AppTab.WIKI, "Bách khoa", Icons.Rounded.MenuBook),
+                                Triple(AppTab.WIKI, "Bách khoa", Icons.AutoMirrored.Rounded.MenuBook),
                                 Triple(AppTab.CHATBOT, "Trợ lý", Icons.Rounded.SmartToy)
                             )
                             items.forEach { (tab, label, icon) ->
@@ -94,7 +97,12 @@ fun HomeScreen(
                                     icon = { Icon(icon, contentDescription = null) },
                                     label = { Text(label, fontSize = 10.sp) },
                                     selected = currentTab == tab,
-                                    onClick = { currentTab = tab },
+                                    onClick = {
+                                        if (tab == AppTab.CHATBOT) {
+                                            initialChatPrompt = null
+                                        }
+                                        currentTab = tab
+                                    },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = SeedGreen,
                                         unselectedIconColor = Color.Gray,
@@ -122,8 +130,8 @@ fun HomeScreen(
                                 historyViewModel.addHistory(detectedName)
                                 selectedBug = BugInfo(
                                     id = detectedName,
-                                    name = detectedName,
-                                    scientificName = "Chưa rõ"
+                                    name = "Đang tải...",
+                                    scientificName = detectedName
                                 )
                             }
                         )
@@ -137,7 +145,14 @@ fun HomeScreen(
                         AppTab.WIKI -> EncyclopediaScreen(onBugSelected = { bug ->
                             selectedBug = bug
                         })
-                        AppTab.CHATBOT -> ChatScreen()
+                        AppTab.CHATBOT -> {
+                            ChatScreen(initialPrompt = initialChatPrompt)
+                            LaunchedEffect(initialChatPrompt) {
+                                if (initialChatPrompt != null) {
+                                    initialChatPrompt = null
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -16,35 +16,29 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size as ComposeSize
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import hcmus.bugscanner.ml.YoloConstants
-import hcmus.bugscanner.ml.YoloDetector
-import java.util.concurrent.ExecutorService
+import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
 
 /**
  * Màn hình hiển thị luồng trực tiếp từ Camera và vẽ bounding box YOLO.
  */
 @Composable
 fun CameraScreen(
-    yoloDetector: YoloDetector,
-    cameraExecutor: ExecutorService,
+    viewModel: ScanViewModel,
     modifier: Modifier = Modifier
 ) {
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val context = LocalContext.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-    val frameResult by yoloDetector.frameResult.collectAsState()
+
+    val frameResult by viewModel.frameResult.collectAsState()
     val textMeasurer = rememberTextMeasurer()
+
+    val cameraExecutor = viewModel.cameraExecutor
 
     DisposableEffect(lifecycleOwner) {
         onDispose {
@@ -66,7 +60,7 @@ fun CameraScreen(
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
                     val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
+                        it.surfaceProvider = previewView.surfaceProvider
                     }
                     val resolutionSelector = ResolutionSelector.Builder()
                         .setResolutionStrategy(
@@ -85,7 +79,8 @@ fun CameraScreen(
                             it.setAnalyzer(cameraExecutor) { imageProxy ->
                                 val bitmap = imageProxy.toBitmap()
                                 val rotation = imageProxy.imageInfo.rotationDegrees
-                                yoloDetector.analyze(bitmap, rotation)
+
+                                viewModel.analyzeImage(bitmap, rotation)
 
                                 bitmap.recycle()
                                 imageProxy.close()
@@ -126,22 +121,14 @@ fun CameraScreen(
                 val right  = (nx2 * dispW - offsetX).coerceIn(0f, size.width)
                 val bottom = (ny2 * dispH - offsetY).coerceIn(0f, size.height)
 
-                val width = right - left
-                val height = bottom - top
-
-                if (width <= 0f || height <= 0f) return@forEach
-
-                drawRect(
-                    color = Color.Green,
-                    topLeft = Offset(left, top),
-                    size = ComposeSize(width, height),
-                    style = Stroke(width = 8f)
-                )
-                drawText(
+                drawYoloBoundingBox(
                     textMeasurer = textMeasurer,
-                    text = "${box.className} ${(box.score * 100).toInt()}%",
-                    topLeft = Offset(left, maxOf(0f, top - 50f)),
-                    style = TextStyle(color = Color.White, fontSize = 20.sp, background = Color.Red)
+                    className = box.className,
+                    score = box.score,
+                    left = left,
+                    top = top,
+                    right = right,
+                    bottom = bottom
                 )
             }
         }

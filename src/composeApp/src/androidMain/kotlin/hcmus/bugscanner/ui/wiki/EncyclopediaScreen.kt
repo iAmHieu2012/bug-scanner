@@ -35,15 +35,21 @@ fun EncyclopediaScreen(
     viewModel: EncyclopediaViewModel = viewModel(),
     onBugSelected: (BugInfo) -> Unit = {}
 ) {
-    var selectedTabIndex by remember { mutableStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val primaryGreen = Color(0xFF2E7D32)
-    val exploreList by viewModel.exploreList.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF1F8E9))) {
-        TabRow(
+        PrimaryTabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = Color.White,
-            contentColor = primaryGreen
+            contentColor = primaryGreen,
+            indicator = {
+                TabRowDefaults.PrimaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
+                    width = androidx.compose.ui.unit.Dp.Unspecified,
+                    color = primaryGreen
+                )
+            }
         ) {
             Tab(
                 selected = selectedTabIndex == 0,
@@ -60,8 +66,7 @@ fun EncyclopediaScreen(
         }
 
         if (selectedTabIndex == 0) {
-            // Truyền danh sách dữ liệu thật vào đây
-            ExploreTab(exploreList = exploreList, onBugSelected = onBugSelected)
+            ExploreTab(viewModel = viewModel, onBugSelected = onBugSelected)
         } else {
             SearchTab(viewModel, onBugSelected)
         }
@@ -73,50 +78,75 @@ fun EncyclopediaScreen(
  */
 @Composable
 fun ExploreTab(
-    exploreList: List<BugInfo>,
+    viewModel: EncyclopediaViewModel,
     onBugSelected: (BugInfo) -> Unit
 ) {
-    if (exploreList.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFF2E7D32))
-        }
-    } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(exploreList) { bug ->
-                Card(
-                    onClick = { onBugSelected(bug) },
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column {
-                        val context = LocalContext.current
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(bug.imageUrl)
-                                .addHeader("User-Agent", "BugScannerApp/1.0 (hcmus.bugscanner)")
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = bug.name,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(1f)
-                                .background(Color.LightGray)
-                        )
-                        Text(
-                            text = bug.name,
-                            modifier = Modifier.padding(12.dp),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = Color(0xFF1B5E20),
-                            maxLines = 1
-                        )
+    val context = LocalContext.current
+    val exploreList by viewModel.exploreList.collectAsState()
+    val searchQuery by viewModel.exploreSearchQuery.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = viewModel::onExploreSearchQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            placeholder = { Text("Tìm côn trùng trong dữ liệu ứng dụng...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+            singleLine = true
+        )
+
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF2E7D32))
+            }
+        } else if (exploreList.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Không tìm thấy kết quả nào", color = Color.Gray)
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(exploreList) { bug ->
+                    val imageRequest = remember(bug.imageUrl) {
+                        ImageRequest.Builder(context)
+                            .data(bug.imageUrl)
+                            .addHeader("User-Agent", "BugScannerApp/1.0 (hcmus.bugscanner)")
+                            .crossfade(true)
+                            .build()
+                    }
+
+                    Card(
+                        onClick = { onBugSelected(bug) },
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column {
+                            AsyncImage(
+                                model = imageRequest,
+                                contentDescription = bug.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .background(Color.LightGray)
+                            )
+                            Text(
+                                text = bug.name,
+                                modifier = Modifier.padding(12.dp),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = Color(0xFF1B5E20),
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
@@ -146,7 +176,7 @@ fun SearchTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            placeholder = { Text("Nhập tên côn trùng để tra cứu...") },
+            placeholder = { Text("Nhập tên côn trùng để tra cứu Wikipedia...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
             singleLine = true
         )

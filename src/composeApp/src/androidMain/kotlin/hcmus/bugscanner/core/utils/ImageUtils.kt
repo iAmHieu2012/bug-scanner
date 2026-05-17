@@ -1,4 +1,4 @@
-package hcmus.bugscanner.util
+package hcmus.bugscanner.core.utils
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -6,6 +6,7 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 
 fun uriToBitmap(context: Context, uri: Uri): Bitmap? {
     return try {
@@ -19,5 +20,8 @@ fun uriToBitmap(context: Context, uri: Uri): Bitmap? {
             @Suppress("DEPRECATION")
             MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
         }
-    } catch (e: Exception) { null }
+    } catch (e: Exception) {
+        Log.e("UriToBitmap", "Lỗi khi chuyển đổi Uri sang Bitmap: ${e.localizedMessage}", e)
+        null
+    }
 }

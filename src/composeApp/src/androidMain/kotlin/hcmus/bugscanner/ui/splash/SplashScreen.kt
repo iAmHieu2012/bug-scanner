@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Màn hình khởi động của ứng dụng.
@@ -30,7 +31,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
             targetValue = 1.2f,
             animationSpec = tween(durationMillis = 800)
         )
-        delay(1000)
+        delay(1000.milliseconds)
         onSplashFinished()
     }
 

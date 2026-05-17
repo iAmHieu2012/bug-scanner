@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,8 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import hcmus.bugscanner.data.repository.EncyclopediaRepositoryImpl
 import hcmus.bugscanner.domain.model.BugInfo
-import hcmus.bugscanner.data.remote.EncyclopediaRepository
+import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 
 /**
  * Màn hình hiển thị thông tin chi tiết đầy đủ của một loài côn trùng (Tự động đồng bộ Firebase nếu thiếu data).
@@ -42,12 +44,14 @@ fun BugDetailScreen(
     // Trạng thái quản lý dữ liệu động bên trong màn hình Detail
     var detailedBug by remember { mutableStateOf(bug) }
     var isLoading by remember { mutableStateOf(false) }
-    val repository = remember { EncyclopediaRepository() }
+    val repository: EncyclopediaRepository = remember { EncyclopediaRepositoryImpl() }
 
-    LaunchedEffect(bug.name) {
+    LaunchedEffect(bug.scientificName) {
         if (bug.treatment.isBlank() && bug.identification.isBlank()) {
             isLoading = true
-            val realBug = repository.getBugByName(bug.name)
+
+            val realBug = repository.getBugByScientificName(bug.scientificName)
+
             if (realBug != null) {
                 detailedBug = realBug
             }
@@ -128,7 +132,7 @@ fun BugDetailScreen(
                     if (detailedBug.description.isNotBlank()) {
                         SectionCard(
                             title = "Tổng quan",
-                            icon = Icons.Rounded.MenuBook,
+                            icon = Icons.AutoMirrored.Rounded.MenuBook,
                             iconTint = Color(0xFF1976D2),
                             content = detailedBug.description
                         )

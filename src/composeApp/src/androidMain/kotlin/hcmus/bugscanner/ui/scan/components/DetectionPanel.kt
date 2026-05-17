@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.FrameResult
-import hcmus.bugscanner.ui.components.EmptyState
+import hcmus.bugscanner.core.state.EmptyState
 
 val SeedGreen = Color(0xFF2E7D32)
 val DeepForest = Color(0xFF1B5E20)

@@ -19,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.domain.model.ScanHistory
-import hcmus.bugscanner.ui.components.EmptyState
+import hcmus.bugscanner.core.state.EmptyState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -62,7 +62,7 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
             LazyColumn(
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
-                items(historyList) { item ->
+                items(historyList) { item: ScanHistory ->
                     HistoryItemCard(item)
                 }
             }
@@ -76,7 +76,11 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
 @Composable
 fun HistoryItemCard(item: ScanHistory) {
     val dateFormat = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale.getDefault())
-    val dateString = item.timestamp?.let { dateFormat.format(it) } ?: "Đang cập nhật..."
+    val dateString = if (item.timestamp != 0L) {
+        dateFormat.format(Date(item.timestamp))
+    } else {
+        "Đang cập nhật..."
+    }
 
     Card(
         modifier = Modifier

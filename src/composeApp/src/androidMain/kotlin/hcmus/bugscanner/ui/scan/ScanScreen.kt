@@ -27,11 +27,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.ml.YoloDetector
-import hcmus.bugscanner.ui.scan.CameraScreen
-import hcmus.bugscanner.ui.scan.StaticDetectionScreen
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
-import hcmus.bugscanner.util.uriToBitmap
+import hcmus.bugscanner.core.utils.uriToBitmap
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -55,7 +56,15 @@ fun ScanScreen(
     onDetectedBugClick: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val frameResult by yoloDetector.frameResult.collectAsState()
+    val viewModel: ScanViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return ScanViewModel(yoloDetector, cameraExecutor) as T
+            }
+        }
+    )
+    val frameResult by viewModel.frameResult.collectAsState()
     var currentMode by remember { mutableStateOf(ScanMode.LIVE) }
     var staticBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -70,10 +79,10 @@ fun ScanScreen(
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             currentMode = ScanMode.IMAGE_UPLOAD
-            yoloDetector.clearResult()
+            viewModel.clearResult()
             val bmp = uriToBitmap(context, it)
             staticBitmap = bmp
-            bmp?.let { validBmp -> yoloDetector.analyze(validBmp, 0) }
+            bmp?.let { validBmp -> viewModel.analyzeImage(validBmp, 0) }
         }
     }
 
@@ -81,10 +90,10 @@ fun ScanScreen(
         if (success) {
             capturedImageUri?.let { uri ->
                 currentMode = ScanMode.CAMERA_CAPTURE
-                yoloDetector.clearResult()
+                viewModel.clearResult()
                 val bmp = uriToBitmap(context, uri)
                 staticBitmap = bmp
-                bmp?.let { validBmp -> yoloDetector.analyze(validBmp, 0) }
+                bmp?.let { validBmp -> viewModel.analyzeImage(validBmp, 0) }
             }
         }
     }
@@ -123,7 +132,7 @@ fun ScanScreen(
                 .background(Color.Black)
         ) {
             if (currentMode == ScanMode.LIVE) {
-                CameraScreen(yoloDetector, cameraExecutor)
+                CameraScreen(viewModel)
                 ScannerOverlay()
             } else {
                 StaticDetectionScreen(staticBitmap, frameResult)
@@ -145,15 +154,18 @@ fun ScanScreen(
                 quickModes.forEach { (mode, icon) ->
                     IconButton(
                         onClick = {
-                            if (mode == ScanMode.LIVE) {
-                                currentMode = mode
-                                yoloDetector.clearResult()
-                                staticBitmap = null
-                            } else if (mode == ScanMode.IMAGE_UPLOAD) galleryLauncher.launch("image/*")
-                            else {
-                                val uri = createImageUri()
-                                capturedImageUri = uri
-                                cameraLauncher.launch(uri)
+                            when (mode) {
+                                ScanMode.LIVE -> {
+                                    currentMode = mode
+                                    viewModel.clearResult()
+                                    staticBitmap = null
+                                }
+                                ScanMode.IMAGE_UPLOAD -> galleryLauncher.launch("image/*")
+                                else -> {
+                                    val uri = createImageUri()
+                                    capturedImageUri = uri
+                                    cameraLauncher.launch(uri)
+                                }
                             }
                         },
                         modifier = Modifier

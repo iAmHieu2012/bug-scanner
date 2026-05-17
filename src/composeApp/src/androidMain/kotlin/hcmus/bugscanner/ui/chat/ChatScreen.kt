@@ -24,11 +24,15 @@ import hcmus.bugscanner.ui.components.TypingIndicator
  * Màn hình giao diện nhắn tin với AI Chatbot.
  */
 @Composable
-fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
-    var prompt by remember { mutableStateOf("") }
+fun ChatScreen(initialPrompt: String? = null, viewModel: ChatViewModel = viewModel()) {
+    var prompt by remember { mutableStateOf(initialPrompt ?: "") }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
-
+    LaunchedEffect(initialPrompt) {
+        if (!initialPrompt.isNullOrBlank()) {
+            prompt = initialPrompt
+        }
+    }
     val primaryGreen = Color(0xFF2E7D32)
     val lightGreenBg = Color(0xFFF1F8E9)
     val darkGreenText = Color(0xFF1B5E20)
