@@ -1,8 +1,11 @@
 package hcmus.bugscanner.domain.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Chứa thông tin chi tiết của côn trùng để hiển thị trên UI.
  */
+@Serializable
 data class BugInfo(
     val id: String = "",
     val name: String = "",

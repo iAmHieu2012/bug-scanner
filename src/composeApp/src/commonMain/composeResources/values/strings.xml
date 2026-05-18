@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BugScanner</string>
+    <string name="scan_greeting_msg">Xin chào! 🌿</string>
+    <string name="scan_what_to_find">Hôm nay bạn tìm gì?</string>
+    <string name="action_login">Đăng nhập</string>
+    <string name="action_logout">Đăng xuất</string>
+</resources>

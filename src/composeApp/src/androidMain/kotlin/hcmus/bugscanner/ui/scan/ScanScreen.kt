@@ -32,16 +32,22 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.ml.YoloDetector
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
+import hcmus.bugscanner.ui.theme.DeepForest
+import hcmus.bugscanner.ui.theme.SeedGreen
+import hcmus.bugscanner.ui.theme.SoftGreen
 import hcmus.bugscanner.core.utils.uriToBitmap
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
+import org.jetbrains.compose.resources.stringResource
+import bugscanner.composeapp.generated.resources.Res
+import bugscanner.composeapp.generated.resources.scan_greeting_msg
+import bugscanner.composeapp.generated.resources.scan_what_to_find
+import bugscanner.composeapp.generated.resources.action_login
+import bugscanner.composeapp.generated.resources.action_logout
 
 enum class ScanMode { LIVE, IMAGE_UPLOAD, CAMERA_CAPTURE }
-
-val SeedGreen = Color(0xFF2E7D32)
-val DeepForest = Color(0xFF1B5E20)
 
 /**
  * Màn hình xử lý chức năng quét và nhận diện côn trùng.
@@ -107,17 +113,25 @@ fun ScanScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text("Xin chào! \uD83C\uDF3F", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-                Text("Hôm nay bạn tìm gì?", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = DeepForest)
+                Text(
+                    text = stringResource(Res.string.scan_greeting_msg),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Gray
+                )
+                Text(
+                    text = stringResource(Res.string.scan_what_to_find),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = DeepForest
+                )
             }
-
             IconButton(
                 onClick = onAuthAction,
-                modifier = Modifier.background(Color(0xFFC8E6C9), CircleShape)
+                modifier = Modifier.background(SoftGreen, CircleShape)
             ) {
                 Icon(
                     imageVector = if (isLoggedIn) Icons.AutoMirrored.Rounded.Logout else Icons.AutoMirrored.Rounded.Login,
-                    contentDescription = if (isLoggedIn) "Đăng xuất" else "Đăng nhập",
+                    // SỬA LẠI CONTENT DESCRIPTION
+                    contentDescription = if (isLoggedIn) stringResource(Res.string.action_logout) else stringResource(Res.string.action_login),
                     tint = DeepForest
                 )
             }

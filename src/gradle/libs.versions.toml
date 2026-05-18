@@ -11,7 +11,7 @@ androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.10.0"
 androidx-testExt = "1.3.0"
 composeHotReload = "1.1.1"
-composeMultiplatform = "1.10.3"
+composeMultiplatform = "1.11.0"
 junit = "4.13.2"
 kotlin = "2.3.21"
 kotlinx-coroutines = "1.11.0"
@@ -31,6 +31,12 @@ googleServices = "4.4.4"
 firebaseAuth = "23.2.1"
 firebaseFirestore = "25.1.4"
 coroutinesPlayServices = "1.11.0"
+
+voyager = "1.1.0-beta03" # Thư viện Navigation đa nền tảng
+ktor = "3.5.0" # Thư viện gọi API đa nền tảng (thay Retrofit)
+coil3 = "3.0.4" # Coil bản 3.x hỗ trợ KMP
+firebaseKmp = "2.4.0" # Thư viện Firebase cho KMP (của GitLive)
+kotlinxSerialization = "1.7.3" # Cần cho Ktor
 
 [libraries]
 # Thư viện cũ của bạn
@@ -81,6 +87,26 @@ firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref 
 firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx", version.ref = "firebaseFirestore" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 
+# Navigation (Voyager)
+voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
+voyager-screenmodel = { module = "cafe.adriel.voyager:voyager-screenmodel", version.ref = "voyager" }
+voyager-transitions = { module = "cafe.adriel.voyager:voyager-transitions", version.ref = "voyager" }
+
+# Networking (Ktor)
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+
+# Image Loading (Coil 3 KMP)
+coil-compose-core = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
+coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil3" }
+
+# Firebase KMP
+firebase-kmp-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebaseKmp" }
+firebase-kmp-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebaseKmp" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
@@ -90,3 +116,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
