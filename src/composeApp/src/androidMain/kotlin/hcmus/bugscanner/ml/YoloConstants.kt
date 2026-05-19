@@ -1,5 +1,8 @@
 package hcmus.bugscanner.ml
 
+/**
+ * Hằng số cấu hình cho mô hình Object Detection (YOLO)
+ */
 object YoloConstants {
     const val MODEL_PATH = "model.tflite"
     const val INPUT_SIZE = 896

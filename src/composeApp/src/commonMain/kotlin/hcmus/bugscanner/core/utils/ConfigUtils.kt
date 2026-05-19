@@ -1,4 +1,6 @@
 package hcmus.bugscanner.core.utils
 
-// Khai báo hàm yêu cầu nền tảng cung cấp API Key
+/**
+ * Khai báo hàm yêu cầu lấy API Key
+ */
 expect fun getGeminiApiKey(): String

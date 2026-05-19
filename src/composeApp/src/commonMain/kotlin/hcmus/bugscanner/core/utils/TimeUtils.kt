@@ -1,5 +1,11 @@
 package hcmus.bugscanner.core.utils
 
-// Khai báo hàm để commonMain yêu cầu nền tảng cung cấp cách lấy và format thời gian
+/**
+ * Khai báo hàm yêu cầu cung cấp cách lấy thời gian
+ */
 expect fun getCurrentTimeMillis(): Long
+
+/**
+ * Khai báo hàm yêu cầu cung cấp cách format thời gian
+ */
 expect fun formatTimestamp(timestamp: Long): String

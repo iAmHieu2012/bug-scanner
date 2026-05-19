@@ -1,5 +1,4 @@
 [versions]
-# Các version cũ của bạn
 agp = "8.13.2"
 android-compileSdk = "36"
 android-minSdk = "24"
@@ -37,6 +36,8 @@ ktor = "3.5.0" # Thư viện gọi API đa nền tảng (thay Retrofit)
 coil3 = "3.0.4" # Coil bản 3.x hỗ trợ KMP
 firebaseKmp = "2.4.0" # Thư viện Firebase cho KMP (của GitLive)
 kotlinxSerialization = "1.7.3" # Cần cho Ktor
+
+multiplatformSettings = "1.1.1" # Hoặc phiên bản mới nhất tương thích
 
 [libraries]
 # Thư viện cũ của bạn
@@ -106,6 +107,8 @@ coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.re
 # Firebase KMP
 firebase-kmp-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebaseKmp" }
 firebase-kmp-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebaseKmp" }
+
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

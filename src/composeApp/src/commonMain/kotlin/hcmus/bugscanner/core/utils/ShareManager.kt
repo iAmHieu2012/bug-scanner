@@ -2,10 +2,15 @@ package hcmus.bugscanner.core.utils
 
 import androidx.compose.runtime.Composable
 
-expect class ShareManager {
+/**
+ * Interface quản lý logic Share chung cho mọi nền tảng.
+ */
+interface ShareManager {
     fun shareBugInfo(bugName: String, scientificName: String)
 }
 
-// Hàm này giúp Compose nhớ và khởi tạo ShareManager phù hợp với từng nền tảng
+/**
+ * Hàm khởi tạo ShareManager tương ứng với từng nền tảng.
+ */
 @Composable
 expect fun rememberShareManager(): ShareManager

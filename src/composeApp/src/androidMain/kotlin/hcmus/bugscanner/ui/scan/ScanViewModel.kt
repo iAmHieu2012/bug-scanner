@@ -22,4 +22,10 @@ class ScanViewModel(
     fun clearResult() {
         yoloDetector.clearResult()
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        yoloDetector.close()
+        cameraExecutor.shutdown()
+    }
 }
