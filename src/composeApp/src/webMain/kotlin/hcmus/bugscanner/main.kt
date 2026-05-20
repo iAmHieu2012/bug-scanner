@@ -14,7 +14,7 @@ import org.jetbrains.skiko.wasm.onWasmReady
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    window.fetch("firebase-config.json")
+    window.fetch("firebase-config.json", js("{}"))
         .then { response ->
             if (!response.ok) throw Exception("Không tìm thấy file firebase-config.json")
             response.json()
