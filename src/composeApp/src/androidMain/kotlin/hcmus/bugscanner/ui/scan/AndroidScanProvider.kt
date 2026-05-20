@@ -57,14 +57,9 @@ object AndroidScanProvider : PlatformScanProvider {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
-            val viewModel: ScanViewModel = viewModel(
-                factory = object : ViewModelProvider.Factory {
-                    @Suppress("UNCHECKED_CAST")
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                        return ScanViewModel(yoloRef.get()!!, executorRef.get()!!) as T
-                    }
-                }
-            )
+            val viewModel: ScanViewModel = viewModel {
+                ScanViewModel(yoloRef.get()!!, executorRef.get()!!)
+            }
 
             val frameResult by viewModel.frameResult.collectAsState()
             LaunchedEffect(frameResult) { onResult(frameResult) }

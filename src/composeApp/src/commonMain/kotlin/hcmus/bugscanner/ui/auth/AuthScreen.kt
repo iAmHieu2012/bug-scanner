@@ -21,7 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
  */
 @Composable
 fun AuthScreen(
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel { AuthViewModel() }
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }

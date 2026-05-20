@@ -38,6 +38,7 @@ firebaseKmp = "2.4.0" # Thư viện Firebase cho KMP (của GitLive)
 kotlinxSerialization = "1.7.3" # Cần cho Ktor
 
 multiplatformSettings = "1.1.1" # Hoặc phiên bản mới nhất tương thích
+buildconfig = "5.3.5"
 
 [libraries]
 # Thư viện cũ của bạn
@@ -109,6 +110,7 @@ firebase-kmp-auth = { module = "dev.gitlive:firebase-auth", version.ref = "fireb
 firebase-kmp-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebaseKmp" }
 
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -120,3 +122,4 @@ kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }

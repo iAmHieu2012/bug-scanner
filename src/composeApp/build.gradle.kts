@@ -15,6 +15,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.buildconfig)
 }
 
 kotlin {
@@ -40,6 +41,12 @@ kotlin {
         browser()
         binaries.executable()
     }
+
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        browser()
+//        binaries.executable()
+//    }
 
     sourceSets {
         androidMain.dependencies {
@@ -109,6 +116,10 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
         }
+        jsMain.dependencies {
+            implementation(compose.html.core)
+            implementation(libs.ktor.client.js)
+        }
     }
 }
 
@@ -122,12 +133,12 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+//        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
+//        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
-    buildFeatures {
-        buildConfig = true
-    }
+//    buildFeatures {
+//        buildConfig = true
+//    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -158,4 +169,13 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+buildConfig {
+    packageName("hcmus.bugscanner")
+
+    // Đọc API Key từ properties bạn đã load sẵn ở đầu file
+    val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
+
+    // Sinh ra biến BuildConfig.GEMINI_API_KEY cho toàn bộ nền tảng
+    buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
 }

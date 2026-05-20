@@ -35,7 +35,7 @@ fun HomeScreen(
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo) -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String) -> Unit) -> Unit,
-    historyViewModel: HistoryViewModel = viewModel()
+    historyViewModel: HistoryViewModel = viewModel { HistoryViewModel() }
 ) {
     var currentTab by remember { mutableStateOf(AppTab.SCAN) }
     var selectedBug by remember { mutableStateOf<BugInfo?>(null) }

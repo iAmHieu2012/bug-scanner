@@ -16,7 +16,7 @@ import hcmus.bugscanner.ui.theme.AppTheme
  */
 @Composable
 fun AppNavigation(
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel { AuthViewModel() }
 ) {
     AppTheme {
         var showSplash by remember { mutableStateOf(true) }

@@ -29,7 +29,7 @@ import hcmus.bugscanner.ui.components.BugItemCard
  */
 @Composable
 fun EncyclopediaScreen(
-    viewModel: EncyclopediaViewModel = viewModel(),
+    viewModel: EncyclopediaViewModel = viewModel{ EncyclopediaViewModel() },
     onBugSelected: (BugInfo) -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }

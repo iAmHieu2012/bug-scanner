@@ -25,7 +25,7 @@ import hcmus.bugscanner.core.utils.formatTimestamp
  * Màn hình hiển thị danh sách lịch sử nhận diện của người dùng.
  */
 @Composable
-fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
+fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel { HistoryViewModel() }) {
     val historyList by historyViewModel.historyList.collectAsState()
 
     LaunchedEffect(Unit) {

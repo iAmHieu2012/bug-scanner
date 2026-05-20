@@ -2,7 +2,6 @@ package hcmus.bugscanner.ui.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import hcmus.bugscanner.core.utils.getGeminiApiKey
 import hcmus.bugscanner.domain.model.ChatMessage
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -35,7 +34,7 @@ data class Candidate(val content: GeminiContent)
  * ViewModel quản lý tin nhắn và gọi API Google Gemini bằng Ktor.
  */
 class ChatViewModel : ViewModel() {
-    private val apiKey = getGeminiApiKey()
+    private val apiKey = hcmus.bugscanner.BuildConfig.GEMINI_API_KEY
     private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })

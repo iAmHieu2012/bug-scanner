@@ -22,7 +22,7 @@ import hcmus.bugscanner.ui.components.TypingIndicator
  * Màn hình giao diện nhắn tin với AI Chatbot.
  */
 @Composable
-fun ChatScreen(initialPrompt: String? = null, viewModel: ChatViewModel = viewModel()) {
+fun ChatScreen(initialPrompt: String? = null, viewModel: ChatViewModel = viewModel { ChatViewModel() }) {
     var prompt by remember { mutableStateOf(initialPrompt ?: "") }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
