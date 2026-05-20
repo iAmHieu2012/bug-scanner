@@ -44,7 +44,7 @@ class EncyclopediaViewModel : ViewModel() {
         _exploreSearchQuery.value = query
         exploreSearchJob?.cancel()
         exploreSearchJob = viewModelScope.launch {
-            delay(500)
+            delay(500.milliseconds)
             fetchExploreList()
         }
     }
@@ -79,8 +79,8 @@ class EncyclopediaViewModel : ViewModel() {
                         .sortedBy { it.index }
                         .map { page ->
                             BugInfo(
-                                id = page.title ?: "",
-                                name = page.title ?: "",
+                                id = page.title,
+                                name = page.title,
                                 scientificName = "Côn trùng / Thực vật",
                                 description = page.extract ?: "Không có mô tả chi tiết.",
                                 imageUrl = page.thumbnail?.source ?: "https://via.placeholder.com/300?text=No+Image"

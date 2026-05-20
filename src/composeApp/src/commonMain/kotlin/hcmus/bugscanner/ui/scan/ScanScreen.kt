@@ -23,9 +23,6 @@ import androidx.compose.ui.unit.dp
 import bugscanner.composeapp.generated.resources.*
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
-import hcmus.bugscanner.ui.theme.DeepForest
-import hcmus.bugscanner.ui.theme.SeedGreen
-import hcmus.bugscanner.ui.theme.SoftGreen
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -37,34 +34,36 @@ fun ScanScreen(
     onAuthAction: () -> Unit,
     onDetectedBugClick: (String) -> Unit
 ) {
+    // Lấy provider của nền tảng hiện tại
+    val platformProvider = LocalPlatformScanProvider.current
+
     var currentMode by remember { mutableStateOf(ScanMode.LIVE) }
     var frameResult by remember { mutableStateOf<FrameResult?>(null) }
     var currentImageId by remember { mutableStateOf<String?>(null) }
-
-    val pickerHelper = rememberImagePickerHelper(
-        onModeChange = { currentMode = it },
-        onResult = { frameResult = it },
-        onImageIdCaptured = { currentImageId = it }
+    val pickerHelper = platformProvider.rememberImagePickerHelper(
+        { currentMode = it },
+        { frameResult = it },
+        { currentImageId = it }
     )
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(24.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(text = stringResource(Res.string.scan_greeting_msg), style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-                Text(text = stringResource(Res.string.scan_what_to_find), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = DeepForest)
+                Text(text = stringResource(Res.string.scan_greeting_msg), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = stringResource(Res.string.scan_what_to_find), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onBackground)
             }
             IconButton(
                 onClick = onAuthAction,
-                modifier = Modifier.background(SoftGreen, CircleShape)
+                modifier = Modifier.background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
             ) {
                 Icon(
                     imageVector = if (isLoggedIn) Icons.AutoMirrored.Rounded.Logout else Icons.AutoMirrored.Rounded.Login,
                     contentDescription = if (isLoggedIn) stringResource(Res.string.action_logout) else stringResource(Res.string.action_login),
-                    tint = DeepForest
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
         }
@@ -73,16 +72,16 @@ fun ScanScreen(
             modifier = Modifier.weight(1f).padding(horizontal = 20.dp).clip(RoundedCornerShape(32.dp)).border(2.dp, Color.White, RoundedCornerShape(32.dp)).background(Color.Black)
         ) {
             if (currentMode == ScanMode.LIVE) {
-                NativeCameraView(
-                    modifier = Modifier.fillMaxSize(),
-                    onResult = { frameResult = it }
+                platformProvider.NativeCameraView(
+                    Modifier.fillMaxSize(),
+                    { frameResult = it }
                 )
                 ScannerOverlay()
             } else {
-                NativeStaticDetectionView(
-                    modifier = Modifier.fillMaxSize(),
-                    imageId = currentImageId,
-                    frameResult = frameResult
+                platformProvider.NativeStaticDetectionView(
+                    Modifier.fillMaxSize(),
+                    currentImageId,
+                    frameResult
                 )
             }
 
@@ -105,8 +104,8 @@ fun ScanScreen(
                                 ScanMode.CAMERA_CAPTURE -> pickerHelper.launchCamera()
                             }
                         },
-                        modifier = Modifier.clip(CircleShape).background(if (currentMode == mode) SeedGreen else Color.Transparent)
-                    ) { Icon(icon, null, tint = Color.White) }
+                        modifier = Modifier.clip(CircleShape).background(if (currentMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    ) { Icon(icon, null, tint = if (currentMode == mode) MaterialTheme.colorScheme.onPrimary else Color.White) }
                 }
             }
         }

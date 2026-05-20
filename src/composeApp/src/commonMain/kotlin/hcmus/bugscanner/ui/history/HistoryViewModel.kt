@@ -23,7 +23,7 @@ class HistoryViewModel : ViewModel() {
 
     fun addHistory(bugName: String) {
         val currentUser = Firebase.auth.currentUser
-        if (currentUser != null && currentUser.isAnonymous == false) {
+        if (currentUser != null && !currentUser.isAnonymous) {
             viewModelScope.launch {
                 val newHistory = ScanHistory(
                     userId = currentUser.uid,
@@ -37,7 +37,7 @@ class HistoryViewModel : ViewModel() {
 
     fun fetchHistory() {
         val currentUser = Firebase.auth.currentUser
-        if (currentUser != null && currentUser.isAnonymous == false) {
+        if (currentUser != null && !currentUser.isAnonymous) {
             viewModelScope.launch {
                 _historyList.value = repository.getUserHistory(currentUser.uid)
             }

@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -22,37 +21,33 @@ import androidx.lifecycle.viewmodel.compose.viewModel
  */
 @Composable
 fun AuthScreen(
-    authViewModel: AuthViewModel = viewModel(),
-    onLoginSuccess: (Boolean) -> Unit
+    authViewModel: AuthViewModel = viewModel()
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    val primaryGreen = Color(0xFF2E7D32)
-    val lightGreenBg = Color(0xFFF1F8E9)
-
     val authState by authViewModel.authState.collectAsState()
 
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
-            val isGuest = (authState as AuthState.Success).isGuest
-            onLoginSuccess(isGuest)
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize().background(lightGreenBg), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier.padding(32.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 8.dp) {
-                Icon(Icons.Rounded.BugReport, contentDescription = "Logo", tint = primaryGreen, modifier = Modifier.padding(16.dp).size(64.dp))
+            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
+                Icon(Icons.Rounded.BugReport, contentDescription = "Logo", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(16.dp).size(64.dp))
             }
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(text = if (isLoginMode) "Chào mừng trở lại!" else "Tạo tài khoản BugScanner", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = Color(0xFF1B5E20))
-            Text(text = "Khám phá thế giới côn trùng ngay hôm nay", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text(
+                text = if (isLoginMode) "Chào mừng trở lại!" else "Tạo tài khoản BugScanner",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Khám phá thế giới côn trùng ngay hôm nay",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -93,13 +88,13 @@ fun AuthScreen(
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 enabled = authState !is AuthState.Loading
             ) {
                 if (authState is AuthState.Loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
-                    Text(if (isLoginMode) "Đăng nhập" else "Đăng ký", fontWeight = FontWeight.Bold)
+                    Text(if (isLoginMode) "Đăng nhập" else "Đăng ký", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
 
@@ -108,7 +103,7 @@ fun AuthScreen(
             TextButton(onClick = { isLoginMode = !isLoginMode }) {
                 Text(
                     text = if (isLoginMode) "Chưa có tài khoản? Đăng ký ngay" else "Đã có tài khoản? Đăng nhập",
-                    color = primaryGreen
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -116,7 +111,7 @@ fun AuthScreen(
                 onClick = { authViewModel.signInAnonymously() },
                 enabled = authState !is AuthState.Loading
             ) {
-                Text("Tiếp tục mà không cần đăng nhập", color = Color.Gray)
+                Text("Tiếp tục mà không cần đăng nhập", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

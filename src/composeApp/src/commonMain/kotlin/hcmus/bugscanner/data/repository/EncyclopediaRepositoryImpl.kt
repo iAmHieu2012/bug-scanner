@@ -2,7 +2,6 @@ package hcmus.bugscanner.data.repository
 
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
-import dev.gitlive.firebase.firestore.where
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 
@@ -19,8 +18,8 @@ class EncyclopediaRepositoryImpl : EncyclopediaRepository {
                 val searchStr = searchQuery.trim()
                 encyclopediaCollection
                     .orderBy("name")
-                    .startAt(searchStr)
-                    .endAt(searchStr + "\uf8ff")
+                    .startAtFieldValues { add(searchStr) }
+                    .endAtFieldValues { add(searchStr + "\uf8ff") }
                     .limit(limit)
             } else {
                 encyclopediaCollection.orderBy("name").limit(limit)

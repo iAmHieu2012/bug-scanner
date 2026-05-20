@@ -26,8 +26,6 @@ fun BugItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            // Trong KMP sử dụng Coil3, bạn chỉ cần truyền URL dạng String trực tiếp vào model
-            // Không cần Builder kèm context nữa.
             AsyncImage(
                 model = bug.imageUrl,
                 contentDescription = bug.name,

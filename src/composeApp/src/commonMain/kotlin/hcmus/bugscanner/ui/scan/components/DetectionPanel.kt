@@ -16,9 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.core.state.EmptyState
-import hcmus.bugscanner.ui.theme.DeepForest
-import hcmus.bugscanner.ui.theme.SeedGreen
-import kotlin.math.abs
 
 /**
  * Hàm sinh màu tự động và CỐ ĐỊNH cho từng loại côn trùng dựa vào tên của nó.
@@ -26,16 +23,16 @@ import kotlin.math.abs
 fun getBugColor(className: String): Color {
     val colors = listOf(
         Color(0xFFE53935), // Đỏ
-        Color(0xFF43A047), // Xanh lá
-        Color(0xFF1E88E5), // Xanh dương
-        Color(0xFFFFB300), // Vàng
-        Color(0xFF8E24AA), // Tím
-        Color(0xFF00ACC1), // Xanh lơ
-        Color(0xFFF4511E), // Cam
-        Color(0xFF7CB342), // Xanh lục nhạt
-        Color(0xFF3949AB)  // Chàm
+        Color(0xFFFF9800), // Cam
+        Color(0xFFFFC107), // Vàng
+        Color(0xFF4CAF50), // Lục
+        Color(0xFF2196F3), // Lam
+        Color(0xFF9C27B0), // Tím
+        Color(0xFFE91E63), // Hồng
+        Color(0xFF00C8C8), // Xanh ngọc
+        Color(0xFF795548)  // Nâu
     )
-    return colors[abs(className.hashCode()) % colors.size]
+    return colors[(className.hashCode() and 0x7FFFFFFF) % colors.size]
 }
 
 /**
@@ -48,7 +45,6 @@ fun DetectionPanel(
     onBugClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Nhóm các box theo tên côn trùng. Trả về Pair(số lượng con, độ chính xác MAX của loài đó)
     val detectionSummary = frameResult?.boxes?.groupBy { it.className }?.mapValues { entry ->
         val count = entry.value.size
         val maxScore = entry.value.maxOf { it.score }
@@ -59,22 +55,22 @@ fun DetectionPanel(
     val isInitial = frameResult == null || frameResult.sourceWidth == 0
 
     Surface(
-        modifier = modifier.fillMaxWidth().height(250.dp).padding(top = 16.dp),
-        color = Color.White,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        shadowElevation = 16.dp
+        modifier = modifier.fillMaxWidth().height(250.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(32.dp),
+        shadowElevation = 8.dp
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Kết quả phát hiện",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = DeepForest
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 if (detectionSummary.isNotEmpty()) {
                     Spacer(Modifier.width(8.dp))
-                    Badge(containerColor = SeedGreen) {
-                        Text("$totalBugs", color = Color.White)
+                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                        Text("$totalBugs", color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
@@ -90,25 +86,23 @@ fun DetectionPanel(
                     items(detectionSummary.toList()) { (name, stats) ->
                         val count = stats.first
                         val maxScore = stats.second
-                        val bugColor = getBugColor(name) // Lấy màu của loài này
+                        val bugColor = getBugColor(name)
 
                         Card(
                             onClick = { onBugClick(name) },
                             modifier = Modifier.padding(vertical = 4.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9))
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             ListItem(
                                 leadingContent = {
-                                    // Áp dụng đúng màu khung BoundingBox cho icon để người dùng dễ dàng so sánh
                                     Icon(Icons.Rounded.Eco, contentDescription = null, tint = bugColor)
                                 },
-                                headlineContent = { Text(name, fontWeight = FontWeight.SemiBold) },
+                                headlineContent = { Text(name, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 supportingContent = {
-                                    // Hiển thị Score (Độ chính xác) ở đây
-                                    Text("Độ chính xác: ${(maxScore * 100).toInt()}%", color = Color.Gray, fontSize = 13.sp)
+                                    Text("Độ chính xác: ${(maxScore * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 13.sp)
                                 },
-                                trailingContent = { Text("x$count", fontWeight = FontWeight.Bold, color = DeepForest) },
+                                trailingContent = { Text("x$count", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         }

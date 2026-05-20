@@ -4,7 +4,7 @@ package hcmus.bugscanner.ml
  * Hằng số cấu hình cho mô hình Object Detection (YOLO)
  */
 object YoloConstants {
-    const val MODEL_PATH = "model.tflite"
+    const val MODEL_PATH = "model.tflite" // link model: huggingface: "Yashwanth1508/AgroAI-pest-detection"
     const val INPUT_SIZE = 896
     const val CONFIDENCE_THRESHOLD = 0.35f
     const val IOU_THRESHOLD = 0.4f

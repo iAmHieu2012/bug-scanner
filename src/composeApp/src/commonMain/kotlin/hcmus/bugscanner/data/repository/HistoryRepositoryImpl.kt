@@ -3,7 +3,6 @@ package hcmus.bugscanner.data.repository
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.firestore
-import dev.gitlive.firebase.firestore.where
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.repository.HistoryRepository
 

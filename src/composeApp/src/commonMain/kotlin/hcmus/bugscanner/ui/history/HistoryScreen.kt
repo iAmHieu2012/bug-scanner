@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,18 +35,18 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F8E9))
+            .background(MaterialTheme.colorScheme.background)
             .padding(top = 24.dp, start = 16.dp, end = 16.dp)
     ) {
         Text(
             text = "Lịch sử khám phá",
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = Color(0xFF1B5E20)
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
             text = "Những loài côn trùng bạn đã tìm thấy",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -81,7 +80,7 @@ fun HistoryItemCard(item: ScanHistory) {
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -92,13 +91,13 @@ fun HistoryItemCard(item: ScanHistory) {
         ) {
             Surface(
                 shape = CircleShape,
-                color = Color(0xFFE8F5E9),
+                color = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
                     Icons.Rounded.BugReport,
                     contentDescription = null,
-                    tint = Color(0xFF2E7D32),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(12.dp)
                 )
             }
@@ -109,21 +108,21 @@ fun HistoryItemCard(item: ScanHistory) {
                 Text(
                     text = item.bugName,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFF1B5E20)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Rounded.AccessTime,
                         contentDescription = null,
-                        tint = Color.Gray,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = dateString,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -131,7 +130,7 @@ fun HistoryItemCard(item: ScanHistory) {
             Icon(
                 Icons.Rounded.ChevronRight,
                 contentDescription = "Xem chi tiết",
-                tint = Color.LightGray
+                tint = MaterialTheme.colorScheme.outlineVariant
             )
         }
     }

@@ -16,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,18 +33,17 @@ fun EncyclopediaScreen(
     onBugSelected: (BugInfo) -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val primaryGreen = Color(0xFF2E7D32)
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF1F8E9))) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         PrimaryTabRow(
             selectedTabIndex = selectedTabIndex,
-            containerColor = Color.White,
-            contentColor = primaryGreen,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary,
             indicator = {
                 TabRowDefaults.PrimaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
                     width = androidx.compose.ui.unit.Dp.Unspecified,
-                    color = primaryGreen
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         ) {
@@ -72,7 +70,7 @@ fun EncyclopediaScreen(
 }
 
 /**
- * Tab hiển thị danh sách các loài côn trùng nổi bật dạng lưới (Dữ liệu Firebase).
+ * Tab hiển thị danh sách các loài côn trùng nổi bật dạng lưới.
  */
 @Composable
 fun ExploreTab(
@@ -97,11 +95,11 @@ fun ExploreTab(
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF2E7D32))
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else if (exploreList.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Không tìm thấy kết quả nào", color = Color.Gray)
+                Text("Không tìm thấy kết quả nào", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyVerticalGrid(
@@ -116,7 +114,7 @@ fun ExploreTab(
                         onClick = { onBugSelected(bug) },
                         shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column {
                             AsyncImage(
@@ -126,13 +124,13 @@ fun ExploreTab(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(1f)
-                                    .background(Color.LightGray)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                             )
                             Text(
                                 text = bug.name,
                                 modifier = Modifier.padding(12.dp),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = Color(0xFF1B5E20),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1
                             )
                         }
@@ -174,7 +172,7 @@ fun SearchTab(
             if (isLoading && searchResults.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.padding(top = 32.dp))
             } else if (searchResults.isEmpty() && searchQuery.isNotEmpty()) {
-                Text("Không tìm thấy kết quả nào cho '$searchQuery'", modifier = Modifier.padding(top = 32.dp))
+                Text("Không tìm thấy kết quả nào cho '$searchQuery'", modifier = Modifier.padding(top = 32.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),

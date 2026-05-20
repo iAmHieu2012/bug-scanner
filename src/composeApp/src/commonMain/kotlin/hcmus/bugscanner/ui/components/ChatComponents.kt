@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.ChatMessage
 
@@ -20,7 +19,7 @@ import hcmus.bugscanner.domain.model.ChatMessage
  * Bong bóng hiển thị nội dung tin nhắn của người dùng hoặc chatbot.
  */
 @Composable
-fun ChatBubble(message: ChatMessage, primaryColor: Color, darkText: Color) {
+fun ChatBubble(message: ChatMessage) {
     val isUser = message.isUser
     Row(
         modifier = Modifier
@@ -32,18 +31,17 @@ fun ChatBubble(message: ChatMessage, primaryColor: Color, darkText: Color) {
         if (!isUser) {
             Surface(
                 shape = CircleShape,
-                color = Color(0xFFC8E6C9),
+                color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(32.dp)
             ) {
-                Icon(Icons.Rounded.SmartToy, contentDescription = null, modifier = Modifier.padding(6.dp), tint = darkText)
+                Icon(Icons.Rounded.SmartToy, contentDescription = null, modifier = Modifier.padding(6.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             Spacer(modifier = Modifier.width(8.dp))
         }
 
         Box(
             modifier = Modifier
-                .weight(1f, fill = false)
-                .fillMaxWidth(0.85f)
+                .widthIn(max = 280.dp)
                 .clip(
                     RoundedCornerShape(
                         topStart = 20.dp,
@@ -52,18 +50,12 @@ fun ChatBubble(message: ChatMessage, primaryColor: Color, darkText: Color) {
                         bottomEnd = if (isUser) 4.dp else 20.dp
                     )
                 )
-                .background(
-                    when {
-                        message.isError -> Color(0xFFFFEBEE)
-                        isUser -> primaryColor
-                        else -> Color.White
-                    }
-                )
+                .background(if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = message.text,
-                color = if (isUser) Color.White else if (message.isError) Color.Red else darkText,
+                color = if (isUser) MaterialTheme.colorScheme.onPrimary else if (message.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge
             )
         }
@@ -72,10 +64,10 @@ fun ChatBubble(message: ChatMessage, primaryColor: Color, darkText: Color) {
             Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 shape = CircleShape,
-                color = primaryColor.copy(alpha = 0.1f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 modifier = Modifier.size(32.dp)
             ) {
-                Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.padding(6.dp), tint = primaryColor)
+                Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.padding(6.dp), tint = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -85,7 +77,7 @@ fun ChatBubble(message: ChatMessage, primaryColor: Color, darkText: Color) {
  * Hiệu ứng hiển thị trạng thái đang chờ AI phản hồi.
  */
 @Composable
-fun TypingIndicator(darkText: Color) {
+fun TypingIndicator() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -95,19 +87,19 @@ fun TypingIndicator(darkText: Color) {
     ) {
         Surface(
             shape = CircleShape,
-            color = Color(0xFFC8E6C9),
+            color = MaterialTheme.colorScheme.primaryContainer,
             modifier = Modifier.size(32.dp)
         ) {
-            Icon(Icons.Rounded.SmartToy, contentDescription = null, modifier = Modifier.padding(6.dp), tint = darkText)
+            Icon(Icons.Rounded.SmartToy, contentDescription = null, modifier = Modifier.padding(6.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
         }
         Spacer(modifier = Modifier.width(8.dp))
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Text("BugScanner đang suy nghĩ...", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+            Text("BugScanner đang suy nghĩ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

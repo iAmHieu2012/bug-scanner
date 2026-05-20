@@ -33,12 +33,9 @@ fun BugDetailScreen(
     bug: BugInfo,
     onBackClick: () -> Unit,
     onAskChatbotClick: (String) -> Unit,
-    onShareClick: (BugInfo) -> Unit // Đẩy hành động chia sẻ ra ngoài để tránh dính Intent của Android
+    onShareClick: (BugInfo) -> Unit
 ) {
     val scrollState = rememberScrollState()
-    val primaryGreen = Color(0xFF2E7D32)
-    val lightGreenBg = Color(0xFFF1F8E9)
-
     var detailedBug by remember { mutableStateOf(bug) }
     var isLoading by remember { mutableStateOf(false) }
     val repository: EncyclopediaRepository = remember { EncyclopediaRepositoryImpl() }
@@ -54,7 +51,7 @@ fun BugDetailScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(lightGreenBg)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AsyncImage(
             model = detailedBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/500?text=Hình+ảnh+côn+trùng",
             contentDescription = "Bug Image",
@@ -79,7 +76,7 @@ fun BugDetailScreen(
                 .fillMaxSize()
                 .padding(top = 300.dp)
                 .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                .background(lightGreenBg)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(scrollState)
                 .padding(bottom = 100.dp)
         ) {
@@ -93,23 +90,23 @@ fun BugDetailScreen(
                         Text(
                             text = detailedBug.name,
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF1B5E20)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = detailedBug.scientificName.ifBlank { "Chưa rõ" },
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     Surface(
-                        color = Color(0xFFFFEBEE),
+                        color = MaterialTheme.colorScheme.errorContainer,
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Warning, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Đã quét", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                            Text("Đã quét", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -118,14 +115,14 @@ fun BugDetailScreen(
 
                 if (isLoading) {
                     Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = primaryGreen)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
                     if (detailedBug.description.isNotBlank()) {
                         SectionCard(
                             title = "Tổng quan",
                             icon = Icons.AutoMirrored.Rounded.MenuBook,
-                            iconTint = Color(0xFF1976D2),
+                            iconTint = MaterialTheme.colorScheme.secondary,
                             content = detailedBug.description
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -134,7 +131,7 @@ fun BugDetailScreen(
                         SectionCard(
                             title = "Đặc điểm nhận dạng",
                             icon = Icons.Rounded.Info,
-                            iconTint = Color(0xFFF57C00),
+                            iconTint = MaterialTheme.colorScheme.secondary,
                             content = detailedBug.identification
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -143,7 +140,7 @@ fun BugDetailScreen(
                         SectionCard(
                             title = "Mức độ nguy hại",
                             icon = Icons.Rounded.Warning,
-                            iconTint = Color(0xFFD32F2F),
+                            iconTint = MaterialTheme.colorScheme.error,
                             content = detailedBug.danger
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -152,7 +149,7 @@ fun BugDetailScreen(
                         SectionCard(
                             title = "Biện pháp xử lý (Khuyên dùng)",
                             icon = Icons.Rounded.Eco,
-                            iconTint = primaryGreen,
+                            iconTint = MaterialTheme.colorScheme.primary,
                             content = detailedBug.treatment
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -162,7 +159,7 @@ fun BugDetailScreen(
         }
 
         Surface(
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 16.dp,
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
         ) {
@@ -177,20 +174,20 @@ fun BugDetailScreen(
                     modifier = Modifier.weight(1f).height(50.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Icon(Icons.Rounded.Share, contentDescription = null, tint = primaryGreen)
+                    Icon(Icons.Rounded.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(8.dp))
-                    Text("Chia sẻ", color = primaryGreen, fontWeight = FontWeight.Bold)
+                    Text("Chia sẻ", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
                     onClick = { onAskChatbotClick("Cung cấp cho tôi thông tin chi tiết và cách xử lý ${detailedBug.name}?") },
                     modifier = Modifier.weight(1.5f).height(50.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Icon(Icons.Rounded.SmartToy, contentDescription = null)
+                    Icon(Icons.Rounded.SmartToy, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.width(8.dp))
-                    Text("Hỏi BugScanner AI", fontWeight = FontWeight.Bold)
+                    Text("Hỏi BugScanner AI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -198,21 +195,21 @@ fun BugDetailScreen(
 }
 
 @Composable
-fun SectionCard(title: String, icon: ImageVector, iconTint: Color = Color(0xFF2E7D32), content: String) {
+fun SectionCard(title: String, icon: ImageVector, iconTint: Color, content: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp) // Giảm elevation vì surfaceVariant đã phân biệt khá tốt với nền
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(icon, contentDescription = null, tint = iconTint)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF5F5F5))
-            Text(content, style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray, lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5f)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            Text(content, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5f)
         }
     }
 }

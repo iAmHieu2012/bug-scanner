@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -24,7 +23,6 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
     val scale = remember { Animatable(0.5f) }
-    val primaryGreen = Color(0xFF2E7D32)
 
     LaunchedEffect(key1 = true) {
         scale.animateTo(
@@ -38,13 +36,13 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(primaryGreen),
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(
                 shape = CircleShape,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .size(120.dp)
                     .scale(scale.value)
@@ -52,7 +50,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 Icon(
                     Icons.Rounded.BugReport,
                     contentDescription = "App Logo",
-                    tint = primaryGreen,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(24.dp)
                 )
             }
@@ -60,13 +58,13 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
             Text(
                 text = "BugScanner",
                 style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.scale(scale.value)
             )
             Text(
                 text = "Khám phá thế giới côn trùng",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFFC8E6C9),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                 modifier = Modifier.scale(scale.value)
             )
         }
@@ -79,24 +77,24 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 @Composable
 fun CameraPermissionScreen(onRequestPermission: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFF1F8E9)),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
-            Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(80.dp), tint = Color.Gray)
+            Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Cần quyền Camera", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Cần quyền Camera", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Text(
                 "BugScanner cần sử dụng Camera để nhận diện côn trùng. Vui lòng cấp quyền để tiếp tục.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 16.dp)
             )
             Button(
                 onClick = onRequestPermission,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Cấp quyền ngay")
+                Text("Cấp quyền ngay", color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }

@@ -4,9 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import hcmus.bugscanner.ui.navigation.AppNavigation
-// Đã xóa import MaterialTheme
-
+import androidx.compose.runtime.CompositionLocalProvider
+import hcmus.bugscanner.ui.scan.AndroidScanProvider
+import hcmus.bugscanner.ui.scan.LocalPlatformScanProvider
 /**
  * Activity chính khởi tạo các tác vụ AI và điều hướng UI.
  */
@@ -16,7 +16,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            AppNavigation()
+            CompositionLocalProvider(
+                LocalPlatformScanProvider provides AndroidScanProvider
+            ) {
+                App()
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.ui.auth.AuthScreen
 import hcmus.bugscanner.ui.auth.AuthViewModel
+import hcmus.bugscanner.ui.auth.AuthState
 import hcmus.bugscanner.ui.home.HomeScreen
 import hcmus.bugscanner.ui.splash.SplashScreen
 import hcmus.bugscanner.ui.scan.ScanScreen
@@ -19,8 +20,8 @@ fun AppNavigation(
 ) {
     AppTheme {
         var showSplash by remember { mutableStateOf(true) }
-        var isLoggedIn by remember { mutableStateOf(false) }
-        var isGuest by remember { mutableStateOf(false) }
+
+        val authState by authViewModel.authState.collectAsState()
 
         val shareManager = rememberShareManager()
 
@@ -28,37 +29,32 @@ fun AppNavigation(
             SplashScreen(onSplashFinished = {
                 showSplash = false
             })
-        } else if (!isLoggedIn && !isGuest) {
-            AuthScreen(
-                onLoginSuccess = { isGuestLogin ->
-                    if (isGuestLogin) {
-                        isGuest = true
-                        isLoggedIn = false
-                    } else {
-                        isLoggedIn = true
-                        isGuest = false
-                    }
-                }
-            )
         } else {
-            HomeScreen(
-                isLoggedIn = isLoggedIn,
-                onAuthAction = {
-                    authViewModel.signOut()
-                    isLoggedIn = false
-                    isGuest = false
-                },
-                onShareClick = { bug ->
-                    shareManager.shareBugInfo(bug.name, bug.scientificName)
-                },
-                scanTabContent = { isLog, onAuth, onDetected ->
-                    ScanScreen(
-                        isLoggedIn = isLog,
-                        onAuthAction = onAuth,
-                        onDetectedBugClick = onDetected
+            when (val state = authState) {
+                is AuthState.Success -> {
+                    // Trạng thái Success: Đã đăng nhập (có thể là Guest hoặc User thật)
+                    HomeScreen(
+                        isLoggedIn = !state.isGuest, // Nếu không phải Guest thì là LoggedIn = true
+                        onAuthAction = {
+                            authViewModel.signOut() // Gọi thẳng hàm signOut của ViewModel
+                        },
+                        onShareClick = { bug ->
+                            shareManager.shareBugInfo(bug.name, bug.scientificName)
+                        },
+                        scanTabContent = { isLog, onAuth, onDetected ->
+                            ScanScreen(
+                                isLoggedIn = isLog,
+                                onAuthAction = onAuth,
+                                onDetectedBugClick = onDetected
+                            )
+                        }
                     )
                 }
-            )
+                else -> {
+                    // Các trạng thái còn lại (Idle, Loading, Error): Hiển thị màn hình đăng nhập
+                    AuthScreen()
+                }
+            }
         }
     }
 }

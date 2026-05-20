@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,7 +23,10 @@ import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
 fun StaticDetectionScreen(bitmap: Bitmap?, frameResult: FrameResult, modifier: Modifier = Modifier) {
     if (bitmap == null) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Chưa có hình ảnh để phân tích")
+            Text(
+                text = "Chưa có hình ảnh để phân tích",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         return
     }

@@ -9,13 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-
-val SeedGreen = Color(0xFF2E7D32)
-val DeepForest = Color(0xFF1B5E20)
 
 /**
  * Hiển thị trạng thái trống hoặc thông báo lỗi cho các màn hình.
@@ -26,7 +22,7 @@ fun EmptyState(text: String, isError: Boolean = false) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = if (isError) MaterialTheme.colorScheme.error else Color.Gray,
+            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -39,7 +35,7 @@ fun EmptyState(text: String, isError: Boolean = false) {
 @Composable
 fun RequireAuthScreen(onAuthAction: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFF1F8E9)),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -50,31 +46,31 @@ fun RequireAuthScreen(onAuthAction: () -> Unit) {
                 Icons.Rounded.Lock,
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
-                tint = Color.Gray
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 "Yêu cầu đăng nhập",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = DeepForest
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 "Tính năng Lịch sử chỉ dành cho thành viên đã đăng nhập để có thể lưu trữ và đồng bộ dữ liệu bảo mật.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(vertical = 16.dp)
             )
 
             Button(
                 onClick = onAuthAction,
-                colors = ButtonDefaults.buttonColors(containerColor = SeedGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.height(48.dp)
             ) {
-                Icon(Icons.AutoMirrored.Rounded.Login, contentDescription = null)
+                Icon(Icons.AutoMirrored.Rounded.Login, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                 Spacer(Modifier.width(8.dp))
-                Text("Đăng nhập / Đăng ký ngay", fontWeight = FontWeight.Bold)
+                Text("Đăng nhập / Đăng ký ngay", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
