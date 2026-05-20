@@ -9,29 +9,40 @@ import dev.gitlive.firebase.initialize
 import hcmus.bugscanner.ui.scan.LocalPlatformScanProvider
 import hcmus.bugscanner.ui.scan.WebScanProvider
 import kotlinx.browser.document
+import kotlinx.browser.window
 import org.jetbrains.skiko.wasm.onWasmReady
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    val options = FirebaseOptions(
-        applicationId = "1:744753522860:web:9d8ac2353252c7f4801709",
-        authDomain= "bugscanner-2026.firebaseapp.com",
-        apiKey = "AIzaSyBupHX7E2T9_c5zvO68-zeDbGSep2eH3nk",
-        projectId = "bugscanner-2026",
-        storageBucket = "bugscanner-2026.firebasestorage.app",
-        gcmSenderId = "744753522860"
-    )
-
-    Firebase.initialize(options = options)
-
-    onWasmReady {
-        ComposeViewport(document.body!!) {
-            // CUNG CẤP WEBSCANPROVIDER CHO CÂY UI
-            CompositionLocalProvider(
-                LocalPlatformScanProvider provides WebScanProvider
-            ) {
-                App()
-            }
+    window.fetch("firebase-config.json")
+        .then { response ->
+            if (!response.ok) throw Exception("Không tìm thấy file firebase-config.json")
+            response.json()
         }
-    }
+        .then { jsonConfig ->
+            val dynamicConfig = jsonConfig.asDynamic()
+
+            val options = FirebaseOptions(
+                applicationId = dynamicConfig.appId as String,
+                gcmSenderId = dynamicConfig.messagingSenderId as String,
+                authDomain = dynamicConfig.authDomain as String,
+                apiKey = dynamicConfig.apiKey as String,
+                projectId = dynamicConfig.projectId as String,
+                storageBucket = dynamicConfig.storageBucket as String
+            )
+
+            Firebase.initialize(options = options)
+
+            onWasmReady {
+                ComposeViewport(document.body!!) {
+                    CompositionLocalProvider(
+                        LocalPlatformScanProvider provides WebScanProvider
+                    ) {
+                        App()
+                    }
+                }
+            }
+        }.catch { error ->
+            console.error("Lỗi khởi tạo Firebase: ", error)
+        }
 }
