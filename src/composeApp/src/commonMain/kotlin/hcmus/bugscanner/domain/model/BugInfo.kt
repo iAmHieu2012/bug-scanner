@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 data class BugInfo(
     val id: String = "",
     val name: String = "",
+    val englishName: String = "",
     val scientificName: String = "",
     val description: String = "",
     val imageUrl: String = "",

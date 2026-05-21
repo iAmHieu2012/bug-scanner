@@ -52,11 +52,20 @@ class EncyclopediaViewModel : ViewModel() {
     private fun fetchExploreList() {
         viewModelScope.launch {
             _isLoading.value = true
-            _exploreList.value = repository.getExploreInsects(
-                searchQuery = _exploreSearchQuery.value,
-                limit = 20
-            )
-            _isLoading.value = false
+            try {
+                _exploreList.value = repository.getExploreInsects(
+                    searchQuery = _exploreSearchQuery.value,
+                    limit = 20
+                )
+            } catch (e: Exception) {
+                // In lỗi ra Console (F12) để bạn biết chính xác Firebase đang bị gì
+                println("Lỗi tải danh sách Khám phá: ${e.message}")
+                e.printStackTrace()
+                _exploreList.value = emptyList()
+            } finally {
+                // Đảm bảo luôn tắt vòng xoay loading dù thành công hay thất bại
+                _isLoading.value = false
+            }
         }
     }
 

@@ -34,6 +34,7 @@ class WikiApiService {
                 parameters.append("generator", "search")
                 parameters.append("gsrlimit", "10")
                 parameters.append("gsrsearch", query)
+                parameters.append("origin", "*")
             }
             headers {
                 append("User-Agent", "BugScannerApp/1.0 (hcmus.bugscanner)")

@@ -1,54 +1,87 @@
 package hcmus.bugscanner.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.BugInfo
 import coil3.compose.AsyncImage
 
 /**
  * Thẻ hiển thị thông tin tóm tắt và hình ảnh của một loài côn trùng.
+ * Được thiết kế theo chuẩn Card của Material 3, có bo góc và giới hạn chiều rộng
+ * để tránh bị kéo dãn dị dạng trên màn hình Web/Desktop.
+ *
+ * @param bug Đối tượng chứa dữ liệu côn trùng cần hiển thị.
+ * @param modifier Cho phép Parent tùy chỉnh vị trí hoặc kích thước bổ sung (nếu cần).
+ * @param onClick Callback được gọi khi người dùng nhấn (tap) vào thẻ.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BugItemCard(
     bug: BugInfo,
+    modifier: Modifier = Modifier,
     onClick: (BugInfo) -> Unit = {}
 ) {
     Card(
         onClick = { onClick(bug) },
-        modifier = Modifier
-            .fillMaxWidth()
+        // Sử dụng Modifier truyền từ ngoài vào, kết hợp với các cài đặt mặc định
+        modifier = modifier
+            .fillMaxWidth() // Chiếm toàn bộ không gian được Parent cấp cho
             .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
+            // Vùng hiển thị hình ảnh
             AsyncImage(
-                model = bug.imageUrl,
-                contentDescription = bug.name,
-                contentScale = ContentScale.Crop,
+                // Xử lý fallback URL nếu ảnh rỗng để UI không bị gãy
+                model = bug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/400?text=Hình+ảnh+côn+trùng",
+                contentDescription = "Hình ảnh của ${bug.name}",
+                contentScale = ContentScale.Crop, // Cắt cúp ảnh để lấp đầy khung mà không méo tỷ lệ
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
+                    // Bo 2 góc trên của ảnh để ăn khớp với độ bo của Card
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             )
+
+            // Vùng nội dung chữ
             Column(modifier = Modifier.padding(16.dp)) {
+                // Tên phổ thông
                 Text(
                     text = bug.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1, // Giới hạn 1 dòng, tránh tên quá dài làm xô lệch layout
+                    overflow = TextOverflow.Ellipsis
                 )
+
+                // Tên khoa học
                 Text(
-                    text = bug.scientificName,
+                    text = bug.scientificName.ifBlank { "Chưa cập nhật tên khoa học" },
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+
+                // Mô tả tóm tắt
                 Text(
-                    text = bug.description,
-                    style = MaterialTheme.typography.bodyMedium
+                    text = bug.description.ifBlank { "Đang cập nhật thông tin mô tả chi tiết cho loài côn trùng này..." },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3, // Giới hạn mô tả tối đa 3 dòng để Card không bị quá dài
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4f
                 )
             }
         }

@@ -2,11 +2,9 @@ package hcmus.bugscanner.ui.wiki
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -25,16 +23,24 @@ import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.ui.components.BugItemCard
 
 /**
- * Màn hình chính của tính năng Bách khoa toàn thư.
+ * Màn hình Bách khoa toàn thư - Tích hợp Responsive Layout bằng GridCells.Adaptive.
+ *
+ * @param viewModel ViewModel quản lý trạng thái tải, tìm kiếm và dữ liệu Wikipedia.
+ * @param onBugSelected Callback chuyển sang màn hình Chi tiết khi nhấn vào một thẻ côn trùng.
  */
 @Composable
 fun EncyclopediaScreen(
-    viewModel: EncyclopediaViewModel = viewModel{ EncyclopediaViewModel() },
+    viewModel: EncyclopediaViewModel = viewModel { EncyclopediaViewModel() },
     onBugSelected: (BugInfo) -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Thanh chọn Tab điều hướng (Khám phá nội bộ hoặc Tra cứu Wikipedia)
         PrimaryTabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -61,6 +67,7 @@ fun EncyclopediaScreen(
             )
         }
 
+        // Nội dung của từng Tab
         if (selectedTabIndex == 0) {
             ExploreTab(viewModel = viewModel, onBugSelected = onBugSelected)
         } else {
@@ -70,7 +77,7 @@ fun EncyclopediaScreen(
 }
 
 /**
- * Tab hiển thị danh sách các loài côn trùng nổi bật dạng lưới.
+ * Tab hiển thị danh sách các loài côn trùng nổi bật dạng lưới động (Adaptive Grid).
  */
 @Composable
 fun ExploreTab(
@@ -103,7 +110,9 @@ fun ExploreTab(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                // Adaptive Layout: Mỗi cột rộng ít nhất 150dp. Compose sẽ tự động chèn thêm cột
+                // nếu màn hình đủ rộng, ngăn chặn tình trạng phần tử bị kéo giãn thô kệch.
+                columns = GridCells.Adaptive(minSize = 150.dp),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -118,11 +127,12 @@ fun ExploreTab(
                     ) {
                         Column {
                             AsyncImage(
-                                model = bug.imageUrl,
+                                model = bug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/300?text=No+Image",
                                 contentDescription = bug.name,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    // Khóa tỷ lệ khung hình 1:1 cho ảnh để các card luôn cao bằng nhau
                                     .aspectRatio(1f)
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                             )
@@ -142,7 +152,8 @@ fun ExploreTab(
 }
 
 /**
- * Tab cho phép tra cứu thông tin côn trùng qua API Wikipedia.
+ * Tab tra cứu thông tin côn trùng qua API Wikipedia.
+ * Sử dụng Adaptive Grid để tối ưu không gian trên các màn hình lớn.
  */
 @Composable
 fun SearchTab(
@@ -158,7 +169,7 @@ fun SearchTab(
             value = searchQuery,
             onValueChange = {
                 searchQuery = it
-                viewModel.searchInsects(it)
+                viewModel.searchInsects(it) // Gửi truy vấn API tự động khi gõ
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,14 +183,25 @@ fun SearchTab(
             if (isLoading && searchResults.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.padding(top = 32.dp))
             } else if (searchResults.isEmpty() && searchQuery.isNotEmpty()) {
-                Text("Không tìm thấy kết quả nào cho '$searchQuery'", modifier = Modifier.padding(top = 32.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "Không tìm thấy kết quả nào cho '$searchQuery'",
+                    modifier = Modifier.padding(top = 32.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                // Thay vì dùng LazyColumn (1 cột duy nhất), ta nâng cấp lên LazyVerticalGrid
+                // Mỗi BugItemCard cần không gian lớn hơn dạng thẻ mini bên ExploreTab, nên minSize = 350dp
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 350.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(searchResults) { bug ->
-                        BugItemCard(bug, onBugSelected)
+                        // Đảm bảo BugItemCard đã được loại bỏ thuộc tính Modifier.fillMaxWidth()
+                        // bên trong nội bộ của nó (như ta đã sửa ở file trước) để nó ngoan ngoãn chui vào Grid
+                        BugItemCard(bug = bug, onClick = onBugSelected)
                     }
                 }
             }

@@ -62,24 +62,14 @@ kotlin {
             implementation(libs.androidx.camera.camera2)
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
-//
-//            implementation(libs.retrofit.core)
-//            implementation(libs.retrofit.converter.gson)
-//
-//            implementation(libs.coil.compose)
             implementation(libs.generativeai) // Thư viện Gemini chính thức
-//
-//            implementation(libs.firebase.auth)
-//            implementation(libs.firebase.firestore)
-//            implementation(libs.kotlinx.coroutines.play.services)
-
-            // Ktor Engine cho Android
             implementation(libs.ktor.client.android)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.material3.windowSizeClass)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
@@ -133,12 +123,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-//        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
-//        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
-//    buildFeatures {
-//        buildConfig = true
-//    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

@@ -20,86 +20,122 @@ import hcmus.bugscanner.ui.components.TypingIndicator
 
 /**
  * Màn hình giao diện nhắn tin với AI Chatbot.
+ * Tích hợp Responsive Layout: Giới hạn độ rộng tối đa trên màn hình Web/Desktop
+ * (giống ChatGPT/Gemini) để nâng cao trải nghiệm đọc.
+ *
+ * @param initialPrompt Câu hỏi mẫu được truyền vào từ màn hình khác (nếu có).
+ * @param viewModel Quản lý logic gọi API Gemini và duy trì lịch sử đoạn chat.
  */
 @Composable
-fun ChatScreen(initialPrompt: String? = null, viewModel: ChatViewModel = viewModel { ChatViewModel() }) {
+fun ChatScreen(
+    initialPrompt: String? = null,
+    viewModel: ChatViewModel = viewModel { ChatViewModel() }
+) {
     var prompt by remember { mutableStateOf(initialPrompt ?: "") }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
 
+    // Tự động nạp prompt ban đầu (nếu có) khi màn hình vừa mở
     LaunchedEffect(initialPrompt) {
         if (!initialPrompt.isNullOrBlank()) {
             prompt = initialPrompt
         }
     }
 
-    Column(
+    // Box ngoài cùng: Phủ full màn hình màu nền, và CĂN GIỮA nội dung.
+    // Việc căn giữa này cực kỳ quan trọng cho giao diện Web/Desktop.
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.TopCenter
     ) {
-        LazyColumn(
+        // Cột trung tâm: Chứa danh sách tin nhắn và thanh nhập liệu.
+        // Bị khóa chiều rộng tối đa (800dp) để không bị kéo giãn quá mức trên màn hình to.
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+                .fillMaxHeight()
+                .widthIn(max = 800.dp) // <--- Điểm mấu chốt của Responsive Chat Layout
         ) {
-            items(messages) { msg ->
-                ChatBubble(message = msg)
-            }
-            if (isTyping) {
-                item {
-                    TypingIndicator()
+
+            // --- VÙNG 1: Danh sách hiển thị lịch sử trò chuyện ---
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f) // Đẩy thanh nhập liệu xuống đáy, chiếm phần còn lại
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                // Render từng bong bóng chat
+                items(messages) { msg ->
+                    ChatBubble(message = msg)
+                }
+
+                // Hiển thị hiệu ứng "Đang gõ..." nếu AI đang xử lý
+                if (isTyping) {
+                    item {
+                        TypingIndicator()
+                    }
                 }
             }
-        }
 
-        Surface(
-            color = MaterialTheme.colorScheme.background
-        ){
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 12.dp),
-                verticalAlignment = Alignment.Bottom
+            // --- VÙNG 2: Thanh nhập liệu (Input Bar) ---
+            Surface(
+                color = MaterialTheme.colorScheme.background
             ) {
-                OutlinedTextField(
-                    value = prompt,
-                    onValueChange = { prompt = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text("Hỏi BugScanner điều gì đó...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                    },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        // 2. BỎ ĐƯỜNG VIỀN: Cho giao diện mượt mà hơn
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        // 3. MÀU NỀN Ô CHỮ TẬT NHẠT: Tạo hình viên thuốc (pill) cực nhẹ nhàng
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    ),
-                    maxLines = 4
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                IconButton(
-                    onClick = {
-                        viewModel.sendMessage(prompt)
-                        prompt = ""
-                    },
+                Row(
                     modifier = Modifier
-                        .size(52.dp)
-                        .background(
-                            color = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            shape = CircleShape
-                        ),
-                    enabled = prompt.isNotBlank() && !isTyping
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp), // Thêm padding bottom cho cân đối
+                    verticalAlignment = Alignment.Bottom
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Gửi",
-                        tint = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    OutlinedTextField(
+                        value = prompt,
+                        onValueChange = { prompt = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = {
+                            Text("Hỏi BugScanner điều gì đó...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            // Ẩn hoàn toàn viền để tạo cảm giác UI hiện đại, nguyên khối
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            // Đổ màu nền nhạt tạo hiệu ứng hình viên thuốc (pill shape)
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        ),
+                        maxLines = 4 // Hỗ trợ gõ nhiều dòng nhưng không che lấp hết màn hình
                     )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Nút Gửi (Send Button)
+                    IconButton(
+                        onClick = {
+                            // Trim khoảng trắng thừa trước khi gửi để tránh lỗi API
+                            val cleanPrompt = prompt.trim()
+                            if (cleanPrompt.isNotEmpty()) {
+                                viewModel.sendMessage(cleanPrompt)
+                                prompt = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(
+                                // Nút chỉ sáng lên màu Primary khi có chữ và AI không bận
+                                color = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                shape = CircleShape
+                            ),
+                        enabled = prompt.isNotBlank() && !isTyping
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Gửi tin nhắn",
+                            tint = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
                 }
             }
         }

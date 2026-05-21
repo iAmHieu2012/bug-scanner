@@ -1,0 +1,125 @@
+// Biến toàn cục lưu trữ mô hình AI
+window.yoloModel = null;
+
+// Hàm khởi tạo mô hình TensorFlow.js
+window.initYolo = async function() {
+    try {
+        console.log("Đang tải AI Model TensorFlow.js...");
+        window.yoloModel = await tf.loadGraphModel('best_web_model/model.json');
+        console.log("🔥 AI Model đã sẵn sàng để hoạt động!");
+    } catch (error) {
+        console.error("Lỗi khi tải mô hình AI:", error);
+    }
+};
+
+// Hàm xử lý ảnh và dự đoán kết quả
+window.detectBugsJS = async function(imageUrl) {
+    if (!window.yoloModel) {
+        console.warn("Mô hình chưa tải xong, vui lòng thử lại sau.");
+        return JSON.stringify([]);
+    }
+
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = imageUrl;
+        img.onload = async () => {
+            try {
+                // 1. Tiền xử lý: Chỉnh kích thước ảnh khớp với đầu vào 896x896 của mô hình
+                const INPUT_SIZE = 896;
+                const tensor = tf.browser.fromPixels(img)
+                    .resizeBilinear([INPUT_SIZE, INPUT_SIZE])
+                    .div(255.0)
+                    .expandDims(0);
+
+                // 2. Chạy dự đoán
+                const predictions = await window.yoloModel.executeAsync(tensor);
+
+                let output = Array.isArray(predictions) ? predictions[0] : predictions;
+                const shape = output.shape;
+
+                // Chuyển đổi ma trận YOLO (từ [1, classes+4, boxes] sang [boxes, classes+4])
+                let transposed = (shape[1] < shape[2]) ? output.squeeze().transpose() : output.squeeze();
+
+                const data = await transposed.array();
+
+                // Giải phóng bộ nhớ RAM để tránh tràn bộ nhớ trình duyệt
+                tf.dispose([tensor, predictions, output, transposed]);
+
+                const boxes = [];
+                const scores = [];
+                const classIndices = [];
+
+                const CONFIDENCE_THRESHOLD = 0.25; // Ngưỡng độ tin cậy
+                const numClasses = data[0].length - 4; // 4 cột đầu là x, y, width, height
+
+                // 3. Trích xuất tọa độ Bounding Box
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i];
+
+                    let maxScore = 0;
+                    let classIndex = -1;
+                    for (let j = 0; j < numClasses; j++) {
+                        if (row[4 + j] > maxScore) {
+                            maxScore = row[4 + j];
+                            classIndex = j;
+                        }
+                    }
+
+                    if (maxScore >= CONFIDENCE_THRESHOLD) {
+                        let [xc, yc, w, h] = row.slice(0, 4);
+
+                        // Chuẩn hóa tọa độ về tỷ lệ [0.0 - 1.0]
+                        if (xc > 1.5 || yc > 1.5) {
+                            xc /= INPUT_SIZE; yc /= INPUT_SIZE;
+                            w /= INPUT_SIZE; h /= INPUT_SIZE;
+                        }
+
+                        // Định dạng tọa độ cho hàm NMS [yMin, xMin, yMax, xMax]
+                        boxes.push([yc - h / 2, xc - w / 2, yc + h / 2, xc + w / 2]);
+                        scores.push(maxScore);
+                        classIndices.push(classIndex);
+                    }
+                }
+
+                if (boxes.length === 0) {
+                    resolve(JSON.stringify([]));
+                    return;
+                }
+
+                // 4. Áp dụng Non-Max Suppression (NMS) để loại bỏ các hộp trùng lặp
+                const boxesTensor = tf.tensor2d(boxes);
+                const scoresTensor = tf.tensor1d(scores);
+
+                const nmsIndices = await tf.image.nonMaxSuppressionAsync(
+                    boxesTensor, scoresTensor, 50, 0.45, CONFIDENCE_THRESHOLD
+                );
+
+                const selectedIndices = await nmsIndices.array();
+                tf.dispose([boxesTensor, scoresTensor, nmsIndices]);
+
+                // 5. Trả kết quả định dạng JSON cho Kotlin xử lý
+                const finalResults = selectedIndices.map(i => {
+                    const [yMin, xMin, yMax, xMax] = boxes[i];
+                    return {
+                        x: xMin,
+                        y: yMin,
+                        width: xMax - xMin,
+                        height: yMax - yMin,
+                        label: classIndices[i].toString(),
+                        confidence: scores[i]
+                    };
+                });
+
+                resolve(JSON.stringify(finalResults));
+            } catch (error) {
+                console.error("Lỗi trong quá trình dự đoán của mô hình:", error);
+                resolve(JSON.stringify([]));
+            }
+        };
+        img.onerror = () => {
+            console.error("Lỗi tải hình ảnh đầu vào.");
+            resolve(JSON.stringify([]));
+        };
+    });
+};
+window.initYolo();

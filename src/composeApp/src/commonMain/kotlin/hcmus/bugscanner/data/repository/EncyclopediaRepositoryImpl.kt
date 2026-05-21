@@ -12,7 +12,7 @@ class EncyclopediaRepositoryImpl : EncyclopediaRepository {
     private val db = Firebase.firestore
     private val encyclopediaCollection = db.collection("encyclopedia")
 
-    override suspend fun getExploreInsects(searchQuery: String, limit: Long): List<BugInfo> {
+    override suspend fun getExploreInsects(searchQuery: String, limit: Int): List<BugInfo> {
         return try {
             val query = if (searchQuery.isNotBlank()) {
                 val searchStr = searchQuery.trim()

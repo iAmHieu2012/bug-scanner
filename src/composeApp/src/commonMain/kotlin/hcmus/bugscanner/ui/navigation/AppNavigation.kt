@@ -1,5 +1,6 @@
 package hcmus.bugscanner.ui.navigation
 
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.ui.auth.AuthScreen
@@ -13,28 +14,40 @@ import hcmus.bugscanner.ui.theme.AppTheme
 
 /**
  * Quản lý luồng điều hướng chính và trạng thái đăng nhập, cấp quyền.
+ * Hoạt động như một Router trung tâm của toàn bộ ứng dụng.
+ *
+ * @param windowSizeClass Thông số kích thước màn hình hiện tại (nhận từ App.kt) để phân phối
+ * xuống các màn hình con, giúp xử lý Responsive tự động.
+ * @param authViewModel ViewModel quản lý trạng thái xác thực (Login/Guest).
  */
 @Composable
 fun AppNavigation(
+    windowSizeClass: WindowSizeClass, // <-- THÊM THAM SỐ NHẬN DIỆN KÍCH THƯỚC MÀN HÌNH
     authViewModel: AuthViewModel = viewModel { AuthViewModel() }
 ) {
     AppTheme {
+        // State quản lý việc hiển thị màn hình Splash ban đầu
         var showSplash by remember { mutableStateOf(true) }
 
+        // Theo dõi trạng thái đăng nhập từ Firebase thông qua ViewModel
         val authState by authViewModel.authState.collectAsState()
 
+        // Trình quản lý chia sẻ dữ liệu native
         val shareManager = rememberShareManager()
 
+        // LUỒNG ĐIỀU HƯỚNG CẤP 1: Xử lý Splash Screen
         if (showSplash) {
             SplashScreen(onSplashFinished = {
                 showSplash = false
             })
         } else {
+            // LUỒNG ĐIỀU HƯỚNG CẤP 2: Phân nhánh dựa trên trạng thái xác thực (Authentication State)
             when (val state = authState) {
                 is AuthState.Success -> {
-                    // Trạng thái Success: Đã đăng nhập (có thể là Guest hoặc User thật)
+                    // Trạng thái Success: Người dùng đã vào app (có thể là Khách hoặc User thật)
                     HomeScreen(
-                        isLoggedIn = !state.isGuest, // Nếu không phải Guest thì là LoggedIn = true
+                        windowSizeClass = windowSizeClass, // <-- TRUYỀN XUỐNG HOMESCREEN ĐỂ CHIA 2 CỘT
+                        isLoggedIn = !state.isGuest,       // Xác định cờ LoggedIn để chặn/mở tính năng
                         onAuthAction = {
                             authViewModel.signOut() // Gọi thẳng hàm signOut của ViewModel
                         },
@@ -42,6 +55,7 @@ fun AppNavigation(
                             shareManager.shareBugInfo(bug.name, bug.scientificName)
                         },
                         scanTabContent = { isLog, onAuth, onDetected ->
+                            // Inject ScanScreen vào HomeScreen để giảm thiểu sự phụ thuộc vòng (Circular Dependency)
                             ScanScreen(
                                 isLoggedIn = isLog,
                                 onAuthAction = onAuth,
@@ -51,8 +65,8 @@ fun AppNavigation(
                     )
                 }
                 else -> {
-                    // Các trạng thái còn lại (Idle, Loading, Error): Hiển thị màn hình đăng nhập
-                    AuthScreen()
+                    // Các trạng thái còn lại (Idle, Loading, Error): Điều hướng về màn hình Đăng nhập
+                    AuthScreen(windowSizeClass = windowSizeClass)
                 }
             }
         }
