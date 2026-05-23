@@ -20,7 +20,7 @@ import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
  * Màn hình xử lý và vẽ bounding box cho ảnh tĩnh (Gallery/Chụp).
  */
 @Composable
-fun StaticDetectionScreen(bitmap: Bitmap?, frameResult: FrameResult, modifier: Modifier = Modifier) {
+fun AndroidStaticDetectionScreen(bitmap: Bitmap?, frameResult: FrameResult, modifier: Modifier = Modifier) {
     if (bitmap == null) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(

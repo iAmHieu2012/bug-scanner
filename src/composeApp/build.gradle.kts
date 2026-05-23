@@ -64,6 +64,8 @@ kotlin {
             implementation(libs.androidx.camera.view)
             implementation(libs.generativeai) // Thư viện Gemini chính thức
             implementation(libs.ktor.client.android)
+
+            implementation(project.dependencies.platform(libs.firebase.bom))
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -107,8 +109,10 @@ kotlin {
             implementation(libs.kotlinx.coroutinesSwing)
         }
         jsMain.dependencies {
-            implementation(compose.html.core)
+            implementation(libs.compose.html.core)
             implementation(libs.ktor.client.js)
+            implementation(npm("os-browserify", "0.3.0"))
+            implementation(npm("path-browserify", "1.0.1"))
         }
     }
 }

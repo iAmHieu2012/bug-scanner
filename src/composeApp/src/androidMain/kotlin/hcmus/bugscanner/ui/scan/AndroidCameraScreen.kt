@@ -27,7 +27,7 @@ import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
  * Màn hình hiển thị luồng trực tiếp từ Camera và vẽ bounding box YOLO.
  */
 @Composable
-fun CameraScreen(
+fun AndroidCameraScreen(
     viewModel: ScanViewModel,
     modifier: Modifier = Modifier
 ) {
