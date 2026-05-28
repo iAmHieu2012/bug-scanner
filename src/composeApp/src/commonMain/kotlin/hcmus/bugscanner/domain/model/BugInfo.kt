@@ -15,5 +15,6 @@ data class BugInfo(
     val imageUrl: String = "",
     val identification: String = "",
     val danger: String = "",
-    val treatment: String = ""
+    val treatment: String = "",
+    val wikiUrl: String = ""
 )

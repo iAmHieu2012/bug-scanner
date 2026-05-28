@@ -2,7 +2,7 @@ package hcmus.bugscanner.ui.wiki
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import hcmus.bugscanner.data.remote.WikiApiService
+import hcmus.bugscanner.data.remote.INaturalistApiService
 import hcmus.bugscanner.data.repository.EncyclopediaRepositoryImpl
 import hcmus.bugscanner.domain.model.BugInfo
 import kotlinx.coroutines.Job
@@ -14,11 +14,11 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * ViewModel quản lý trạng thái và logic gọi API/Firebase cho Bách khoa toàn thư.
+ * ViewModel quản lý trạng thái và logic gọi API iNaturalist / Firebase cho Bách khoa toàn thư.
  */
 class EncyclopediaViewModel : ViewModel() {
     private val repository = EncyclopediaRepositoryImpl()
-    private val wikiApi = WikiApiService()
+    private val iNaturalistApi = INaturalistApiService()
 
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
     val exploreList: StateFlow<List<BugInfo>> = _exploreList.asStateFlow()
@@ -40,32 +40,24 @@ class EncyclopediaViewModel : ViewModel() {
         fetchExploreList()
     }
 
+    fun fetchExploreList() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val list = repository.getExploreInsects(limit = 20)
+            _exploreList.value = list
+            _isLoading.value = false
+        }
+    }
+
     fun onExploreSearchQueryChange(query: String) {
         _exploreSearchQuery.value = query
         exploreSearchJob?.cancel()
         exploreSearchJob = viewModelScope.launch {
             delay(500.milliseconds)
-            fetchExploreList()
-        }
-    }
-
-    private fun fetchExploreList() {
-        viewModelScope.launch {
             _isLoading.value = true
-            try {
-                _exploreList.value = repository.getExploreInsects(
-                    searchQuery = _exploreSearchQuery.value,
-                    limit = 20
-                )
-            } catch (e: Exception) {
-                // In lỗi ra Console (F12) để bạn biết chính xác Firebase đang bị gì
-                println("Lỗi tải danh sách Khám phá: ${e.message}")
-                e.printStackTrace()
-                _exploreList.value = emptyList()
-            } finally {
-                // Đảm bảo luôn tắt vòng xoay loading dù thành công hay thất bại
-                _isLoading.value = false
-            }
+            val list = repository.getExploreInsects(searchQuery = query.trim(), limit = 20)
+            _exploreList.value = list
+            _isLoading.value = false
         }
     }
 
@@ -81,20 +73,51 @@ class EncyclopediaViewModel : ViewModel() {
             delay(500.milliseconds)
             _isLoading.value = true
             try {
-                val response = wikiApi.searchInsects(query = trimmedQuery)
-                val pages = response.query?.pages
-                if (!pages.isNullOrEmpty()) {
-                    val bugs = pages.values
-                        .sortedBy { it.index }
-                        .map { page ->
-                            BugInfo(
-                                id = page.title,
-                                name = page.title,
-                                scientificName = "Côn trùng / Thực vật",
-                                description = page.extract ?: "Không có mô tả chi tiết.",
-                                imageUrl = page.thumbnail?.source ?: "https://via.placeholder.com/300?text=No+Image"
-                            )
+                val response = iNaturalistApi.searchInsects(query = trimmedQuery)
+                val results = response.results
+
+                if (results.isNotEmpty()) {
+                    val bugs = results.map { taxon ->
+                        // 1. Dịch cấp bậc
+                        val rankVN = when(taxon.rank) {
+                            "species" -> "Loài"
+                            "subspecies" -> "Phân loài"
+                            "genus" -> "Chi"
+                            "family" -> "Họ"
+                            "order" -> "Bộ"
+                            "class" -> "Lớp"
+                            "phylum" -> "Ngành"
+                            else -> taxon.rank?.replaceFirstChar { it.uppercase() } ?: "Không rõ"
                         }
+
+                        // 2. Tên phổ thông (Sẽ hiện làm tiêu đề chính của Card)
+                        val commonName = taxon.preferred_common_name
+                            ?: taxon.english_common_name
+                            ?: taxon.name
+
+                        // 3. XÂY DỰNG LẠI MÔ TẢ NGẮN CHO THẺ CARD (Vừa khít 3 dòng của BugItemCard)
+                        val shortDescription = "• Phân loại sinh học: $rankVN\n" +
+                                "• Tên quốc tế: ${taxon.english_common_name ?: "Chưa cập nhật"}\n"
+
+                        // 4. Đẩy các thông số vào Đặc điểm nhận dạng (Sẽ hiện trong màn hình Chi tiết)
+                        val bioStats = "• Tên khoa học chuẩn: ${taxon.name}\n" +
+                                "• Tên quốc tế (Tiếng Anh): ${taxon.english_common_name ?: "Chưa cập nhật"}\n" +
+                                "• Cấp bậc sinh học: $rankVN"
+
+                        BugInfo(
+                            id = taxon.id.toString(),
+                            name = commonName.replaceFirstChar { it.uppercase() },
+                            scientificName = taxon.name,
+                            description = shortDescription,
+                            imageUrl = taxon.default_photo?.medium_url
+                                ?: taxon.default_photo?.square_url
+                                ?: "https://via.placeholder.com/300?text=No+Image",
+                            identification = bioStats,
+                            danger = "",
+                            treatment = "",
+                            wikiUrl = taxon.wikipedia_url ?: ""
+                        )
+                    }
                     _searchResults.value = bugs
                 } else {
                     _searchResults.value = emptyList()

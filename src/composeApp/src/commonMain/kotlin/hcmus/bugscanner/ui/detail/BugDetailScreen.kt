@@ -51,13 +51,36 @@ fun BugDetailScreen(
     // Khởi tạo Repository lấy dữ liệu
     val repository: EncyclopediaRepository = remember { EncyclopediaRepositoryImpl() }
 
+    // Khởi tạo Wiki API để lấy thông tin mô tả chi tiết nếu cần
+    val wikiApi = remember { hcmus.bugscanner.data.remote.WikiApiService() }
+
     // Fetch dữ liệu chi tiết nếu các trường quan trọng đang bị trống
     LaunchedEffect(bug.scientificName) {
-        if (bug.treatment.isBlank() && bug.identification.isBlank()) {
+        // Điều kiện chạy: Nếu đang thiếu cách xử lý (quét từ camera) HOẶC có link wiki cần tải (từ iNaturalist)
+        if (bug.treatment.isBlank() || bug.wikiUrl.isNotBlank()) {
             isLoading = true
+
+            // 1. Ưu tiên tìm trong Firebase trước (đảm bảo tính năng Quét Camera không bị ảnh hưởng)
             val realBug = repository.getBugByScientificName(bug.scientificName)
+
             if (realBug != null) {
+                // Nếu tìm thấy trên Firebase -> Ghi đè dữ liệu để hiển thị
                 detailedBug = realBug
+            } else if (bug.wikiUrl.isNotBlank()) {
+                // 2. Nếu Firebase KHÔNG CÓ, tiến hành bóc tách Link Wiki để kéo Text
+                // Ví dụ link: http://en.wikipedia.org/wiki/Western_honey_bee
+                val uriParts = bug.wikiUrl.split("/wiki/")
+                if (uriParts.size == 2) {
+                    val lang = uriParts[0].substringAfter("://").substringBefore(".") // Lấy "en" hoặc "vi"
+                    val title = uriParts[1] // Lấy "Western_honey_bee"
+
+                    val summary = wikiApi.getSummaryByTitle(title, lang)
+
+                    if (!summary.isNullOrBlank()) {
+                        // Cập nhật lại description bằng text mới kéo về
+                        detailedBug = detailedBug.copy(description = summary)
+                    }
+                }
             }
             isLoading = false
         }

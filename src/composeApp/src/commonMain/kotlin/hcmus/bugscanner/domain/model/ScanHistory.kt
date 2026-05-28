@@ -10,5 +10,5 @@ data class ScanHistory(
     val id: String = "",
     val userId: String = "",
     val bugName: String = "",
-    val timestamp: Long = 0L
+    val timestamp: Double = 0.0
 )

@@ -85,7 +85,11 @@ fun HomeScreen(
             // ---------------------------------------------------------
             // LAYOUT DÀNH CHO MÀN HÌNH RỘNG (Web, Desktop, Tablet ngang)
             // ---------------------------------------------------------
-            Row(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
                 // Thanh điều hướng dọc nằm bên trái
                 NavigationRail(
                     modifier = Modifier

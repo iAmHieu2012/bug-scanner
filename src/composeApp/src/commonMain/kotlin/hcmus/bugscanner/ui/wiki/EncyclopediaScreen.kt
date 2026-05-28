@@ -152,7 +152,7 @@ fun ExploreTab(
 }
 
 /**
- * Tab tra cứu thông tin côn trùng qua API Wikipedia.
+ * Tab tra cứu thông tin côn trùng qua API iNaturalist.
  * Sử dụng Adaptive Grid để tối ưu không gian trên các màn hình lớn.
  */
 @Composable
@@ -174,7 +174,7 @@ fun SearchTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            placeholder = { Text("Nhập tên côn trùng để tra cứu Wikipedia...") },
+            placeholder = { Text("Nhập tên côn trùng để tra cứu iNaturalist...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
             singleLine = true
         )

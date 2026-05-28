@@ -2,44 +2,19 @@ package hcmus.bugscanner.ui.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import hcmus.bugscanner.data.remote.*
 import hcmus.bugscanner.domain.model.ChatMessage
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-
-// --- Các Data Class để map JSON của Gemini API ---
-@Serializable
-data class GeminiRequest(val system_instruction: Instruction? = null, val contents: List<GeminiContent>)
-@Serializable
-data class Instruction(val parts: GeminiPart)
-@Serializable
-data class GeminiContent(val role: String, val parts: List<GeminiPart>)
-@Serializable
-data class GeminiPart(val text: String)
-@Serializable
-data class GeminiResponse(val candidates: List<Candidate>? = null)
-@Serializable
-data class Candidate(val content: GeminiContent)
 
 /**
- * ViewModel quản lý tin nhắn và gọi API Google Gemini bằng Ktor.
+ * ViewModel quản lý tin nhắn và gọi API Google Gemini thông qua GeminiApiService.
  */
 class ChatViewModel : ViewModel() {
-    private val apiKey = hcmus.bugscanner.BuildConfig.GEMINI_API_KEY
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
-        }
-    }
+    // Khởi tạo Service thay vì tự gọi Ktor
+    private val geminiApi = GeminiApiService()
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -76,11 +51,8 @@ class ChatViewModel : ViewModel() {
                     contents = chatHistory
                 )
 
-                val response: GeminiResponse = client.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent") {
-                    url { parameters.append("key", apiKey) }
-                    contentType(ContentType.Application.Json)
-                    setBody(requestBody)
-                }.body()
+                // Gọi qua tầng Data Service thay vì tự fetch
+                val response = geminiApi.generateContent(requestBody)
 
                 val replyText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Xin lỗi, mình không có phản hồi."
 

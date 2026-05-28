@@ -22,24 +22,29 @@ window.detectBugsJS = async function(sourceElement) { // Nhận trực tiếp HT
     try {
         const INPUT_SIZE = 896;
 
-        // 1. TỐI ƯU FPS: Đọc trực tiếp pixel từ thẻ video/canvas, KHÔNG qua Base64
-        const tensor = tf.browser.fromPixels(sourceElement)
-            .resizeBilinear([INPUT_SIZE, INPUT_SIZE])
-            .div(255.0)
-            .expandDims(0);
+        // 1. TỐI ƯU FPS VÀ BỘ NHỚ: Dùng tf.tidy() để tự động dọn dẹp các tensor trung gian
+        // (từ resizeBilinear, div, expandDims) tránh tràn RAM/VRAM
+        const tensor = tf.tidy(() => {
+            return tf.browser.fromPixels(sourceElement)
+                .resizeBilinear([INPUT_SIZE, INPUT_SIZE])
+                .div(255.0)
+                .expandDims(0);
+        });
 
         // 2. Chạy dự đoán
         const predictions = await window.yoloModel.executeAsync(tensor);
 
-        let output = Array.isArray(predictions) ? predictions[0] : predictions;
-        const shape = output.shape;
+        // Chuyển đổi ma trận YOLO - Dùng tf.tidy() để dọn dẹp tensor trung gian từ hàm squeeze()
+        const transposed = tf.tidy(() => {
+            let output = Array.isArray(predictions) ? predictions[0] : predictions;
+            const shape = output.shape;
+            return (shape[1] < shape[2]) ? output.squeeze().transpose() : output.squeeze();
+        });
 
-        // Chuyển đổi ma trận YOLO
-        let transposed = (shape[1] < shape[2]) ? output.squeeze().transpose() : output.squeeze();
         const data = await transposed.array();
 
-        // Giải phóng bộ nhớ RAM
-        tf.dispose([tensor, predictions, output, transposed]);
+        // Giải phóng triệt để bộ nhớ RAM cho các tensor còn lại
+        tf.dispose([tensor, predictions, transposed]);
 
         const boxes = [];
         const scores = [];

@@ -2,9 +2,9 @@ package hcmus.bugscanner.core.utils
 
 import kotlin.js.Date
 
-actual fun getCurrentTimeMillis(): Long = Date.now().toLong()
+actual fun getCurrentTimeMillis(): Double = Date.now()
 
-actual fun formatTimestamp(timestamp: Long): String {
+actual fun formatTimestamp(timestamp: Double): String {
     val date = Date(timestamp)
     // Tự format chuỗi thời gian cho giống định dạng dd/MM/yyyy HH:mm của Android
     val day = date.getDate().toString().padStart(2, '0')
