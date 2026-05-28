@@ -21,12 +21,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
  * Màn hình xác thực người dùng (Đăng nhập / Đăng ký).
- * Áp dụng mô hình Responsive dựa trên WindowSizeClass:
+ * Áp dụng mô hình Responsive Layout tự động điều chỉnh dựa trên [WindowSizeClass]:
  * - Màn hình hẹp (Mobile): Hiển thị Form canh giữa toàn màn hình.
- * - Màn hình rộng (Tablet ngang, Web, Desktop): Hiển thị giao diện Split-Screen (Banner trái, Form phải).
+ * - Màn hình rộng (Tablet ngang, Web, Desktop): Hiển thị giao diện Split-Screen (Banner minh họa bên trái, Form nhập liệu bên phải).
  *
- * @param windowSizeClass Dữ liệu phân loại kích thước cửa sổ từ cấp cao nhất (App) truyền xuống.
- * @param authViewModel ViewModel quản lý logic xác thực Firebase.
+ * @param windowSizeClass Dữ liệu phân loại kích thước màn hình hiện tại do App Navigation truyền xuống.
+ * @param authViewModel ViewModel quản lý logic gọi API xác thực Firebase.
  */
 @Composable
 fun AuthScreen(
@@ -131,9 +131,18 @@ fun AuthScreen(
 }
 
 /**
- * Component chứa toàn bộ trường nhập liệu và nút bấm tương tác.
- * Được tách ra (Extract Method) nhằm tái sử dụng độc lập cho cả 2 loại layout ngang/dọc
- * mà không bị lặp code.
+ * Component tái sử dụng chứa toàn bộ trường nhập liệu và nút bấm tương tác của chức năng Xác thực.
+ * Tách biệt UI Form giúp loại bỏ code lặp giữa 2 layout màn hình (Ngang/Dọc).
+ *
+ * @param isLoginMode Cờ xác định form đang ở chế độ Đăng nhập (true) hay Đăng ký (false).
+ * @param email Giá trị text hiện tại của trường nhập Email.
+ * @param password Giá trị text hiện tại của trường nhập Mật khẩu.
+ * @param authState Trạng thái xử lý mạng hiện tại để hiển thị Loading hoặc Lỗi.
+ * @param onEmailChange Callback khi người dùng gõ vào trường Email.
+ * @param onPasswordChange Callback khi người dùng gõ vào trường Mật khẩu.
+ * @param onToggleMode Callback chuyển đổi qua lại giữa chế độ Đăng nhập và Đăng ký.
+ * @param onActionClick Callback kích hoạt hành động gọi API đăng nhập/đăng ký.
+ * @param onGuestClick Callback kích hoạt hành động đăng nhập dưới quyền Khách (Ẩn danh).
  */
 @Composable
 private fun AuthForm(

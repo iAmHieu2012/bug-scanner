@@ -13,7 +13,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Size as ComposeSize
 
 /**
- * Các hàm hỗ trợ vẽ giao diện (Canvas) cho tính năng Scan.
+ * Hàm mở rộng (Extension function) của [DrawScope] hỗ trợ vẽ khung giới hạn (Bounding Box)
+ * và nhãn tên (Label) cho các đối tượng được AI nhận diện trên Canvas.
+ *
+ * @param textMeasurer Đối tượng hỗ trợ đo lường kích thước văn bản trước khi vẽ.
+ * @param className Tên của đối tượng (loài côn trùng) được nhận diện.
+ * @param score Điểm tin cậy (Confidence Score) của dự đoán.
+ * @param left Tọa độ X của góc trên bên trái Bounding Box.
+ * @param top Tọa độ Y của góc trên bên trái Bounding Box.
+ * @param right Tọa độ X của góc dưới bên phải Bounding Box.
+ * @param bottom Tọa độ Y của góc dưới bên phải Bounding Box.
  */
 fun DrawScope.drawYoloBoundingBox(
     textMeasurer: TextMeasurer,

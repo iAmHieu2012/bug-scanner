@@ -18,18 +18,21 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
- * Object chứa toàn bộ cấu trúc điều phối Camera/Picker của Android
+ * Object triển khai (Implementation) cụ thể của [PlatformScanProvider] dành cho nền tảng Android.
+ * Cung cấp các thành phần giao diện và logic native liên quan đến luồng Camera, xử lý ảnh tĩnh và Thư viện ảnh.
  */
 object AndroidScanProvider : PlatformScanProvider {
 
-    /**
-     * Màn hình hiển thị luồng trực tiếp từ Camera native và vẽ bounding box YOLO.
-     */
     @Composable
-    override fun NativeCameraView(modifier: Modifier, onResult: (FrameResult) -> Unit) {
+    override fun NativeCameraView(
+        modifier: Modifier,
+        onResult: (FrameResult) -> Unit,
+        onLiveFrameCaptured: (ByteArray?) -> Unit
+    ) {
         val context = LocalContext.current
         var isReady by remember { mutableStateOf(false) }
 
+        // Khởi tạo luồng Thread chạy ngầm và tải mô hình YOLO ở Background
         val yoloRef = remember { java.util.concurrent.atomic.AtomicReference<YoloDetector?>(null) }
         val executorRef = remember { java.util.concurrent.atomic.AtomicReference<ExecutorService?>(null) }
 
@@ -50,19 +53,22 @@ object AndroidScanProvider : PlatformScanProvider {
                 ScanViewModel(yoloRef.get()!!, executorRef.get()!!)
             }
 
+            // Theo dõi kết quả từ ViewModel và bắn ra ngoài UI thông qua onResult
             val frameResult by viewModel.frameResult.collectAsState()
             LaunchedEffect(frameResult) { onResult(frameResult) }
 
-            AndroidCameraScreen(viewModel = viewModel, modifier = modifier)
+            AndroidCameraScreen(
+                viewModel = viewModel,
+                modifier = modifier,
+                onLiveFrameCaptured = onLiveFrameCaptured
+            )
         }
     }
 
-    /**
-     * Màn hình xử lý và vẽ bounding box cho ảnh tĩnh native (Gallery/Chụp).
-     */
     @Composable
     override fun NativeStaticDetectionView(modifier: Modifier, imageId: String?, frameResult: FrameResult?) {
         val context = LocalContext.current
+        // Chuyển đổi định danh (URI dạng String) trở lại thành Bitmap để vẽ
         val bitmap = remember(imageId) {
             if (imageId != null) uriToBitmap(context, imageId.toUri()) else null
         }
@@ -71,19 +77,18 @@ object AndroidScanProvider : PlatformScanProvider {
         }
     }
 
-    /**
-     * Khởi tạo Helper quản lý việc chọn ảnh thông qua file kiến trúc riêng đã tách biệt.
-     */
     @Composable
     override fun rememberImagePickerHelper(
         onModeChange: (ScanMode) -> Unit,
         onResult: (FrameResult) -> Unit,
-        onImageIdCaptured: (String) -> Unit
+        onImageIdCaptured: (String) -> Unit,
+        onImageBytesCaptured: (ByteArray?) -> Unit
     ): ImagePickerHelper {
         return rememberAndroidImagePickerHelper(
             onModeChange = onModeChange,
             onResult = onResult,
-            onImageIdCaptured = onImageIdCaptured
+            onImageIdCaptured = onImageIdCaptured,
+            onImageBytesCaptured = onImageBytesCaptured
         )
     }
 }

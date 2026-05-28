@@ -163,8 +163,10 @@ buildConfig {
     packageName("hcmus.bugscanner")
 
     // Đọc API Key từ properties bạn đã load sẵn ở đầu file
+    // Sinh ra biến BuildConfig.*_API_KEY cho toàn bộ nền tảng
     val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
-
-    // Sinh ra biến BuildConfig.GEMINI_API_KEY cho toàn bộ nền tảng
     buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+
+    val imgbbKey = properties.getProperty("IMGBB_API_KEY") ?: ""
+    buildConfigField("String", "IMGBB_API_KEY", "\"$imgbbKey\"")
 }

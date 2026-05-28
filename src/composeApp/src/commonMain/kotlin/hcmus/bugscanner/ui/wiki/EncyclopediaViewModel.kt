@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * ViewModel quản lý trạng thái và logic gọi API iNaturalist / Firebase cho Bách khoa toàn thư.
+ * ViewModel quản lý trạng thái và logic gọi API iNaturalist / Firebase cho màn hình Bách khoa toàn thư.
  */
 class EncyclopediaViewModel : ViewModel() {
     private val repository = EncyclopediaRepositoryImpl()
@@ -40,6 +40,9 @@ class EncyclopediaViewModel : ViewModel() {
         fetchExploreList()
     }
 
+    /**
+     * Tải danh sách mặc định các loài côn trùng từ Firebase để hiển thị ở Tab Khám phá.
+     */
     fun fetchExploreList() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -49,6 +52,10 @@ class EncyclopediaViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Cập nhật từ khóa tìm kiếm nội bộ và gọi truy vấn Firebase sau một khoảng trễ (Debounce).
+     * * @param query Từ khóa người dùng nhập vào.
+     */
     fun onExploreSearchQueryChange(query: String) {
         _exploreSearchQuery.value = query
         exploreSearchJob?.cancel()
@@ -61,6 +68,11 @@ class EncyclopediaViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Gửi truy vấn tìm kiếm sinh vật học đến API iNaturalist.
+     * Tự động format, dịch thuật và bóc tách dữ liệu JSON để trả về danh sách [BugInfo].
+     * * @param query Từ khóa tìm kiếm trên API.
+     */
     fun searchInsects(query: String) {
         val trimmedQuery = query.trim()
         if (trimmedQuery.length < 2) {
@@ -91,17 +103,17 @@ class EncyclopediaViewModel : ViewModel() {
                         }
 
                         // 2. Tên phổ thông (Sẽ hiện làm tiêu đề chính của Card)
-                        val commonName = taxon.preferred_common_name
-                            ?: taxon.english_common_name
+                        val commonName = taxon.preferredCommonName
+                            ?: taxon.englishCommonName
                             ?: taxon.name
 
                         // 3. XÂY DỰNG LẠI MÔ TẢ NGẮN CHO THẺ CARD (Vừa khít 3 dòng của BugItemCard)
                         val shortDescription = "• Phân loại sinh học: $rankVN\n" +
-                                "• Tên quốc tế: ${taxon.english_common_name ?: "Chưa cập nhật"}\n"
+                                "• Tên quốc tế: ${taxon.englishCommonName ?: "Chưa cập nhật"}\n"
 
                         // 4. Đẩy các thông số vào Đặc điểm nhận dạng (Sẽ hiện trong màn hình Chi tiết)
                         val bioStats = "• Tên khoa học chuẩn: ${taxon.name}\n" +
-                                "• Tên quốc tế (Tiếng Anh): ${taxon.english_common_name ?: "Chưa cập nhật"}\n" +
+                                "• Tên quốc tế (Tiếng Anh): ${taxon.englishCommonName ?: "Chưa cập nhật"}\n" +
                                 "• Cấp bậc sinh học: $rankVN"
 
                         BugInfo(
@@ -109,13 +121,13 @@ class EncyclopediaViewModel : ViewModel() {
                             name = commonName.replaceFirstChar { it.uppercase() },
                             scientificName = taxon.name,
                             description = shortDescription,
-                            imageUrl = taxon.default_photo?.medium_url
-                                ?: taxon.default_photo?.square_url
+                            imageUrl = taxon.defaultPhoto?.mediumUrl
+                                ?: taxon.defaultPhoto?.squareUrl
                                 ?: "https://via.placeholder.com/300?text=No+Image",
                             identification = bioStats,
                             danger = "",
                             treatment = "",
-                            wikiUrl = taxon.wikipedia_url ?: ""
+                            wikiUrl = taxon.wikipediaUrl ?: ""
                         )
                     }
                     _searchResults.value = bugs

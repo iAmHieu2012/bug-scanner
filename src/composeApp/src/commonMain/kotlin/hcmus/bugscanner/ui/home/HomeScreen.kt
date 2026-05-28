@@ -25,38 +25,39 @@ import hcmus.bugscanner.core.state.RequireAuthScreen
 import hcmus.bugscanner.ui.chat.ChatScreen
 import hcmus.bugscanner.ui.wiki.EncyclopediaScreen
 
+/**
+ * Danh sách liệt kê các Tab chức năng chính trong ứng dụng.
+ */
 enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT }
 
 /**
  * Màn hình chính đóng vai trò là bộ định tuyến nội bộ (Internal Router) cho các tính năng cốt lõi.
- * * Tích hợp Adaptive Layout (WindowSizeClass):
- * - Thiết bị nhỏ (Mobile/Compact): Hiển thị NavigationBar (Bottom Bar) sát mép dưới.
- * - Thiết bị lớn (Web/Tablet/Expanded): Hiển thị NavigationRail (Side Bar) sát mép trái.
+ * Sử dụng `WindowSizeClass` để hỗ trợ hiển thị linh hoạt (Adaptive Layout):
+ * - Màn hình lớn (Web/Tablet): Hiển thị NavigationRail bên trái.
+ * - Màn hình nhỏ (Mobile): Hiển thị NavigationBar ở dưới cùng.
  *
- * @param windowSizeClass Dữ liệu đo đạc màn hình được truyền xuống từ AppNavigation.
+ * @param windowSizeClass Kích thước màn hình hiện tại để thiết lập Layout Responsive.
  * @param isLoggedIn Trạng thái xác thực hiện tại của người dùng.
  * @param onAuthAction Callback yêu cầu đăng nhập/đăng xuất.
- * @param onShareClick Callback xử lý chia sẻ thông tin côn trùng.
- * @param scanTabContent Nội dung của tab Scan được tiêm (inject) từ bên ngoài để giảm phụ thuộc (Decoupling).
- * @param historyViewModel ViewModel quản lý lịch sử quét.
+ * @param onShareClick Callback xử lý sự kiện chia sẻ thông tin côn trùng.
+ * @param scanTabContent Component giao diện Tab Quét nhận diện được tiêm (inject) từ bên ngoài. Hàm trả về tên côn trùng và mảng byte ảnh (nếu có).
+ * @param historyViewModel ViewModel quản lý thao tác với Database lịch sử.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    windowSizeClass: WindowSizeClass, // Yêu cầu biến này để phân luồng Responsive
+    windowSizeClass: WindowSizeClass,
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo) -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String) -> Unit) -> Unit,
+    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String, ByteArray?) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel = viewModel { HistoryViewModel() }
 ) {
-    // === VÙNG QUẢN LÝ TRẠNG THÁI (STATE MANAGEMENT) ===
     var currentTab by remember { mutableStateOf(AppTab.SCAN) }
     var selectedBug by remember { mutableStateOf<BugInfo?>(null) }
     var initialChatPrompt by remember { mutableStateOf<String?>(null) }
     val bugToShow = selectedBug
 
-    // Định nghĩa cấu trúc dữ liệu tĩnh cho Menu điều hướng (Tab, Nhãn, Icon)
     val navItems: List<Triple<AppTab, String, ImageVector>> = listOf(
         Triple(AppTab.SCAN, "Nhận diện", Icons.Rounded.CenterFocusWeak),
         Triple(AppTab.HISTORY, "Lịch sử", Icons.Rounded.History),
@@ -64,33 +65,26 @@ fun HomeScreen(
         Triple(AppTab.CHATBOT, "Trợ lý", Icons.Rounded.SmartToy)
     )
 
-    // Xác định ngưỡng màn hình rộng (>= 840dp theo chuẩn Material 3)
     val isWideScreen = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
 
-    // === VÙNG ĐIỀU HƯỚNG GIAO DIỆN (UI ROUTING) ===
     if (bugToShow != null) {
-        // Ưu tiên hiển thị màn hình Chi tiết (Detail Screen) phủ lên trên khi có một đối tượng được chọn
         BugDetailScreen(
             bug = bugToShow,
             onBackClick = { selectedBug = null },
             onAskChatbotClick = { prompt ->
                 initialChatPrompt = prompt
-                selectedBug = null // Đóng màn hình chi tiết
-                currentTab = AppTab.CHATBOT // Tự động chuyển hướng sang tab Chatbot
+                selectedBug = null
+                currentTab = AppTab.CHATBOT
             },
             onShareClick = onShareClick
         )
     } else {
         if (isWideScreen) {
-            // ---------------------------------------------------------
-            // LAYOUT DÀNH CHO MÀN HÌNH RỘNG (Web, Desktop, Tablet ngang)
-            // ---------------------------------------------------------
             Row(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                // Thanh điều hướng dọc nằm bên trái
                 NavigationRail(
                     modifier = Modifier
                         .padding(vertical = 16.dp, horizontal = 8.dp)
@@ -98,7 +92,7 @@ fun HomeScreen(
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ) {
-                    Spacer(modifier = Modifier.weight(1f)) // Đẩy các item vào giữa chiều dọc
+                    Spacer(modifier = Modifier.weight(1f))
                     navItems.forEach { (tab, label, icon) ->
                         NavigationRailItem(
                             icon = { Icon(icon, contentDescription = null) },
@@ -118,10 +112,9 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                // Không gian bên phải dành cho nội dung chính
                 Box(
                     modifier = Modifier
-                        .weight(1f) // Chiếm toàn bộ phần không gian còn lại
+                        .weight(1f)
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
@@ -138,20 +131,16 @@ fun HomeScreen(
                 }
             }
         } else {
-            // ---------------------------------------------------------
-            // LAYOUT DÀNH CHO MÀN HÌNH HẸP (Mobile, Tablet dọc)
-            // ---------------------------------------------------------
             Scaffold(
                 bottomBar = {
                     Surface(
                         modifier = Modifier
-                            .navigationBarsPadding() // Xử lý viền an toàn (Safe Area) với phím điều hướng ảo của hệ điều hành
+                            .navigationBarsPadding()
                             .padding(16.dp)
                             .clip(RoundedCornerShape(24.dp)),
                         tonalElevation = 8.dp,
                         color = MaterialTheme.colorScheme.surface
                     ) {
-                        // Thanh điều hướng ngang nằm dưới đáy
                         NavigationBar(
                             containerColor = Color.Transparent,
                             modifier = Modifier.height(70.dp)
@@ -162,7 +151,6 @@ fun HomeScreen(
                                     label = { Text(label, fontSize = 10.sp) },
                                     selected = currentTab == tab,
                                     onClick = {
-                                        // Reset prompt nếu người dùng chủ động bấm vào tab Chatbot lần nữa
                                         if (tab == AppTab.CHATBOT) initialChatPrompt = null
                                         currentTab = tab
                                     },
@@ -177,10 +165,9 @@ fun HomeScreen(
                     }
                 }
             ) { paddingValues ->
-                // Không gian bên trên dành cho nội dung chính
                 Box(
                     modifier = Modifier
-                        .padding(paddingValues) // Chừa khoảng trống tránh đè lên BottomBar
+                        .padding(paddingValues)
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
@@ -201,24 +188,32 @@ fun HomeScreen(
 }
 
 /**
- * Component hiển thị nội dung của từng Tab.
- * Được tách ra (Extract Composable) nhằm mục đích tái sử dụng chung cho cả giao diện màn hình Rộng (Row) và Hẹp (Scaffold).
+ * Component hiển thị nội dung của từng Tab tương ứng, được tách hàm để tái sử dụng cho cấu trúc Adaptive Layout.
+ *
+ * @param currentTab Tab đang được chọn hiện tại.
+ * @param isLoggedIn Trạng thái xác thực.
+ * @param onAuthAction Callback xử lý xác thực.
+ * @param scanTabContent Nội dung giao diện Tab Quét.
+ * @param historyViewModel ViewModel quản lý dữ liệu lịch sử.
+ * @param onBugSelected Callback truyền dữ liệu côn trùng khi một bản ghi được nhấn vào.
+ * @param initialChatPrompt Nội dung prompt mặc định cần truyền vào Chatbot.
+ * @param onClearChatPrompt Callback làm sạch nội dung prompt mặc định sau khi đã gửi đi.
  */
 @Composable
 private fun HomeContent(
     currentTab: AppTab,
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String) -> Unit) -> Unit,
+    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String, ByteArray?) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
     onBugSelected: (BugInfo) -> Unit,
     initialChatPrompt: String?,
     onClearChatPrompt: () -> Unit
 ) {
     when (currentTab) {
-        AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { detectedName ->
-            // Khi AI nhận diện được côn trùng, tự động lưu lịch sử và kích hoạt mở màn hình Detail
-            historyViewModel.addHistory(detectedName)
+        AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { detectedName, imageBytes ->
+            historyViewModel.addHistory(detectedName, imageBytes)
+
             onBugSelected(
                 BugInfo(
                     id = detectedName,
@@ -229,16 +224,25 @@ private fun HomeContent(
         }
         AppTab.HISTORY -> {
             if (isLoggedIn) {
-                HistoryScreen()
+                HistoryScreen(
+                    onItemClick = { historyItem ->
+                        onBugSelected(
+                            BugInfo(
+                                id = historyItem.bugName,
+                                name = historyItem.bugName,
+                                scientificName = historyItem.bugName,
+                                imageUrl = historyItem.imageUrl
+                            )
+                        )
+                    }
+                )
             } else {
-                // Chặn truy cập nếu là Guest (Khách)
                 RequireAuthScreen(onAuthAction = onAuthAction)
             }
         }
         AppTab.WIKI -> EncyclopediaScreen(onBugSelected = onBugSelected)
         AppTab.CHATBOT -> {
             ChatScreen(initialPrompt = initialChatPrompt)
-            // Xóa prompt sau khi ChatScreen đã tiếp nhận để tránh gửi lặp lại trong các chu kỳ Recomposition
             LaunchedEffect(initialChatPrompt) {
                 if (initialChatPrompt != null) {
                     onClearChatPrompt()

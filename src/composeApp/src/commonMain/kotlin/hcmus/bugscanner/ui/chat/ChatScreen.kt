@@ -21,10 +21,10 @@ import hcmus.bugscanner.ui.components.TypingIndicator
 /**
  * Màn hình giao diện nhắn tin với AI Chatbot.
  * Tích hợp Responsive Layout: Giới hạn độ rộng tối đa trên màn hình Web/Desktop
- * (giống ChatGPT/Gemini) để nâng cao trải nghiệm đọc.
+ * (giống ChatGPT/Gemini) để nâng cao trải nghiệm đọc và tương tác.
  *
- * @param initialPrompt Câu hỏi mẫu được truyền vào từ màn hình khác (nếu có).
- * @param viewModel Quản lý logic gọi API Gemini và duy trì lịch sử đoạn chat.
+ * @param initialPrompt Câu hỏi mẫu được truyền vào từ các màn hình khác (ví dụ: từ BugDetailScreen). Nếu có, AI sẽ tự động xử lý khi mở màn hình.
+ * @param viewModel ViewModel quản lý logic gọi API Gemini và duy trì trạng thái lịch sử đoạn chat.
  */
 @Composable
 fun ChatScreen(

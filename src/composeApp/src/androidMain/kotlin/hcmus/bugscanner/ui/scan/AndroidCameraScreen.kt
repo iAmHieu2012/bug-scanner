@@ -22,14 +22,22 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import hcmus.bugscanner.ml.YoloConstants
 import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
+import java.io.ByteArrayOutputStream
 
 /**
- * Màn hình hiển thị luồng trực tiếp từ Camera và vẽ bounding box YOLO.
+ * Component giao diện hiển thị luồng video trực tiếp từ Camera dành riêng cho Android.
+ * Sử dụng thư viện CameraX để lấy từng khung hình (frame), đẩy qua YOLO AI để phân tích,
+ * và kết hợp với Canvas để vẽ khung nhận diện (Bounding Box) đè lên luồng video.
+ *
+ * @param viewModel ViewModel quản lý tiến trình nhận diện AI độc lập trên Android.
+ * @param modifier Modifier tùy chỉnh kích thước, vị trí.
+ * @param onLiveFrameCaptured Callback xuất dữ liệu ảnh nén dạng mảng byte (ByteArray) mỗi khi AI nhận diện thành công một côn trùng.
  */
 @Composable
 fun AndroidCameraScreen(
     viewModel: ScanViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLiveFrameCaptured: (ByteArray?) -> Unit
 ) {
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -40,6 +48,7 @@ fun AndroidCameraScreen(
 
     val cameraExecutor = viewModel.cameraExecutor
 
+    // Hủy liên kết (Unbind) camera khi Component này bị gỡ bỏ khỏi màn hình để giải phóng tài nguyên
     DisposableEffect(lifecycleOwner) {
         onDispose {
             try {
@@ -50,7 +59,9 @@ fun AndroidCameraScreen(
             }
         }
     }
+
     Box(modifier = modifier.fillMaxSize()) {
+        // Tích hợp Android View truyền thống (PreviewView của CameraX) vào trong Compose
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
@@ -62,6 +73,7 @@ fun AndroidCameraScreen(
                     val preview = Preview.Builder().build().also {
                         it.surfaceProvider = previewView.surfaceProvider
                     }
+                    // Yêu cầu Camera cung cấp ảnh có độ phân giải gần nhất với đầu vào của YOLO
                     val resolutionSelector = ResolutionSelector.Builder()
                         .setResolutionStrategy(
                             ResolutionStrategy(
@@ -73,6 +85,7 @@ fun AndroidCameraScreen(
 
                     val imageAnalyzer = ImageAnalysis.Builder()
                         .setResolutionSelector(resolutionSelector)
+                        // Chỉ lấy khung hình mới nhất, bỏ qua các khung hình cũ nếu AI xử lý không kịp (tránh giật lag)
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .also {
@@ -80,7 +93,19 @@ fun AndroidCameraScreen(
                                 val bitmap = imageProxy.toBitmap()
                                 val rotation = imageProxy.imageInfo.rotationDegrees
 
+                                // 1. Chạy AI nhận diện
                                 viewModel.analyzeImage(bitmap, rotation)
+
+                                // 2. Kiểm tra nếu có bọ -> Nén ảnh và đẩy ra ngoài
+                                if (viewModel.frameResult.value.boxes.isNotEmpty()) {
+                                    val stream = ByteArrayOutputStream()
+                                    // Nén chất lượng 70% để tiết kiệm bộ nhớ và băng thông Firebase
+                                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, stream)
+                                    onLiveFrameCaptured(stream.toByteArray())
+                                } else {
+                                    // Báo hiệu không có dữ liệu hình ảnh nào đáng lưu
+                                    onLiveFrameCaptured(null)
+                                }
 
                                 bitmap.recycle()
                                 imageProxy.close()
@@ -98,12 +123,14 @@ fun AndroidCameraScreen(
             }
         )
 
+        // Canvas vẽ đè các Bounding Box lên trên AndroidView
         Canvas(modifier = Modifier.fillMaxSize()) {
             val sourceW = frameResult.sourceWidth.toFloat()
             val sourceH = frameResult.sourceHeight.toFloat()
 
             if (sourceW <= 0f || sourceH <= 0f) return@Canvas
 
+            // Tính toán tỷ lệ Scale và Offset để Map chuẩn xác tọa độ Bounding Box từ AI vào màn hình thực tế
             val scale = maxOf(size.width / sourceW, size.height / sourceH)
             val dispW = sourceW * scale
             val dispH = sourceH * scale

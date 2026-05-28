@@ -13,6 +13,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Service gọi API Wikipedia sử dụng Ktor (hỗ trợ Đa nền tảng).
+ * Cung cấp tính năng tìm kiếm thông tin tóm tắt và tự động dịch văn bản nếu tài liệu không hỗ trợ tiếng Việt.
  * Đã lược bỏ các hàm không còn sử dụng.
  */
 class WikiApiService {
@@ -25,6 +26,14 @@ class WikiApiService {
         }
     }
 
+    /**
+     * Lấy đoạn văn bản tóm tắt (Extract) của một bài viết trên Wikipedia dựa vào tiêu đề.
+     * Tự động gọi hàm dịch thuật nếu ngôn ngữ gốc không phải là Tiếng Việt.
+     *
+     * @param title Tiêu đề chính xác của bài viết trên Wiki (Ví dụ: "Apis_mellifera").
+     * @param lang Mã ngôn ngữ của bài viết gốc (Mặc định là "en").
+     * @return Chuỗi văn bản tóm tắt đã được làm sạch HTML, hoặc null nếu không tìm thấy/lỗi mạng.
+     */
     suspend fun getSummaryByTitle(title: String, lang: String = "en"): String? {
         return try {
             val response: WikiResponse = client.get("https://$lang.wikipedia.org/w/api.php") {
@@ -58,6 +67,10 @@ class WikiApiService {
     /**
      * Dịch văn bản thông qua endpoint gtx của Google Translate.
      * Miễn phí, tốc độ cao và không bị giới hạn RPM khắt khe như Gemini.
+     *
+     * @param text Đoạn văn bản nguyên gốc cần dịch.
+     * @param sourceLang Mã ngôn ngữ của đoạn văn bản gốc (VD: "en", "fr").
+     * @return Đoạn văn bản đã được dịch sang tiếng Việt. Nếu lỗi, trả về lại văn bản gốc.
      */
     private suspend fun translateToVietnamese(text: String, sourceLang: String = "en"): String {
         return try {
@@ -74,12 +87,11 @@ class WikiApiService {
             val jsonArray = Json.parseToJsonElement(responseText).jsonArray
             val translatedSegments = jsonArray[0].jsonArray
 
-            var fullTranslation = ""
-            for (i in 0 until translatedSegments.size) {
-                fullTranslation += translatedSegments[i].jsonArray[0].jsonPrimitive.content
-            }
-
-            fullTranslation.trim()
+            buildString {
+                for (element in translatedSegments) {
+                    append(element.jsonArray[0].jsonPrimitive.content)
+                }
+            }.trim()
         } catch (e: Exception) {
             println("Lỗi khi dịch văn bản: ${e.message}")
             // Trả về text gốc nếu quá trình dịch gặp lỗi mạng

@@ -23,7 +23,11 @@ import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
 /**
- * Object Detector sử dụng mô hình YOLO (TFLite).
+ * Lớp xử lý nhận diện vật thể (Object Detector) sử dụng mô hình AI YOLO định dạng TFLite.
+ * Chịu trách nhiệm tải mô hình, tiền xử lý hình ảnh đầu vào, suy luận (inference) và hậu xử lý kết quả.
+ *
+ * @param context Context của ứng dụng để truy cập thư mục assets chứa file mô hình.
+ * @param modelPath Đường dẫn file mô hình TFLite trong thư mục assets (Mặc định lấy từ YoloConstants).
  */
 class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PATH) {
     private var interpreter: Interpreter? = null
@@ -36,7 +40,7 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
     private var lastRotation = -1
     private val tensorImage = TensorImage(DataType.FLOAT32)
 
-    // Khởi tạo trước vùng đệm chứa output: Shape dạng [1, 106, 16464] (YOLOv8 mặc định)
+    // Khởi tạo trước vùng đệm chứa output: Shape dạng [1, 106, 16464] (Chuẩn YOLOv8 mặc định)
     private val outputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, 106, 16464), DataType.FLOAT32)
 
     init {
@@ -52,7 +56,7 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
     }
 
     /**
-     * Tải tệp tin mô hình định dạng `.tflite` từ thư mục assets dưới dạng bộ đệm bộ nhớ trực tiếp.
+     * Tải tệp tin mô hình định dạng `.tflite` từ thư mục assets dưới dạng bộ đệm bộ nhớ trực tiếp (MappedByteBuffer).
      */
     private fun loadModelFile(context: Context, modelPath: String): MappedByteBuffer {
         val fd = context.assets.openFd(modelPath)
@@ -68,7 +72,10 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
 
     /**
      * Thực hiện phân tích và nhận diện sâu bệnh trên một Frame ảnh (Bitmap).
-     * Kết quả phân tích thành công sẽ được cập nhật trực tiếp vào luồng frameResult.
+     * Kết quả phân tích thành công sẽ được cập nhật trực tiếp vào luồng [frameResult].
+     *
+     * @param inputBitmap Hình ảnh Bitmap cần nhận diện.
+     * @param rotationDegrees Góc xoay của ảnh (để ImageProcessor tự động xoay chuẩn hóa trước khi đưa vào mô hình).
      */
     fun analyze(inputBitmap: Bitmap, rotationDegrees: Int) {
         if (interpreter == null) return

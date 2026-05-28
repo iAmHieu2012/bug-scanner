@@ -9,6 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import hcmus.bugscanner.ui.navigation.AppNavigation
 
+/**
+ * Điểm bắt đầu (Root Composable) của toàn bộ ứng dụng BugScanner.
+ * Chịu trách nhiệm đo lường kích thước hiển thị thực tế của thiết bị và khởi tạo luồng điều hướng.
+ */
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun App() {
@@ -17,9 +21,10 @@ fun App() {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
         // Tự tính toán WindowSizeClass đa nền tảng dựa trên kích thước thực tế.
+        // Giúp giao diện linh hoạt chuyển đổi (Adaptive Layout) giữa Mobile, Tablet và Web.
         val windowSizeClass = WindowSizeClass.calculateFromSize(DpSize(maxWidth, maxHeight))
 
-        // Truyền xuống Router điều hướng
+        // Truyền cấu hình kích thước xuống Router điều hướng trung tâm
         AppNavigation(windowSizeClass = windowSizeClass)
     }
 }

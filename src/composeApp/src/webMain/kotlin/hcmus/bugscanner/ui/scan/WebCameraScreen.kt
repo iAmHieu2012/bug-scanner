@@ -47,24 +47,39 @@ import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLVideoElement
 import kotlin.time.Duration.Companion.milliseconds
 
+/**
+ * Màn hình xử lý luồng video trực tiếp từ WebRTC Camera trên trình duyệt.
+ * Kết hợp sử dụng thẻ `<video>` ẩn và vẽ lại lên giao diện Compose bằng `Canvas`.
+ *
+ * @param modifier Tùy chỉnh kích thước và vị trí của Camera View.
+ * @param onResult Bắn kết quả AI (Bounding Boxes) lên UI Component cha để thống kê.
+ * @param onLiveFrameCaptured Xuất mảng byte (ByteArray) của khung hình hiện tại nếu AI tìm thấy côn trùng.
+ */
 @Composable
-fun WebCameraScreen(modifier: Modifier = Modifier, onResult: (FrameResult) -> Unit) {
+fun WebCameraScreen(
+    modifier: Modifier = Modifier,
+    onResult: (FrameResult) -> Unit,
+    onLiveFrameCaptured: (ByteArray?) -> Unit
+) {
     val textMeasurer = rememberTextMeasurer()
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var currentFrameResult by remember { mutableStateOf<FrameResult?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     DisposableEffect(Unit) {
+        // Khởi tạo thẻ video ẩn trên DOM để hứng stream từ WebRTC
         val video = document.createElement("video") as HTMLVideoElement
         video.autoplay = true
-        video.playsInline = true
+        video.playsInline = true // Yêu cầu bắt buộc trên iOS Safari để không bật Fullscreen Player
 
+        // Khởi tạo thẻ canvas ẩn để chụp ảnh từ luồng video
         val htmlCanvas = document.createElement("canvas") as HTMLCanvasElement
         val ctx = htmlCanvas.getContext("2d") as CanvasRenderingContext2D
 
         var streamData: dynamic = null
         var isDetecting = false
 
+        // Yêu cầu quyền Camera từ trình duyệt (Ưu tiên camera sau - environment)
         val navigatorDyn = window.navigator.asDynamic()
         navigatorDyn.mediaDevices.getUserMedia(js("{ video: { facingMode: 'environment' } }"))
             .then { stream ->
@@ -74,32 +89,40 @@ fun WebCameraScreen(modifier: Modifier = Modifier, onResult: (FrameResult) -> Un
                 println("Lỗi mở camera Web: $e")
             }
 
+        // Vòng lặp lấy khung hình liên tục để vẽ lên giao diện Compose
         val job = coroutineScope.launch {
             while (isActive) {
-                delay(33.milliseconds)
+                delay(33.milliseconds) // ~30 FPS
 
                 if (video.videoWidth > 0 && video.videoHeight > 0) {
                     htmlCanvas.width = video.videoWidth
                     htmlCanvas.height = video.videoHeight
                     ctx.drawImage(video, 0.0, 0.0, htmlCanvas.width.toDouble(), htmlCanvas.height.toDouble())
 
-                    // UI Luồng chính
+                    // 1. Trích xuất hình ảnh (Base64) chuyển sang Compose ImageBitmap
                     try {
-                        val dataUrl = htmlCanvas.toDataURL("image/jpeg", 0.6)
+                        val dataUrl = htmlCanvas.toDataURL("image/jpeg", 0.6) // Nén mức 60% để tối ưu RAM
                         val base64Data = dataUrl.substringAfter(",")
                         val binaryString = window.atob(base64Data)
                         val byteArray = ByteArray(binaryString.length) { i -> binaryString[i].code.toByte() }
                         imageBitmap = Image.makeFromEncoded(byteArray).toComposeImageBitmap()
+
+                        // Kích hoạt callback xuất mảng byte lưu ảnh NẾU AI tìm thấy đối tượng
+                        if (currentFrameResult?.boxes?.isNotEmpty() == true) {
+                            onLiveFrameCaptured(byteArray)
+                        } else {
+                            onLiveFrameCaptured(null)
+                        }
+
                     } catch (e: Exception) {
                         println("Lỗi render hình ảnh: ${e.message}")
                     }
 
-                    // AI Luồng nền
+                    // 2. Chạy luồng phân tích AI ngầm bằng WebGL
                     if (!isDetecting) {
                         isDetecting = true
                         launch {
                             try {
-                                // Gọi qua hàm trung gian siêu gọn
                                 val result = WebYoloDetector.analyze(video, video.videoWidth, video.videoHeight)
                                 currentFrameResult = result
                                 onResult(result)
@@ -112,6 +135,7 @@ fun WebCameraScreen(modifier: Modifier = Modifier, onResult: (FrameResult) -> Un
             }
         }
 
+        // Dọn dẹp luồng WebRTC và giải phóng DOM khi Component bị hủy
         onDispose {
             job.cancel()
             if (streamData != null) {
@@ -138,6 +162,7 @@ fun WebCameraScreen(modifier: Modifier = Modifier, onResult: (FrameResult) -> Un
                 val imgWidth = imageBitmap!!.width.toFloat()
                 val imgHeight = imageBitmap!!.height.toFloat()
 
+                // Vẽ hình ảnh khớp màn hình
                 val scale = maxOf(canvasWidth / imgWidth, canvasHeight / imgHeight)
                 val drawWidth = imgWidth * scale
                 val drawHeight = imgHeight * scale
@@ -150,6 +175,7 @@ fun WebCameraScreen(modifier: Modifier = Modifier, onResult: (FrameResult) -> Un
                     dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt())
                 )
 
+                // Vẽ Bounding Boxes
                 currentFrameResult?.boxes?.forEach { box ->
                     val left = (box.x1 * drawWidth + offsetX).coerceIn(0f, canvasWidth)
                     val top = (box.y1 * drawHeight + offsetY).coerceIn(0f, canvasHeight)

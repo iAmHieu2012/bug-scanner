@@ -6,8 +6,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Sử dụng Typography mặc định của Material 3.
-// Sau này nếu muốn đổi Font chữ (như Google Fonts), bạn chỉ cần đổi ở đây là cả app tự đổi theo.
+/**
+ * Định nghĩa hệ thống kiểu chữ (Typography) tiêu chuẩn cho toàn bộ ứng dụng theo hệ thống Material Design 3.
+ * Giúp đồng bộ hóa kích thước, độ dày và khoảng cách dòng trên mọi màn hình.
+ */
 val AppTypography = Typography(
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
@@ -30,5 +32,5 @@ val AppTypography = Typography(
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     )
-    // Bạn có thể định nghĩa thêm headline, display... nếu cần
+    // Có thể bổ sung thêm các scale khác như headlineSmall, displayMedium... nếu cần thiết
 )

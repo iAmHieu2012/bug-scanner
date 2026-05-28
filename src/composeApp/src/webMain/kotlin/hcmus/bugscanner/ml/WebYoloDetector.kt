@@ -8,22 +8,30 @@ import org.w3c.dom.HTMLElement
 import kotlin.js.Promise
 
 /**
- * Object trung gian xử lý gọi hàm Machine Learning (TensorFlow.js) trên Web.
+ * Đối tượng trung gian (Bridge) xử lý gọi hàm Machine Learning trên nền tảng Web.
+ * Tận dụng thư viện TensorFlow.js (được nhúng qua thẻ `<script>` trong `index.html`)
+ * để phân tích hình ảnh bằng sức mạnh của GPU thông qua WebGL.
  */
 object WebYoloDetector {
 
     /**
-     * @param sourceElement Có thể là thẻ HTMLVideoElement (Camera) hoặc HTMLImageElement (Ảnh tĩnh)
+     * Thực hiện gửi yêu cầu phân tích hình ảnh/video sang môi trường JavaScript thuần.
+     *
+     * @param sourceElement Phần tử HTML chứa dữ liệu ảnh. Có thể là thẻ `HTMLVideoElement` (Camera) hoặc `HTMLImageElement` (Ảnh tĩnh).
+     * @param sourceWidth Chiều rộng gốc của phần tử nguồn.
+     * @param sourceHeight Chiều cao gốc của phần tử nguồn.
+     * @return Dữ liệu [FrameResult] chứa danh sách các vật thể (Bounding Boxes) đã nhận diện.
      */
     suspend fun analyze(sourceElement: HTMLElement, sourceWidth: Int, sourceHeight: Int): FrameResult {
         return try {
-            // Truyền trực tiếp Element vào JS để tận dụng GPU WebGL
+            // Truyền trực tiếp Element vào JS để tận dụng GPU WebGL thay vì gửi mảng Byte (giúp tăng tốc độ xử lý)
             val jsonResultPromise = window.asDynamic()
                 .detectBugsJS(sourceElement)
                 .unsafeCast<Promise<String>>()
 
+            // Chờ JS xử lý xong và parse chuỗi JSON trả về
             val jsonResult = jsonResultPromise.await()
-            val jsArray = kotlin.js.JSON.parse<Array<dynamic>>(jsonResult)
+            val jsArray = JSON.parse<Array<dynamic>>(jsonResult)
 
             val detectionBoxes = jsArray.map { obj ->
                 val xMin = (obj.x as Number).toFloat()

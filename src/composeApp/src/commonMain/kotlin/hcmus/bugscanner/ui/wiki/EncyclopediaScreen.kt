@@ -78,6 +78,8 @@ fun EncyclopediaScreen(
 
 /**
  * Tab hiển thị danh sách các loài côn trùng nổi bật dạng lưới động (Adaptive Grid).
+ * * @param viewModel ViewModel chứa luồng dữ liệu Khám phá.
+ * @param onBugSelected Callback xử lý nhấn vào thẻ côn trùng.
  */
 @Composable
 fun ExploreTab(
@@ -154,6 +156,8 @@ fun ExploreTab(
 /**
  * Tab tra cứu thông tin côn trùng qua API iNaturalist.
  * Sử dụng Adaptive Grid để tối ưu không gian trên các màn hình lớn.
+ * * @param viewModel ViewModel chứa logic tìm kiếm iNaturalist.
+ * @param onBugSelected Callback xử lý nhấn vào thẻ kết quả tìm kiếm.
  */
 @Composable
 fun SearchTab(

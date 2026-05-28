@@ -18,8 +18,11 @@ import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.core.state.EmptyState
 
 /**
- * Hàm sinh màu tự động và CỐ ĐỊNH (Deterministic) cho từng loại côn trùng dựa vào mã băm (hash) của tên.
- * Đảm bảo một loài bọ luôn có cùng một màu sắc mỗi khi xuất hiện, giúp UI nhất quán.
+ * Hàm sinh màu tự động và cố định (deterministic) cho từng loại côn trùng dựa vào mã băm (hash) của tên loài.
+ * Đảm bảo mỗi loài luôn có một màu sắc nhận diện nhất quán trên giao diện.
+ *
+ * @param className Tên phân loại của côn trùng.
+ * @return [Color] Màu sắc đại diện.
  */
 fun getBugColor(className: String): Color {
     val colors = listOf(
@@ -33,39 +36,36 @@ fun getBugColor(className: String): Color {
         Color(0xFF00C8C8), // Xanh ngọc
         Color(0xFF795548)  // Nâu
     )
-    // Dùng bitwise AND để loại bỏ dấu âm của hashCode trước khi chia lấy dư
     return colors[(className.hashCode() and 0x7FFFFFFF) % colors.size]
 }
 
 /**
- * Bảng hiển thị danh sách thống kê kết quả nhận diện từ AI.
+ * Bảng điều khiển (Panel) hiển thị danh sách thống kê kết quả nhận diện từ AI.
+ * Tự động nhóm các sinh vật cùng loại, đếm số lượng và lấy độ chính xác cao nhất.
  *
- * @param frameResult Kết quả trả về từ mô hình Tensor Flow (chứa danh sách Bounding Box).
- * @param onBugClick Callback khi người dùng nhấn vào thẻ của một con bọ để xem chi tiết.
- * @param modifier Cho phép Parent (ScanScreen) quyết định kích thước của Panel này (Responsive).
+ * @param frameResult Kết quả phân tích Bounding Box và Confidence Score từ mô hình AI.
+ * @param imageBytesToSave Mảng byte của hình ảnh hiện tại chứa sinh vật, dùng để lưu trữ lên Cloud.
+ * @param onBugClick Callback kích hoạt khi người dùng nhấn vào thẻ của một con bọ để xem chi tiết (truyền kèm tên và ảnh).
+ * @param modifier Modifier tùy chỉnh kích thước, vị trí từ component cha.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetectionPanel(
     frameResult: FrameResult?,
-    onBugClick: (String) -> Unit,
+    imageBytesToSave: ByteArray?,
+    onBugClick: (String, ByteArray?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Nhóm các box (khung) trùng tên lại với nhau để thống kê số lượng và lấy độ tin cậy (score) cao nhất
     val detectionSummary = frameResult?.boxes?.groupBy { it.className }?.mapValues { entry ->
         val count = entry.value.size
         val maxScore = entry.value.maxOf { it.score }
         Pair(count, maxScore)
     } ?: emptyMap()
 
-    // Tổng số lượng bọ phát hiện được trong khung hình
     val totalBugs = detectionSummary.values.sumOf { it.first }
-
-    // Kiểm tra trạng thái rỗng (Chưa có khung hình nào được đẩy vào model)
     val isInitial = frameResult == null || frameResult.sourceWidth == 0
 
     Surface(
-        // Sử dụng modifier được truyền từ cha, kết hợp padding nội bộ
         modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(32.dp),
@@ -73,7 +73,6 @@ fun DetectionPanel(
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
 
-            // Tiêu đề bảng kết quả & Badge hiển thị tổng số lượng
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Kết quả phát hiện",
@@ -90,13 +89,11 @@ fun DetectionPanel(
 
             Spacer(Modifier.height(16.dp))
 
-            // Xử lý các trạng thái hiển thị của danh sách (Empty States)
             if (isInitial) {
                 EmptyState("Đang chờ hình ảnh... \uD83D\uDD0D")
             } else if (detectionSummary.isEmpty()) {
                 EmptyState("Không tìm thấy côn trùng nào! \uD83D\uDC1C", isError = true)
             } else {
-                // Sử dụng LazyColumn để hỗ trợ cuộn nếu phát hiện quá nhiều loại bọ khác nhau
                 LazyColumn {
                     items(detectionSummary.toList()) { (name, stats) ->
                         val count = stats.first
@@ -104,28 +101,16 @@ fun DetectionPanel(
                         val bugColor = getBugColor(name)
 
                         Card(
-                            onClick = { onBugClick(name) },
+                            onClick = { onBugClick(name, imageBytesToSave) },
                             modifier = Modifier.padding(vertical = 4.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             ListItem(
-                                leadingContent = {
-                                    Icon(Icons.Rounded.Eco, contentDescription = null, tint = bugColor)
-                                },
-                                headlineContent = {
-                                    Text(name, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                },
-                                supportingContent = {
-                                    Text(
-                                        text = "Độ chính xác: ${(maxScore * 100).toInt()}%",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        fontSize = 13.sp
-                                    )
-                                },
-                                trailingContent = {
-                                    Text("x$count", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                },
+                                leadingContent = { Icon(Icons.Rounded.Eco, null, tint = bugColor) },
+                                headlineContent = { Text(name, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                supportingContent = { Text("Độ chính xác: ${(maxScore * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 13.sp) },
+                                trailingContent = { Text("x$count", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         }

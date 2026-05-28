@@ -36,6 +36,14 @@ import kotlinx.coroutines.await
 import org.jetbrains.skia.Image
 import org.khronos.webgl.Int8Array
 
+/**
+ * Component giao diện hiển thị hình ảnh tĩnh được chọn từ thiết bị (File Explorer) trên nền tảng Web.
+ * Xử lý giải mã Blob URL thành mảng byte để Skia vẽ lên Canvas, đồng thời phủ các Bounding Box từ AI lên trên.
+ *
+ * @param modifier Modifier tùy chỉnh kích thước, vị trí từ Component cha.
+ * @param imageId Đường dẫn Blob URL nội bộ của bức ảnh trên trình duyệt.
+ * @param frameResult Dữ liệu chứa tọa độ các vật thể được nhận diện.
+ */
 @Composable
 fun WebStaticDetectionScreen(
     modifier: Modifier = Modifier,
@@ -45,12 +53,16 @@ fun WebStaticDetectionScreen(
     val textMeasurer = rememberTextMeasurer()
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
 
+    // Theo dõi và tải hình ảnh bất cứ khi nào Blob URL (imageId) thay đổi
     LaunchedEffect(imageId) {
         if (imageId != null) {
             try {
+                // Fetch trực tiếp dữ liệu từ Blob URL
                 val response = window.fetch(imageId, js("{}")).await()
                 val arrayBuffer = response.arrayBuffer().await()
+                // Chuyển đổi dữ liệu thô sang ByteArray tương thích với Kotlin/JS
                 val byteArray = Int8Array(arrayBuffer).unsafeCast<ByteArray>()
+                // Dùng engine Skia giải mã mảng byte thành ImageBitmap để Compose vẽ được
                 imageBitmap = Image.makeFromEncoded(byteArray).toComposeImageBitmap()
             } catch (e: Exception) {
                 println("Lỗi load ảnh hiển thị: ${e.message}")
@@ -77,18 +89,21 @@ fun WebStaticDetectionScreen(
                 val imgWidth = imageBitmap!!.width.toFloat()
                 val imgHeight = imageBitmap!!.height.toFloat()
 
+                // Tính toán tỷ lệ co giãn (Scale) và vị trí căn giữa (Offset) cho hình ảnh
                 val scale = minOf(canvasWidth / imgWidth, canvasHeight / imgHeight)
                 val drawWidth = imgWidth * scale
                 val drawHeight = imgHeight * scale
                 val offsetX = (canvasWidth - drawWidth) / 2f
                 val offsetY = (canvasHeight - drawHeight) / 2f
 
+                // Vẽ hình ảnh tĩnh
                 drawImage(
                     image = imageBitmap!!,
                     dstOffset = IntOffset(offsetX.toInt(), offsetY.toInt()),
                     dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt())
                 )
 
+                // Duyệt qua kết quả AI và vẽ các ô vuông giới hạn (Bounding Boxes)
                 if (frameResult != null && frameResult.boxes.isNotEmpty()) {
                     frameResult.boxes.forEach { box ->
                         val left = (box.x1 * drawWidth + offsetX).coerceIn(offsetX, offsetX + drawWidth)

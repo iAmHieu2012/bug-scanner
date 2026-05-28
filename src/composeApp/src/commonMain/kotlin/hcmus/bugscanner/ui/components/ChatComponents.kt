@@ -16,12 +16,13 @@ import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.ChatMessage
 
 /**
- * Bong bóng hiển thị nội dung tin nhắn của người dùng hoặc chatbot.
- * Thiết kế theo chuẩn giao diện chat hiện đại:
- * - Tin nhắn AI: Neo bên trái, đuôi nhọn ở góc dưới trái.
- * - Tin nhắn User: Neo bên phải, đuôi nhọn ở góc dưới phải.
+ * Component hiển thị một bong bóng tin nhắn (Chat Bubble) đơn lẻ trong giao diện trò chuyện.
+ * Thiết kế theo chuẩn UI Chat hiện đại:
+ * - Tin nhắn của Bot (AI): Căn trái, màu nền phụ, bo góc vuông ở dưới cùng bên trái.
+ * - Tin nhắn của Người dùng: Căn phải, màu nền chính, bo góc vuông ở dưới cùng bên phải.
+ * Tích hợp giới hạn chiều rộng linh hoạt giúp hiển thị đẹp mắt trên cả Mobile và Web/Desktop.
  *
- * @param message Đối tượng chứa nội dung, cờ định danh (AI/User) và trạng thái lỗi.
+ * @param message Đối tượng khối dữ liệu chứa nội dung văn bản, trạng thái người gửi và trạng thái lỗi.
  */
 @Composable
 fun ChatBubble(message: ChatMessage) {
@@ -106,8 +107,8 @@ fun ChatBubble(message: ChatMessage) {
 }
 
 /**
- * Hiệu ứng hiển thị trạng thái đang chờ AI phản hồi (Typing Indicator).
- * Được gọi khi đã gửi tin nhắn nhưng chưa nhận được response từ API Gemini.
+ * Hiệu ứng hiển thị trạng thái đang chờ AI xử lý (Typing Indicator).
+ * Nên được đưa vào cây UI (Composition) khi người dùng vừa gửi tin nhắn và đang chờ luồng phản hồi từ API (Gemini/Backend).
  */
 @Composable
 fun TypingIndicator() {

@@ -39,7 +39,8 @@ fun EmptyState(text: String, isError: Boolean = false) {
 /**
  * Màn hình chặn truy cập (Paywall/Authwall) yêu cầu người dùng phải đăng nhập tài khoản thật
  * để sử dụng các tính năng cao cấp (ví dụ: Lưu lịch sử, đồng bộ cloud).
- * * Tích hợp giới hạn chiều rộng để hiển thị đẹp mắt trên màn hình Web/Desktop.
+ *
+ * Tích hợp giới hạn chiều rộng để hiển thị đẹp mắt trên màn hình Web/Desktop.
  *
  * @param onAuthAction Callback kích hoạt quy trình đăng xuất tài khoản Guest và chuyển về màn AuthScreen.
  */

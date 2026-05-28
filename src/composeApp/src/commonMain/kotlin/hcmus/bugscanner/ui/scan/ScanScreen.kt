@@ -27,53 +27,43 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Màn hình trung tâm xử lý chức năng quét và nhận diện AI.
- * Sử dụng [BoxWithConstraints] để tự động thiết kế lại bố cục (Adaptive Layout)
+ * Hỗ trợ tự động điều chỉnh bố cục (Adaptive Layout) thông qua [BoxWithConstraints]
  * mà không cần phụ thuộc vào WindowSizeClass từ bên ngoài.
  *
- * @param isLoggedIn Trạng thái đăng nhập để hiển thị nút Login/Logout.
+ * @param isLoggedIn Trạng thái xác thực hiện tại để hiển thị nút đăng nhập/đăng xuất.
  * @param onAuthAction Callback xử lý khi người dùng nhấn nút xác thực.
- * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhấn vào một kết quả.
+ * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhấn vào một kết quả, truyền kèm tên và mảng byte của ảnh để lưu trữ.
  */
 @Composable
 fun ScanScreen(
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
-    onDetectedBugClick: (String) -> Unit
+    onDetectedBugClick: (String, ByteArray?) -> Unit
 ) {
-    // Provider cung cấp các hàm gọi Native Camera / Image Picker của từng nền tảng (Android/Web)
     val platformProvider = LocalPlatformScanProvider.current
 
-    // Các biến trạng thái nội bộ của màn hình quét
     var currentMode by remember { mutableStateOf(ScanMode.LIVE) }
     var frameResult by remember { mutableStateOf<FrameResult?>(null) }
     var currentImageId by remember { mutableStateOf<String?>(null) }
+    var capturedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
 
-    // Khởi tạo Helper xử lý việc chọn ảnh từ thư viện hoặc chụp tĩnh
     val pickerHelper = platformProvider.rememberImagePickerHelper(
         onModeChange = { currentMode = it },
         onResult = { frameResult = it },
-        onImageIdCaptured = { currentImageId = it }
+        onImageIdCaptured = { currentImageId = it },
+        onImageBytesCaptured = { capturedImageBytes = it }
     )
 
-    // Dùng BoxWithConstraints để đo chính xác không gian khả dụng hiện tại của component này
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-
-        // Ngưỡng 800dp: Chuyển đổi giữa giao diện Cột (Web/Tablet) và giao diện Xếp chồng (Mobile)
         if (maxWidth > 800.dp) {
-            // =================================================================
-            // GIAO DIỆN MÀN HÌNH RỘNG (Web / Desktop / Tablet ngang) - Chia 2 cột
-            // =================================================================
+            // GIAO DIỆN MÀN HÌNH RỘNG
             Row(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // CỘT TRÁI: Khu vực điều khiển và hiển thị ảnh/camera (Tỷ lệ 70%)
                 Column(modifier = Modifier.weight(0.7f).fillMaxHeight()) {
                     ScanScreenHeader(isLoggedIn, onAuthAction)
-
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    // Khung chứa luồng hình ảnh AI
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -81,36 +71,39 @@ fun ScanScreen(
                             .border(2.dp, Color.White, RoundedCornerShape(32.dp))
                             .background(Color.Black)
                     ) {
-                        ScanContent(currentMode, currentImageId, frameResult, platformProvider) { frameResult = it }
+                        ScanContent(
+                            currentMode = currentMode,
+                            currentImageId = currentImageId,
+                            frameResult = frameResult,
+                            platformProvider = platformProvider,
+                            onResultUpdate = { frameResult = it },
+                            onLiveFrameCaptured = { capturedImageBytes = it }
+                        )
 
                         ScanControlButtons(
                             currentMode = currentMode,
                             pickerHelper = pickerHelper,
                             onModeChange = { currentMode = it },
                             onClearResult = { frameResult = null },
-                            alignmentModifier = Modifier.align(Alignment.BottomStart) // Đẩy menu về góc trái cho đỡ vướng
+                            alignmentModifier = Modifier.align(Alignment.BottomStart)
                         )
                     }
                 }
 
-                // CỘT PHẢI: Bảng kết quả nhận diện (Tỷ lệ 30%)
                 Box(modifier = Modifier.weight(0.3f).fillMaxHeight()) {
-                    // Truyền fillMaxSize để bảng kết quả dãn dài hết toàn bộ chiều cao của cột phải
                     DetectionPanel(
                         frameResult = frameResult,
+                        imageBytesToSave = capturedImageBytes,
                         onBugClick = onDetectedBugClick,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
         } else {
-            // =================================================================
-            // GIAO DIỆN MÀN HÌNH HẸP (Mobile / Tablet dọc) - Xếp chồng trên dưới
-            // =================================================================
+            // GIAO DIỆN MÀN HÌNH HẸP
             Column(modifier = Modifier.fillMaxSize()) {
                 ScanScreenHeader(isLoggedIn, onAuthAction)
 
-                // Khung Camera chiếm toàn bộ không gian còn trống ở giữa (weight = 1f)
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -119,20 +112,27 @@ fun ScanScreen(
                         .border(2.dp, Color.White, RoundedCornerShape(32.dp))
                         .background(Color.Black)
                 ) {
-                    ScanContent(currentMode, currentImageId, frameResult, platformProvider) { frameResult = it }
+                    ScanContent(
+                        currentMode = currentMode,
+                        currentImageId = currentImageId,
+                        frameResult = frameResult,
+                        platformProvider = platformProvider,
+                        onResultUpdate = { frameResult = it },
+                        onLiveFrameCaptured = { capturedImageBytes = it }
+                    )
 
                     ScanControlButtons(
                         currentMode = currentMode,
                         pickerHelper = pickerHelper,
                         onModeChange = { currentMode = it },
                         onClearResult = { frameResult = null },
-                        alignmentModifier = Modifier.align(Alignment.BottomCenter) // Đặt giữa ở màn hình Mobile
+                        alignmentModifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
 
-                // Bảng kết quả nằm ở dưới đáy, bị giới hạn chiều cao từ 250dp - 350dp để không lấn át Camera
                 DetectionPanel(
                     frameResult = frameResult,
+                    imageBytesToSave = capturedImageBytes,
                     onBugClick = onDetectedBugClick,
                     modifier = Modifier.fillMaxWidth().height(300.dp)
                 )
@@ -142,7 +142,9 @@ fun ScanScreen(
 }
 
 /**
- * Component hiển thị lời chào và nút điều hướng tài khoản.
+ * Component hiển thị lời chào và nút điều hướng tài khoản trên đầu màn hình.
+ * * @param isLoggedIn Trạng thái đăng nhập.
+ * @param onAuthAction Callback xử lý nhấn nút đăng nhập/đăng xuất.
  */
 @Composable
 private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
@@ -178,7 +180,13 @@ private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
 
 /**
  * Component lõi chuyên trách việc render giao diện của Nền tảng (Native View).
- * Phân nhánh xử lý giữa việc truyền luồng Camera trực tiếp hoặc hiển thị Ảnh tĩnh.
+ * Điều hướng giữa màn hình Camera trực tiếp và màn hình phân tích ảnh tĩnh.
+ * * @param currentMode Chế độ quét hiện tại.
+ * @param currentImageId Định danh ảnh tĩnh hiện tại.
+ * @param frameResult Kết quả nhận diện.
+ * @param platformProvider Provider cung cấp giao diện native.
+ * @param onResultUpdate Callback cập nhật kết quả.
+ * @param onLiveFrameCaptured Callback trả về ảnh từ luồng trực tiếp.
  */
 @Composable
 private fun ScanContent(
@@ -186,25 +194,32 @@ private fun ScanContent(
     currentImageId: String?,
     frameResult: FrameResult?,
     platformProvider: PlatformScanProvider,
-    onResultUpdate: (FrameResult) -> Unit
+    onResultUpdate: (FrameResult) -> Unit,
+    onLiveFrameCaptured: (ByteArray?) -> Unit
 ) {
     if (currentMode == ScanMode.LIVE) {
         platformProvider.NativeCameraView(
-            Modifier.fillMaxSize(),
-            onResultUpdate
+            modifier = Modifier.fillMaxSize(),
+            onResult = onResultUpdate,
+            onLiveFrameCaptured = onLiveFrameCaptured
         )
         ScannerOverlay()
     } else {
         platformProvider.NativeStaticDetectionView(
-            Modifier.fillMaxSize(),
-            currentImageId,
-            frameResult
+            modifier = Modifier.fillMaxSize(),
+            imageId = currentImageId,
+            frameResult = frameResult
         )
     }
 }
 
 /**
- * Thanh menu thao tác nhanh cho phép đổi chế độ quét (Live / Upload / Chụp mới).
+ * Thanh menu thao tác nhanh cho phép đổi chế độ quét (Camera Live / Tải ảnh lên / Chụp ảnh mới).
+ * * @param currentMode Chế độ quét hiện tại.
+ * @param pickerHelper Helper xử lý chọn/chụp ảnh.
+ * @param onModeChange Callback khi thay đổi chế độ.
+ * @param onClearResult Callback xóa kết quả nhận diện cũ.
+ * @param alignmentModifier Vị trí đặt menu trên màn hình.
  */
 @Composable
 private fun ScanControlButtons(
@@ -232,7 +247,7 @@ private fun ScanControlButtons(
                     when (mode) {
                         ScanMode.LIVE -> {
                             onModeChange(mode)
-                            onClearResult() // Dọn sạch kết quả cũ khi quay lại chế độ Live
+                            onClearResult()
                         }
                         ScanMode.IMAGE_UPLOAD -> pickerHelper.launchGallery()
                         ScanMode.CAMERA_CAPTURE -> pickerHelper.launchCamera()
@@ -259,16 +274,12 @@ fun ScannerOverlay() {
             val cornerLength = 60f
             val color = Color.White.copy(alpha = 0.8f)
 
-            // Góc trên - trái
             drawLine(color, Offset(0f, 0f), Offset(cornerLength, 0f), strokeWidth)
             drawLine(color, Offset(0f, 0f), Offset(0f, cornerLength), strokeWidth)
-            // Góc trên - phải
             drawLine(color, Offset(size.width, 0f), Offset(size.width - cornerLength, 0f), strokeWidth)
             drawLine(color, Offset(size.width, 0f), Offset(size.width, cornerLength), strokeWidth)
-            // Góc dưới - trái
             drawLine(color, Offset(0f, size.height), Offset(cornerLength, size.height), strokeWidth)
             drawLine(color, Offset(0f, size.height), Offset(0f, size.height - cornerLength), strokeWidth)
-            // Góc dưới - phải
             drawLine(color, Offset(size.width, size.height), Offset(size.width - cornerLength, size.height), strokeWidth)
             drawLine(color, Offset(size.width, size.height), Offset(size.width, size.height - cornerLength), strokeWidth)
         }

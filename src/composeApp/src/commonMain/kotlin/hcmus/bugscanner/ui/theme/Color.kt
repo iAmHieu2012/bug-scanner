@@ -2,6 +2,11 @@ package hcmus.bugscanner.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Định nghĩa toàn bộ hằng số màu sắc được sử dụng trong hệ thống Design System của ứng dụng.
+ * Phân chia rõ ràng giữa hai chế độ Sáng (Light) và Tối (Dark) để hỗ trợ Dark Mode.
+ */
+
 // ============================================
 // BẢNG MÀU GIAO DIỆN SÁNG (LIGHT THEME COLORS)
 // ============================================

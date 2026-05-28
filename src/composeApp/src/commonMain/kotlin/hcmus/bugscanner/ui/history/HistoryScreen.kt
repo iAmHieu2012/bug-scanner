@@ -11,15 +11,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
-import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.core.state.EmptyState
 import hcmus.bugscanner.core.utils.formatTimestamp
@@ -30,13 +32,15 @@ import hcmus.bugscanner.core.utils.formatTimestamp
  * sang dạng lưới (Grid) trên các màn hình kích thước lớn (Web/Tablet).
  *
  * @param historyViewModel ViewModel chịu trách nhiệm lấy dữ liệu lịch sử từ Database/API.
+ * @param onItemClick Callback kích hoạt khi người dùng nhấn vào một thẻ lịch sử.
  */
 @Composable
-fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel { HistoryViewModel() }) {
-    // Thu thập trạng thái dữ liệu từ ViewModel
+fun HistoryScreen(
+    historyViewModel: HistoryViewModel = viewModel { HistoryViewModel() },
+    onItemClick: (ScanHistory) -> Unit = {}
+) {
     val historyList by historyViewModel.historyList.collectAsState()
 
-    // Trigger lấy dữ liệu ngay khi màn hình vừa được khởi tạo
     LaunchedEffect(Unit) {
         historyViewModel.fetchHistory()
     }
@@ -47,7 +51,6 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel { HistoryViewMo
             .background(MaterialTheme.colorScheme.background)
             .padding(top = 24.dp, start = 16.dp, end = 16.dp)
     ) {
-        // --- Vùng Header ---
         Text(
             text = "Lịch sử khám phá",
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -61,36 +64,32 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel { HistoryViewMo
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- Vùng Nội Dung ---
         if (historyList.isEmpty()) {
             EmptyState(
                 text = "Bạn chưa lưu côn trùng nào.\nHãy dùng Camera để khám phá nhé! 🌿",
                 isError = false
             )
         } else {
-            // Sử dụng BoxWithConstraints để quyết định kiểu dàn trang (Layout Manager)
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 if (maxWidth > 600.dp) {
-                    // LAYOUT MÀN HÌNH RỘNG: Sử dụng Grid thay vì List thẳng đứng để tránh dãn Card
-                    // Adaptive Grid: Mỗi thẻ sẽ rộng ít nhất 300dp, Compose sẽ tự tính số cột phù hợp
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 300.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp), // Chừa không gian cho Menu điều hướng
-                        horizontalArrangement = Arrangement.spacedBy(16.dp), // Khoảng cách giữa các cột
-                        verticalArrangement = Arrangement.spacedBy(12.dp)  // Khoảng cách giữa các dòng
+                        contentPadding = PaddingValues(bottom = 100.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(historyList) { item: ScanHistory ->
-                            HistoryItemCard(item)
+                            HistoryItemCard(item, onClick = { onItemClick(item) })
                         }
                     }
                 } else {
-                    // LAYOUT MÀN HÌNH HẸP (Mobile): Dùng List thẳng đứng truyền thống
                     LazyColumn(
                         contentPadding = PaddingValues(bottom = 100.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(historyList) { item: ScanHistory ->
-                            HistoryItemCard(item)
+                            // 2. Truyền sự kiện click vào thẻ
+                            HistoryItemCard(item, onClick = { onItemClick(item) })
                         }
                     }
                 }
@@ -100,16 +99,18 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel { HistoryViewMo
 }
 
 /**
- * Thẻ (Card) hiển thị một bản ghi (record) trong lịch sử.
- * Được thiết kế nhỏ gọn với icon, tên và thời gian quét.
+ * Thẻ (Card) hiển thị một bản ghi (record) trong lịch sử kèm theo hình ảnh nhận diện thực tế.
  *
  * @param item Khối dữ liệu chứa thông tin của một lần nhận diện.
+ * @param onClick Hàm kích hoạt khi nhấn vào thẻ.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryItemCard(item: ScanHistory) {
+fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
     val dateString = formatTimestamp(item.timestamp)
 
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -121,23 +122,19 @@ fun HistoryItemCard(item: ScanHistory) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon đại diện nằm trong một vùng chứa bo tròn
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.BugReport,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
+            // Tải và hiển thị ảnh thu nhỏ (Thumbnail) từ Firebase Storage
+            AsyncImage(
+                model = item.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/150?text=No+Image",
+                contentDescription = "Ảnh chụp ${item.bugName}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Cụm văn bản thông tin chính
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.bugName,
@@ -161,7 +158,6 @@ fun HistoryItemCard(item: ScanHistory) {
                 }
             }
 
-            // Biểu tượng chỉ báo (Indicator) cho biết thẻ có thể tương tác/nhấn vào
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = "Xem chi tiết",

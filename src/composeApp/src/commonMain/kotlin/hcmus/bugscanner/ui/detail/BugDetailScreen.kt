@@ -64,8 +64,12 @@ fun BugDetailScreen(
             val realBug = repository.getBugByScientificName(bug.scientificName)
 
             if (realBug != null) {
-                // Nếu tìm thấy trên Firebase -> Ghi đè dữ liệu để hiển thị
-                detailedBug = realBug
+                // Nếu đối tượng 'bug' ban đầu được truyền vào có chứa link ảnh (từ Lịch sử),
+                // thì giữ lại ảnh đó, chỉ đè các thông tin text (description, treatment...)
+                // Nếu không có ảnh lịch sử thì mới lấy ảnh mặc định của database (realBug.imageUrl)
+                detailedBug = realBug.copy(
+                    imageUrl = bug.imageUrl.takeIf { it.isNotBlank() } ?: realBug.imageUrl
+                )
             } else if (bug.wikiUrl.isNotBlank()) {
                 // 2. Nếu Firebase KHÔNG CÓ, tiến hành bóc tách Link Wiki để kéo Text
                 // Ví dụ link: http://en.wikipedia.org/wiki/Western_honey_bee
@@ -197,6 +201,8 @@ fun BugDetailScreen(
 /**
  * Khối Component hiển thị danh sách các trường thông tin chi tiết.
  * Trích xuất để tái sử dụng giữa các bố cục ngang/dọc.
+ * * @param detailedBug Đối tượng chứa thông tin chi tiết của sinh vật.
+ * @param isLoading Trạng thái tải dữ liệu từ API/Firebase.
  */
 @Composable
 private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
@@ -283,6 +289,9 @@ private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
 
 /**
  * Thanh nút bấm hành động được neo dưới cùng màn hình (Share, AI Chat).
+ * * @param detailedBug Đối tượng chứa thông tin sinh vật để chia sẻ hoặc hỏi AI.
+ * @param onAskChatbotClick Callback điều hướng sang Chatbot.
+ * @param onShareClick Callback kích hoạt chia sẻ native.
  */
 @Composable
 private fun BugDetailBottomBar(
@@ -327,6 +336,10 @@ private fun BugDetailBottomBar(
 
 /**
  * Component thẻ thông tin chuẩn hóa cho từng mục (Đặc điểm, Xử lý...).
+ * * @param title Tiêu đề của thẻ.
+ * @param icon Biểu tượng minh họa.
+ * @param iconTint Màu sắc của biểu tượng.
+ * @param content Nội dung văn bản hiển thị.
  */
 @Composable
 fun SectionCard(title: String, icon: ImageVector, iconTint: Color, content: String) {

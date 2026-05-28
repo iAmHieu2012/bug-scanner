@@ -10,6 +10,7 @@ import kotlinx.serialization.json.Json
 
 /**
  * Service gọi API iNaturalist sử dụng Ktor.
+ * Dùng để tra cứu chéo hoặc tìm kiếm thông tin khoa học chuẩn xác của côn trùng.
  */
 class INaturalistApiService {
     private val client = HttpClient {
@@ -21,6 +22,13 @@ class INaturalistApiService {
         }
     }
 
+    /**
+     * Tìm kiếm một loài côn trùng trên hệ thống iNaturalist.
+     * API đã được tinh chỉnh để ưu tiên kết quả thuộc lớp Côn Trùng và ngôn ngữ Tiếng Việt.
+     *
+     * @param query Từ khóa tìm kiếm (tên khoa học hoặc tên phổ thông).
+     * @return Danh sách các kết quả phân loại học khớp với từ khóa.
+     */
     suspend fun searchInsects(query: String): INaturalistResponse {
         return client.get("https://api.inaturalist.org/v1/taxa") {
             url {

@@ -12,8 +12,13 @@ import kotlinx.browser.document
 import kotlinx.browser.window
 import org.jetbrains.skiko.wasm.onWasmReady
 
+/**
+ * Điểm bắt đầu (Entry Point) của ứng dụng trên nền tảng Web (Wasm).
+ * Chịu trách nhiệm tải cấu hình Firebase từ file JSON tĩnh và khởi tạo giao diện Compose.
+ */
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    // Tải tệp cấu hình Firebase từ thư mục public/web của server
     window.fetch("firebase-config.json", js("{}"))
         .then { response ->
             if (!response.ok) throw Exception("Không tìm thấy file firebase-config.json")
@@ -22,6 +27,7 @@ fun main() {
         .then { jsonConfig ->
             val dynamicConfig = jsonConfig.asDynamic()
 
+            // Khởi tạo thông số Firebase tương thích với thư viện GitLive
             val options = FirebaseOptions(
                 applicationId = dynamicConfig.appId as String,
                 gcmSenderId = dynamicConfig.messagingSenderId as String,
@@ -33,8 +39,10 @@ fun main() {
 
             Firebase.initialize(options = options)
 
+            // Chờ engine Wasm sẵn sàng trước khi vẽ giao diện lên DOM
             onWasmReady {
                 ComposeViewport(document.body!!) {
+                    // Tiêm WebScanProvider (chứa logic Camera trình duyệt) vào toàn bộ App
                     CompositionLocalProvider(
                         LocalPlatformScanProvider provides WebScanProvider
                     ) {

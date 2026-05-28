@@ -13,12 +13,12 @@ import hcmus.bugscanner.core.utils.rememberShareManager
 import hcmus.bugscanner.ui.theme.AppTheme
 
 /**
- * Quản lý luồng điều hướng chính và trạng thái đăng nhập, cấp quyền.
- * Hoạt động như một Router trung tâm của toàn bộ ứng dụng.
+ * Component quản lý luồng điều hướng chính, trạng thái đăng nhập và cấp quyền của ứng dụng.
+ * Hoạt động như một Router trung tâm của toàn bộ ứng dụng, quyết định màn hình nào sẽ được hiển thị.
  *
- * @param windowSizeClass Thông số kích thước màn hình hiện tại (nhận từ App.kt) để phân phối
- * xuống các màn hình con, giúp xử lý Responsive tự động.
- * @param authViewModel ViewModel quản lý trạng thái xác thực (Login/Guest).
+ * @param windowSizeClass Thông số kích thước màn hình hiện tại (được cung cấp từ cấp cao hơn) để phân phối
+ * xuống các màn hình con, giúp xử lý Responsive Layout tự động.
+ * @param authViewModel ViewModel quản lý trạng thái xác thực (Login/Guest) của hệ thống.
  */
 @Composable
 fun AppNavigation(
@@ -32,7 +32,7 @@ fun AppNavigation(
         // Theo dõi trạng thái đăng nhập từ Firebase thông qua ViewModel
         val authState by authViewModel.authState.collectAsState()
 
-        // Trình quản lý chia sẻ dữ liệu native
+        // Trình quản lý chia sẻ dữ liệu native tùy thuộc vào nền tảng (Android/Web)
         val shareManager = rememberShareManager()
 
         // LUỒNG ĐIỀU HƯỚNG CẤP 1: Xử lý Splash Screen
@@ -44,7 +44,7 @@ fun AppNavigation(
             // LUỒNG ĐIỀU HƯỚNG CẤP 2: Phân nhánh dựa trên trạng thái xác thực (Authentication State)
             when (val state = authState) {
                 is AuthState.Success -> {
-                    // Trạng thái Success: Người dùng đã vào app (có thể là Khách hoặc User thật)
+                    // Trạng thái Success: Người dùng đã vào app (có thể là Khách hoặc User đã xác thực)
                     HomeScreen(
                         windowSizeClass = windowSizeClass, // <-- TRUYỀN XUỐNG HOMESCREEN ĐỂ CHIA 2 CỘT
                         isLoggedIn = !state.isGuest,       // Xác định cờ LoggedIn để chặn/mở tính năng

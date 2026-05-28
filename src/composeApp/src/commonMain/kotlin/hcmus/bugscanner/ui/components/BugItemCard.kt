@@ -14,13 +14,13 @@ import hcmus.bugscanner.domain.model.BugInfo
 import coil3.compose.AsyncImage
 
 /**
- * Thẻ hiển thị thông tin tóm tắt và hình ảnh của một loài côn trùng.
- * Được thiết kế theo chuẩn Card của Material 3, có bo góc và giới hạn chiều rộng
- * để tránh bị kéo dãn dị dạng trên màn hình Web/Desktop.
+ * Thẻ (Card) hiển thị thông tin tóm tắt và hình ảnh của một loài côn trùng.
+ * Được thiết kế theo chuẩn Material Design 3, bao gồm bo góc và xử lý cắt cúp hình ảnh.
+ * Tự động điều chỉnh chiều rộng để tương thích với các Adaptive Layout (Grid/List).
  *
- * @param bug Đối tượng chứa dữ liệu côn trùng cần hiển thị.
- * @param modifier Cho phép Parent tùy chỉnh vị trí hoặc kích thước bổ sung (nếu cần).
- * @param onClick Callback được gọi khi người dùng nhấn (tap) vào thẻ.
+ * @param bug Đối tượng chứa dữ liệu chi tiết của côn trùng cần hiển thị.
+ * @param modifier Modifier tùy chỉnh vị trí, kích thước hoặc các hiệu ứng từ component cha.
+ * @param onClick Callback được kích hoạt khi người dùng nhấn (tap) vào toàn bộ khu vực của thẻ.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

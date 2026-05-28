@@ -1,15 +1,24 @@
 package hcmus.bugscanner.ml
 
 /**
- * Hằng số cấu hình cho mô hình Object Detection (YOLO)
+ * Lớp đối tượng Singleton chứa các hằng số cấu hình tĩnh cho mô hình nhận diện vật thể YOLO.
  */
 object YoloConstants {
+    /** Đường dẫn tham chiếu đến file mô hình đã được huấn luyện (TensorFlow Lite). */
     const val MODEL_PATH = "model.tflite" // link model: huggingface: "Yashwanth1508/AgroAI-pest-detection"
+
+    /** Kích thước chiều dài và chiều rộng bắt buộc của hình ảnh đầu vào (pixels) trước khi đưa vào mô hình. */
     const val INPUT_SIZE = 896
+
+    /** Ngưỡng điểm tin cậy tối thiểu (Confidence Score). Các kết quả dự đoán có điểm thấp hơn ngưỡng này sẽ bị loại bỏ. */
     const val CONFIDENCE_THRESHOLD = 0.35f
+
+    /** Ngưỡng Intersection over Union (IoU) dùng cho thuật toán Non-Maximum Suppression (NMS) để lọc các hộp giới hạn trùng lặp. */
     const val IOU_THRESHOLD = 0.4f
 
-    // 102 Nhãn đã được chuẩn hóa thành Tên Khoa Học (Khớp tuyệt đối với Index của IP102)
+    /** * Danh sách 102 nhãn (labels) tương ứng với các loài sinh vật được mô hình nhận diện.
+     * Mảng này đã được chuẩn hóa sử dụng Tên Khoa Học và khớp tuyệt đối với chỉ số Index đầu ra của tập dữ liệu IP102.
+     */
     val LABELS = arrayOf(
         "Cnaphalocrocis medinalis",     // 0: rice leaf roller
         "Naranga aenescens",            // 1: rice leaf caterpillar
