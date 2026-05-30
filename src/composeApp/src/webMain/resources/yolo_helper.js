@@ -10,8 +10,10 @@ window.initYolo = async function() {
         console.log("Đang tải AI Model TensorFlow.js...");
         window.yoloModel = await tf.loadGraphModel('best_web_model/model.json');
         console.log("🔥 AI Model đã sẵn sàng để hoạt động!");
+        return true;
     } catch (error) {
         console.error("Lỗi khi tải mô hình AI:", error);
+        return false;
     }
 };
 
@@ -132,6 +134,3 @@ window.detectBugsJS = async function(sourceElement) {
         return JSON.stringify([]);
     }
 };
-
-// Gọi khởi chạy ngay khi script được tải
-window.initYolo();

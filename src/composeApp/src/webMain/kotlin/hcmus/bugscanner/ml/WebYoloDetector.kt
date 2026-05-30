@@ -15,6 +15,20 @@ import kotlin.js.Promise
 object WebYoloDetector {
 
     /**
+     * Kích hoạt khởi chạy AI Model từ JS.
+     * @return Trả về true nếu tải AI thành công, false nếu thất bại.
+     */
+    suspend fun initialize(): Boolean {
+        return try {
+            val promise = window.asDynamic().initYolo().unsafeCast<Promise<Boolean>>()
+            promise.await()
+        } catch (e: Exception) {
+            println("Lỗi gọi khởi tạo AI từ JS: ${e.message}")
+            false
+        }
+    }
+
+    /**
      * Thực hiện gửi yêu cầu phân tích hình ảnh/video sang môi trường JavaScript thuần.
      *
      * @param sourceElement Phần tử HTML chứa dữ liệu ảnh. Có thể là thẻ `HTMLVideoElement` (Camera) hoặc `HTMLImageElement` (Ảnh tĩnh).

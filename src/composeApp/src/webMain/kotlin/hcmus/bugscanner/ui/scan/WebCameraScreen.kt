@@ -64,6 +64,7 @@ fun WebCameraScreen(
     val textMeasurer = rememberTextMeasurer()
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var currentFrameResult by remember { mutableStateOf<FrameResult?>(null) }
+    var isAiReady by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     DisposableEffect(Unit) {
@@ -91,6 +92,13 @@ fun WebCameraScreen(
 
         // Vòng lặp lấy khung hình liên tục để vẽ lên giao diện Compose
         val job = coroutineScope.launch {
+            // LUỒNG 1: Tải AI ngầm (Cho UI vẽ Camera trước)
+            launch {
+                delay(1000.milliseconds)
+                isAiReady = WebYoloDetector.initialize()
+            }
+
+            // LUỒNG 2: Xử lý khung hình
             while (isActive) {
                 delay(33.milliseconds) // ~30 FPS
 
@@ -118,8 +126,8 @@ fun WebCameraScreen(
                         println("Lỗi render hình ảnh: ${e.message}")
                     }
 
-                    // 2. Chạy luồng phân tích AI ngầm bằng WebGL
-                    if (!isDetecting) {
+                    // 2. Chạy luồng phân tích AI ngầm bằng WebGL (CHỈ CHẠY KHI AI SẴN SÀNG)
+                    if (isAiReady && !isDetecting) {
                         isDetecting = true
                         launch {
                             try {
