@@ -1,6 +1,5 @@
 package hcmus.bugscanner.ui.scan
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -15,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import bugscanner.composeapp.generated.resources.*
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
+import hcmus.bugscanner.ui.scan.components.ScannerOverlay
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -31,8 +30,8 @@ import org.jetbrains.compose.resources.stringResource
  * mà không cần phụ thuộc vào WindowSizeClass từ bên ngoài.
  *
  * @param isLoggedIn Trạng thái xác thực hiện tại để hiển thị nút đăng nhập/đăng xuất.
- * @param onAuthAction Callback xử lý khi người dùng nhấn nút xác thực.
- * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhấn vào một kết quả, truyền kèm tên và mảng byte của ảnh để lưu trữ.
+ * @param onAuthAction Callback xử lý khi người dùng nhấn nút xác thực (điều hướng sang màn hình Login/Logout).
+ * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhấn vào một kết quả, truyền kèm tên sinh vật và mảng byte của ảnh để lưu trữ lịch sử.
  */
 @Composable
 fun ScanScreen(
@@ -107,6 +106,7 @@ fun ScanScreen(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                         .clip(RoundedCornerShape(32.dp))
                         .border(2.dp, Color.White, RoundedCornerShape(32.dp))
@@ -143,8 +143,9 @@ fun ScanScreen(
 
 /**
  * Component hiển thị lời chào và nút điều hướng tài khoản trên đầu màn hình.
- * * @param isLoggedIn Trạng thái đăng nhập.
- * @param onAuthAction Callback xử lý nhấn nút đăng nhập/đăng xuất.
+ *
+ * @param isLoggedIn Trạng thái đăng nhập của người dùng (dùng để đổi icon Login/Logout).
+ * @param onAuthAction Callback xử lý sự kiện khi người dùng nhấn vào nút Account.
  */
 @Composable
 private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
@@ -179,14 +180,15 @@ private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
 }
 
 /**
- * Component lõi chuyên trách việc render giao diện của Nền tảng (Native View).
+ * Component lõi chuyên trách việc render giao diện của Nền tảng (Native View) và kiểm tra Quyền Camera.
  * Điều hướng giữa màn hình Camera trực tiếp và màn hình phân tích ảnh tĩnh.
- * * @param currentMode Chế độ quét hiện tại.
- * @param currentImageId Định danh ảnh tĩnh hiện tại.
- * @param frameResult Kết quả nhận diện.
- * @param platformProvider Provider cung cấp giao diện native.
- * @param onResultUpdate Callback cập nhật kết quả.
- * @param onLiveFrameCaptured Callback trả về ảnh từ luồng trực tiếp.
+ *
+ * @param currentMode Chế độ quét hiện tại (LIVE, IMAGE_UPLOAD, CAMERA_CAPTURE).
+ * @param currentImageId Định danh (URI/Blob) của ảnh tĩnh hiện tại đang được chọn để phân tích.
+ * @param frameResult Kết quả nhận diện trả về từ AI Model.
+ * @param platformProvider Provider cung cấp giao diện native (CameraX cho Android hoặc Video Element cho Web).
+ * @param onResultUpdate Callback cập nhật kết quả nhận diện lên State của luồng chính.
+ * @param onLiveFrameCaptured Callback trả về mảng byte của khung hình được chụp từ luồng trực tiếp.
  */
 @Composable
 private fun ScanContent(
@@ -197,29 +199,41 @@ private fun ScanContent(
     onResultUpdate: (FrameResult) -> Unit,
     onLiveFrameCaptured: (ByteArray?) -> Unit
 ) {
-    if (currentMode == ScanMode.LIVE) {
-        platformProvider.NativeCameraView(
-            modifier = Modifier.fillMaxSize(),
-            onResult = onResultUpdate,
-            onLiveFrameCaptured = onLiveFrameCaptured
-        )
-        ScannerOverlay()
-    } else {
-        platformProvider.NativeStaticDetectionView(
-            modifier = Modifier.fillMaxSize(),
-            imageId = currentImageId,
-            frameResult = frameResult
-        )
-    }
+    // Gọi hàm quản lý quyền đa nền tảng thông qua Interface Provider
+    platformProvider.RequireCameraPermission(
+        onGranted = {
+            // NẾU ĐÃ CÓ QUYỀN (Android) HOẶC ĐANG Ở TRÊN WEB
+            if (currentMode == ScanMode.LIVE) {
+                platformProvider.NativeCameraView(
+                    modifier = Modifier.fillMaxSize(),
+                    onResult = onResultUpdate,
+                    onLiveFrameCaptured = onLiveFrameCaptured
+                )
+                ScannerOverlay()
+            } else {
+                platformProvider.NativeStaticDetectionView(
+                    modifier = Modifier.fillMaxSize(),
+                    imageId = currentImageId,
+                    frameResult = frameResult
+                )
+            }
+        },
+        onDenied = { launchPermissionRequest ->
+            // NẾU CHƯA CÓ QUYỀN (Android) -> HIỂN THỊ UI XIN QUYỀN
+            CameraPermissionScreen(
+                onRequestPermission = launchPermissionRequest
+            )
+        }
+    )
 }
 
 /**
  * Thanh menu thao tác nhanh cho phép đổi chế độ quét (Camera Live / Tải ảnh lên / Chụp ảnh mới).
- * * @param currentMode Chế độ quét hiện tại.
- * @param pickerHelper Helper xử lý chọn/chụp ảnh.
- * @param onModeChange Callback khi thay đổi chế độ.
- * @param onClearResult Callback xóa kết quả nhận diện cũ.
- * @param alignmentModifier Vị trí đặt menu trên màn hình.
+ * * @param currentMode Chế độ quét hiện tại để làm nổi bật Icon tương ứng.
+ * @param pickerHelper Helper chịu trách nhiệm mở thư viện ảnh hoặc ứng dụng máy ảnh gốc của nền tảng.
+ * @param onModeChange Callback kích hoạt khi người dùng thay đổi chế độ quét.
+ * @param onClearResult Callback xóa kết quả nhận diện cũ trên màn hình khi chuyển chế độ.
+ * @param alignmentModifier Modifier dùng để định vị trí đặt menu trên màn hình (vd: BottomStart, BottomCenter).
  */
 @Composable
 private fun ScanControlButtons(
@@ -249,8 +263,14 @@ private fun ScanControlButtons(
                             onModeChange(mode)
                             onClearResult()
                         }
-                        ScanMode.IMAGE_UPLOAD -> pickerHelper.launchGallery()
-                        ScanMode.CAMERA_CAPTURE -> pickerHelper.launchCamera()
+                        ScanMode.IMAGE_UPLOAD -> {
+                            onClearResult()
+                            pickerHelper.launchGallery()
+                        }
+                        ScanMode.CAMERA_CAPTURE -> {
+                            onClearResult()
+                            pickerHelper.launchCamera()
+                        }
                     }
                 },
                 modifier = Modifier
@@ -259,29 +279,6 @@ private fun ScanControlButtons(
             ) {
                 Icon(icon, null, tint = if (currentMode == mode) MaterialTheme.colorScheme.onPrimary else Color.White)
             }
-        }
-    }
-}
-
-/**
- * Lớp phủ đồ họa (Overlay) vẽ 4 góc viền ngắm (Viewfinder) đặc trưng của các ứng dụng Scanner.
- */
-@Composable
-fun ScannerOverlay() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(60.dp)) {
-            val strokeWidth = 10f
-            val cornerLength = 60f
-            val color = Color.White.copy(alpha = 0.8f)
-
-            drawLine(color, Offset(0f, 0f), Offset(cornerLength, 0f), strokeWidth)
-            drawLine(color, Offset(0f, 0f), Offset(0f, cornerLength), strokeWidth)
-            drawLine(color, Offset(size.width, 0f), Offset(size.width - cornerLength, 0f), strokeWidth)
-            drawLine(color, Offset(size.width, 0f), Offset(size.width, cornerLength), strokeWidth)
-            drawLine(color, Offset(0f, size.height), Offset(cornerLength, size.height), strokeWidth)
-            drawLine(color, Offset(0f, size.height), Offset(0f, size.height - cornerLength), strokeWidth)
-            drawLine(color, Offset(size.width, size.height), Offset(size.width - cornerLength, size.height), strokeWidth)
-            drawLine(color, Offset(size.width, size.height), Offset(size.width, size.height - cornerLength), strokeWidth)
         }
     }
 }

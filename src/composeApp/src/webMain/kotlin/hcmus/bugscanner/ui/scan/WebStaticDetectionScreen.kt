@@ -27,10 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
-import hcmus.bugscanner.ui.scan.components.getBugColor
+import hcmus.bugscanner.ui.scan.utils.getBugColor
 import kotlinx.browser.window
 import kotlinx.coroutines.await
 import org.jetbrains.skia.Image

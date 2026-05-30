@@ -20,11 +20,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.core.state.EmptyState
 import hcmus.bugscanner.core.utils.formatTimestamp
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình hiển thị danh sách lịch sử nhận diện của người dùng.
@@ -36,7 +36,7 @@ import hcmus.bugscanner.core.utils.formatTimestamp
  */
 @Composable
 fun HistoryScreen(
-    historyViewModel: HistoryViewModel = viewModel { HistoryViewModel() },
+    historyViewModel: HistoryViewModel = koinViewModel(),
     onItemClick: (ScanHistory) -> Unit = {}
 ) {
     val historyList by historyViewModel.historyList.collectAsState()

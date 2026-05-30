@@ -5,18 +5,33 @@ import androidx.compose.ui.Modifier
 import hcmus.bugscanner.domain.model.FrameResult
 
 /**
- * Triển khai cụ thể (Implementation) của `PlatformScanProvider` dành cho nền tảng Web (Wasm/JS).
+ * Triển khai cụ thể (Implementation) của [PlatformScanProvider] dành cho nền tảng Web (Wasm/JS).
  * Đóng vai trò là "Cầu nối" (Bridge) giữa cây giao diện Compose Multiplatform dùng chung
  * và các API gọi Camera, Thư viện đặc thù của Trình duyệt Web.
  */
 object WebScanProvider : PlatformScanProvider {
 
     /**
-     * Màn hình hiển thị luồng trực tiếp từ Camera trên nền tảng Web.
+     * Hàm xin quyền truy cập Camera trên nền tảng Web.
+     * Trình duyệt xử lý quyền tự động khi gọi Video API, nên hàm này bỏ qua việc kiểm tra thủ công.
+     *
+     * @param onGranted Callback được gọi ngay lập tức để luồng UI tiếp tục đi thẳng vào việc mở Camera.
+     * @param onDenied Callback không được sử dụng trên Web do trình duyệt tự hiển thị Popup mặc định.
+     */
+    @Composable
+    override fun RequireCameraPermission(
+        onGranted: @Composable () -> Unit,
+        onDenied: @Composable (onRequestPermission: () -> Unit) -> Unit
+    ) {
+        onGranted()
+    }
+
+    /**
+     * Màn hình hiển thị luồng trực tiếp từ Camera trên nền tảng Web thông qua thẻ <video> HTML.
      *
      * @param modifier Modifier định dạng kích thước và vị trí của Camera.
      * @param onResult Callback trả về kết quả tọa độ Bounding Box của mô hình AI.
-     * @param onLiveFrameCaptured Callback xuất dữ liệu ảnh (ByteArray) của khung hình camera HIỆN TẠI nếu AI phát hiện có côn trùng. Trả về null nếu không có.
+     * @param onLiveFrameCaptured Callback xuất dữ liệu ảnh (ByteArray) của khung hình camera hiện tại nếu AI phát hiện có côn trùng. Trả về null nếu không có.
      */
     @Composable
     override fun NativeCameraView(
@@ -32,7 +47,7 @@ object WebScanProvider : PlatformScanProvider {
     }
 
     /**
-     * Màn hình xử lý và vẽ bounding box cho ảnh tĩnh trên Web.
+     * Màn hình xử lý và vẽ bounding box cho ảnh tĩnh trên Web thông qua Canvas API.
      *
      * @param modifier Modifier định dạng giao diện.
      * @param imageId Chuỗi Blob URL nội bộ của bức ảnh trên DOM trình duyệt.
@@ -50,10 +65,11 @@ object WebScanProvider : PlatformScanProvider {
     /**
      * Khởi tạo Helper hỗ trợ việc chọn ảnh từ máy tính (File Explorer) hoặc chụp ảnh trên thiết bị di động duyệt Web.
      *
-     * @param onModeChange Callback chuyển đổi chế độ UI sang dạng hiển thị tĩnh.
+     * @param onModeChange Callback chuyển đổi chế độ UI sang dạng hiển thị tĩnh sau khi lấy ảnh.
      * @param onResult Callback trả về kết quả AI của ảnh tĩnh.
      * @param onImageIdCaptured Callback trả về Blob URL của ảnh để render lên giao diện.
      * @param onImageBytesCaptured Callback trả về mảng byte gốc của ảnh tĩnh để phục vụ việc tải lên Firebase Storage.
+     * @return [ImagePickerHelper] được cấu hình sẵn cho Web.
      */
     @Composable
     override fun rememberImagePickerHelper(

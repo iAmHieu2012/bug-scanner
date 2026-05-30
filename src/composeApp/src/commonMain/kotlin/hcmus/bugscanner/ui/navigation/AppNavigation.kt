@@ -2,7 +2,6 @@ package hcmus.bugscanner.ui.navigation
 
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
-import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.ui.auth.AuthScreen
 import hcmus.bugscanner.ui.auth.AuthViewModel
 import hcmus.bugscanner.ui.auth.AuthState
@@ -11,6 +10,7 @@ import hcmus.bugscanner.ui.splash.SplashScreen
 import hcmus.bugscanner.ui.scan.ScanScreen
 import hcmus.bugscanner.core.utils.rememberShareManager
 import hcmus.bugscanner.ui.theme.AppTheme
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Component quản lý luồng điều hướng chính, trạng thái đăng nhập và cấp quyền của ứng dụng.
@@ -22,8 +22,8 @@ import hcmus.bugscanner.ui.theme.AppTheme
  */
 @Composable
 fun AppNavigation(
-    windowSizeClass: WindowSizeClass, // <-- THÊM THAM SỐ NHẬN DIỆN KÍCH THƯỚC MÀN HÌNH
-    authViewModel: AuthViewModel = viewModel { AuthViewModel() }
+    windowSizeClass: WindowSizeClass,
+    authViewModel: AuthViewModel = koinViewModel()
 ) {
     AppTheme {
         // State quản lý việc hiển thị màn hình Splash ban đầu

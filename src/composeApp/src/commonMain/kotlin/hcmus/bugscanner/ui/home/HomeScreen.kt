@@ -16,14 +16,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.ui.detail.BugDetailScreen
 import hcmus.bugscanner.ui.history.HistoryScreen
 import hcmus.bugscanner.ui.history.HistoryViewModel
 import hcmus.bugscanner.core.state.RequireAuthScreen
 import hcmus.bugscanner.ui.chat.ChatScreen
-import hcmus.bugscanner.ui.wiki.EncyclopediaScreen
+import hcmus.bugscanner.ui.encyclopedia.EncyclopediaScreen
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Danh sách liệt kê các Tab chức năng chính trong ứng dụng.
@@ -51,7 +51,7 @@ fun HomeScreen(
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo) -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String, ByteArray?) -> Unit) -> Unit,
-    historyViewModel: HistoryViewModel = viewModel { HistoryViewModel() }
+    historyViewModel: HistoryViewModel = koinViewModel()
 ) {
     var currentTab by remember { mutableStateOf(AppTab.SCAN) }
     var selectedBug by remember { mutableStateOf<BugInfo?>(null) }

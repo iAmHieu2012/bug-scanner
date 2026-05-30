@@ -1,8 +1,7 @@
 package hcmus.bugscanner.data.repository
 
-import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.Direction
-import dev.gitlive.firebase.firestore.firestore
+import dev.gitlive.firebase.firestore.FirebaseFirestore
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.repository.HistoryRepository
 import io.ktor.client.HttpClient
@@ -21,12 +20,11 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * - Đồng bộ dữ liệu văn bản (tên, thời gian) lên Firebase Firestore.
  * - Upload hình ảnh độc lập lên dịch vụ ImgBB thông qua Ktor HTTP Client.
  */
-class HistoryRepositoryImpl : HistoryRepository {
-    private val db = Firebase.firestore
+class HistoryRepositoryImpl(
+    db: FirebaseFirestore,
+    private val httpClient: HttpClient
+) : HistoryRepository {
     private val historyCollection = db.collection("scan_history")
-
-    // Khởi tạo Ktor Client đã có sẵn trong build.gradle.kts
-    private val httpClient = HttpClient()
 
     /**
      * Ghi một bản ghi lịch sử mới vào Firestore.

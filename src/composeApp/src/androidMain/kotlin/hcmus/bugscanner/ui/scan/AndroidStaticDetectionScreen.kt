@@ -14,7 +14,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import hcmus.bugscanner.domain.model.FrameResult
-import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
+import hcmus.bugscanner.ui.scan.utils.drawYoloBoundingBox
 
 /**
  * Component giao diện xử lý và hiển thị hình ảnh tĩnh (được tải lên từ Thư viện hoặc chụp từ Camera).

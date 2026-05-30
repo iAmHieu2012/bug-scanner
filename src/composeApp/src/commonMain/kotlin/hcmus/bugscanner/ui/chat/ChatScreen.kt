@@ -14,9 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import hcmus.bugscanner.ui.components.ChatBubble
 import hcmus.bugscanner.ui.components.TypingIndicator
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình giao diện nhắn tin với AI Chatbot.
@@ -29,7 +29,7 @@ import hcmus.bugscanner.ui.components.TypingIndicator
 @Composable
 fun ChatScreen(
     initialPrompt: String? = null,
-    viewModel: ChatViewModel = viewModel { ChatViewModel() }
+    viewModel: ChatViewModel = koinViewModel()
 ) {
     var prompt by remember { mutableStateOf(initialPrompt ?: "") }
     val messages by viewModel.messages.collectAsState()

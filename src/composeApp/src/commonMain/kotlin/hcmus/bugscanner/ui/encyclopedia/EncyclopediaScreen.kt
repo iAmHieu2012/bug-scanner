@@ -1,4 +1,4 @@
-package hcmus.bugscanner.ui.wiki
+package hcmus.bugscanner.ui.encyclopedia
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,10 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.ui.components.BugItemCard
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình Bách khoa toàn thư - Tích hợp Responsive Layout bằng GridCells.Adaptive.
@@ -30,7 +30,7 @@ import hcmus.bugscanner.ui.components.BugItemCard
  */
 @Composable
 fun EncyclopediaScreen(
-    viewModel: EncyclopediaViewModel = viewModel { EncyclopediaViewModel() },
+    viewModel: EncyclopediaViewModel = koinViewModel(),
     onBugSelected: (BugInfo) -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -78,7 +78,8 @@ fun EncyclopediaScreen(
 
 /**
  * Tab hiển thị danh sách các loài côn trùng nổi bật dạng lưới động (Adaptive Grid).
- * * @param viewModel ViewModel chứa luồng dữ liệu Khám phá.
+ *
+ * @param viewModel ViewModel chứa luồng dữ liệu Khám phá.
  * @param onBugSelected Callback xử lý nhấn vào thẻ côn trùng.
  */
 @Composable
@@ -156,7 +157,8 @@ fun ExploreTab(
 /**
  * Tab tra cứu thông tin côn trùng qua API iNaturalist.
  * Sử dụng Adaptive Grid để tối ưu không gian trên các màn hình lớn.
- * * @param viewModel ViewModel chứa logic tìm kiếm iNaturalist.
+ *
+ * @param viewModel ViewModel chứa logic tìm kiếm iNaturalist.
  * @param onBugSelected Callback xử lý nhấn vào thẻ kết quả tìm kiếm.
  */
 @Composable
@@ -164,17 +166,14 @@ fun SearchTab(
     viewModel: EncyclopediaViewModel,
     onBugSelected: (BugInfo) -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
             value = searchQuery,
-            onValueChange = {
-                searchQuery = it
-                viewModel.searchInsects(it) // Gửi truy vấn API tự động khi gõ
-            },
+            onValueChange = viewModel::searchInsects,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),

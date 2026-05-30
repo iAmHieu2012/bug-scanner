@@ -25,7 +25,7 @@ interface PlatformScanProvider {
 
     /**
      * Component hiển thị luồng Camera trực tiếp.
-     * * @param modifier Modifier tùy chỉnh kích thước, vị trí.
+     * @param modifier Modifier tùy chỉnh kích thước, vị trí.
      * @param onResult Callback trả về kết quả tọa độ Bounding Box của AI.
      * @param onLiveFrameCaptured Callback trả về mảng byte (ByteArray) của khung hình camera HIỆN TẠI nếu AI phát hiện có côn trùng. Trả về null nếu không có.
      */
@@ -38,7 +38,7 @@ interface PlatformScanProvider {
 
     /**
      * Component hiển thị hình ảnh tĩnh để nhận diện.
-     * * @param modifier Modifier tùy chỉnh kích thước, vị trí.
+     * @param modifier Modifier tùy chỉnh kích thước, vị trí.
      * @param imageId Đường dẫn/Định danh của hình ảnh tĩnh.
      * @param frameResult Kết quả phân tích Bounding Box.
      */
@@ -47,7 +47,7 @@ interface PlatformScanProvider {
 
     /**
      * Khởi tạo Helper xử lý thư viện ảnh và chụp tĩnh.
-     * * @param onModeChange Callback chuyển đổi chế độ UI.
+     * @param onModeChange Callback chuyển đổi chế độ UI.
      * @param onResult Callback trả về kết quả AI của ảnh.
      * @param onImageIdCaptured Callback trả về đường dẫn URI của ảnh.
      * @param onImageBytesCaptured Callback trả về mảng byte (ByteArray) của ảnh tĩnh để upload.
@@ -59,6 +59,17 @@ interface PlatformScanProvider {
         onImageIdCaptured: (String) -> Unit,
         onImageBytesCaptured: (ByteArray?) -> Unit
     ): ImagePickerHelper
+
+    /**
+     * Hàm kiểm tra và xin quyền Camera.
+     * @param onGranted Callback được gọi khi quyền đã được cấp.
+     * @param onDenied Callback được gọi khi chưa có quyền, cung cấp hàm để UI gọi khi cần xin quyền.
+     */
+    @Composable
+    fun RequireCameraPermission(
+        onGranted: @Composable () -> Unit,
+        onDenied: @Composable (onRequestPermission: () -> Unit) -> Unit
+    )
 }
 
 /** * Biến cục bộ (CompositionLocal) truyền PlatformScanProvider xuyên suốt cây UI mà không cần pass qua từng hàm.

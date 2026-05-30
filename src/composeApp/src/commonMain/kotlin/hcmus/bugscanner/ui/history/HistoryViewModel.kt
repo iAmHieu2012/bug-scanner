@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import hcmus.bugscanner.core.utils.getCurrentTimeMillis
-import hcmus.bugscanner.data.repository.HistoryRepositoryImpl
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,9 +15,13 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel chịu trách nhiệm quản lý trạng thái hiển thị lịch sử và kết nối với Firebase.
  * Quản lý luồng dữ liệu hai chiều: Kéo danh sách về (Fetch) và Đẩy dữ liệu + hình ảnh lên (Save/Upload).
+ *
+ * @param repository Đối tượng quản lý các thao tác lưu trữ và truy xuất lịch sử.
  */
-class HistoryViewModel : ViewModel() {
-    private val repository: HistoryRepository = HistoryRepositoryImpl()
+class HistoryViewModel(
+    private val repository: HistoryRepository
+) : ViewModel() {
+
     private val _historyList = MutableStateFlow<List<ScanHistory>>(emptyList())
 
     /**

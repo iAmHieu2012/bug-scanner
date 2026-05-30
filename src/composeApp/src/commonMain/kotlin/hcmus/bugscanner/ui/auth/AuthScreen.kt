@@ -17,7 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình xác thực người dùng (Đăng nhập / Đăng ký).
@@ -31,7 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun AuthScreen(
     windowSizeClass: WindowSizeClass,
-    authViewModel: AuthViewModel = viewModel { AuthViewModel() }
+    authViewModel: AuthViewModel = koinViewModel()
 ) {
     // Quản lý trạng thái nhập liệu nội bộ (Local State)
     var isLoginMode by remember { mutableStateOf(true) }

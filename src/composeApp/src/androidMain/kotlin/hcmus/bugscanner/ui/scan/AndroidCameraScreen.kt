@@ -21,7 +21,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import hcmus.bugscanner.ml.YoloConstants
-import hcmus.bugscanner.ui.scan.components.drawYoloBoundingBox
+import hcmus.bugscanner.ui.scan.utils.drawYoloBoundingBox
 import java.io.ByteArrayOutputStream
 
 /**

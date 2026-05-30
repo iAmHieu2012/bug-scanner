@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.ml.WebYoloDetector
-import hcmus.bugscanner.ui.scan.components.getBugColor
+import hcmus.bugscanner.ui.scan.utils.getBugColor
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.delay

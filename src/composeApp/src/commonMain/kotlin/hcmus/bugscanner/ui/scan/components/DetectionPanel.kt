@@ -16,28 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.core.state.EmptyState
-
-/**
- * Hàm sinh màu tự động và cố định (deterministic) cho từng loại côn trùng dựa vào mã băm (hash) của tên loài.
- * Đảm bảo mỗi loài luôn có một màu sắc nhận diện nhất quán trên giao diện.
- *
- * @param className Tên phân loại của côn trùng.
- * @return [Color] Màu sắc đại diện.
- */
-fun getBugColor(className: String): Color {
-    val colors = listOf(
-        Color(0xFFE53935), // Đỏ
-        Color(0xFFFF9800), // Cam
-        Color(0xFFFFC107), // Vàng
-        Color(0xFF4CAF50), // Lục
-        Color(0xFF2196F3), // Lam
-        Color(0xFF9C27B0), // Tím
-        Color(0xFFE91E63), // Hồng
-        Color(0xFF00C8C8), // Xanh ngọc
-        Color(0xFF795548)  // Nâu
-    )
-    return colors[(className.hashCode() and 0x7FFFFFFF) % colors.size]
-}
+import hcmus.bugscanner.ui.scan.utils.getBugColor
 
 /**
  * Bảng điều khiển (Panel) hiển thị danh sách thống kê kết quả nhận diện từ AI.

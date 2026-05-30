@@ -20,13 +20,15 @@ sealed class AuthState {
     /** Đang thực hiện gọi API mạng, UI nên hiển thị vòng xoay (Loading). */
     object Loading : AuthState()
 
-    /** * Xác thực thành công.
+    /**
+     * Xác thực thành công.
      * @property uid Mã định danh người dùng do Firebase cấp.
      * @property isGuest Đánh dấu `true` nếu là phiên đăng nhập ẩn danh (không email).
      */
     data class Success(val uid: String, val isGuest: Boolean) : AuthState()
 
-    /** * Xảy ra lỗi trong quá trình xác thực.
+    /**
+     * Xảy ra lỗi trong quá trình xác thực.
      * @property message Chuỗi thông báo mô tả lỗi để hiển thị lên màn hình.
      */
     data class Error(val message: String) : AuthState()
@@ -37,44 +39,40 @@ sealed class AuthState {
  * Giao tiếp trực tiếp với Firebase Authentication thông qua thư viện hỗ trợ KMP (GitLive).
  */
 class AuthViewModel : ViewModel() {
+    // Khởi tạo Firebase Auth instance
     private val auth = Firebase.auth
 
+    // Trạng thái nội bộ
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
-        // Tự động kiểm tra phiên đăng nhập cũ mỗi khi ViewModel được khởi tạo lại
+        // KIỂM TRA PHIÊN ĐĂNG NHẬP (AUTO-LOGIN) KHI MỞ APP
+        checkCurrentUser()
+    }
+
+    /**
+     * Kiểm tra xem thiết bị đã có user nào đăng nhập từ trước chưa.
+     */
+    private fun checkCurrentUser() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
+            // Đã có tài khoản lưu sẵn -> Vào thẳng App
             _authState.value = AuthState.Success(
                 uid = currentUser.uid,
                 isGuest = currentUser.isAnonymous
             )
+        } else {
+            // Chưa có tài khoản -> Ở lại trạng thái Idle để hiện màn hình Đăng nhập
+            _authState.value = AuthState.Idle
         }
     }
 
     /**
-     * Khởi tạo một phiên đăng nhập Ẩn danh (Guest Mode) không cần cung cấp thông tin.
-     * Phù hợp cho người dùng muốn trải nghiệm nhanh ứng dụng.
-     */
-    fun signInAnonymously() {
-        _authState.value = AuthState.Loading
-        viewModelScope.launch {
-            try {
-                val result = auth.signInAnonymously()
-                val user = result.user
-                _authState.value = AuthState.Success(user?.uid ?: "", isGuest = true)
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Lỗi đăng nhập ẩn danh")
-            }
-        }
-    }
-
-    /**
-     * Khởi tạo một tài khoản mới bằng Email và Mật khẩu.
+     * Đăng ký một tài khoản mới bằng Email và Mật khẩu.
      *
-     * @param email Địa chỉ email hợp lệ.
-     * @param pass Mật khẩu có độ dài tối thiểu theo quy định của Firebase (thường là 6 ký tự).
+     * @param email Địa chỉ email người dùng nhập.
+     * @param pass Mật khẩu người dùng nhập (Nên >= 6 ký tự).
      */
     fun signUpWithEmail(email: String, pass: String) {
         if (email.isBlank() || pass.isBlank()) {
@@ -111,7 +109,23 @@ class AuthViewModel : ViewModel() {
                 val user = result.user
                 _authState.value = AuthState.Success(user?.uid ?: "", isGuest = false)
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Sai email hoặc mật khẩu")
+                _authState.value = AuthState.Error("Sai email hoặc mật khẩu. Vui lòng thử lại.")
+            }
+        }
+    }
+
+    /**
+     * Đăng nhập dưới quyền Khách (Anonymous) mà không cần tạo tài khoản.
+     */
+    fun signInAnonymously() {
+        _authState.value = AuthState.Loading
+        viewModelScope.launch {
+            try {
+                val result = auth.signInAnonymously()
+                val user = result.user
+                _authState.value = AuthState.Success(user?.uid ?: "", isGuest = true)
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error("Lỗi đăng nhập ẩn danh: ${e.message}")
             }
         }
     }

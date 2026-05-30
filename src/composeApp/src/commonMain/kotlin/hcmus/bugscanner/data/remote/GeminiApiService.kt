@@ -3,13 +3,10 @@ package hcmus.bugscanner.data.remote
 import hcmus.bugscanner.BuildConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 // --- DTOs ĐƯỢC CHUYỂN TỪ VIEWMODEL SANG ĐÂY ---
 @Serializable
@@ -29,14 +26,11 @@ data class Candidate(val content: GeminiContent)
  * Service chuyên biệt để giao tiếp với Google Gemini AI.
  * Đóng vai trò là cầu nối mạng để gửi câu hỏi và nhận câu trả lời từ AI.
  * Có thể được tái sử dụng ở bất kỳ ViewModel hoặc Service nào khác.
+ *
+ * @param client Đối tượng [HttpClient] được cung cấp bởi hệ thống Dependency Injection.
  */
-class GeminiApiService {
+class GeminiApiService(private val client: HttpClient) {
     private val apiKey = BuildConfig.GEMINI_API_KEY
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
-        }
-    }
 
     /**
      * Gửi một yêu cầu sinh văn bản (Generate Content) đến mô hình Gemini.

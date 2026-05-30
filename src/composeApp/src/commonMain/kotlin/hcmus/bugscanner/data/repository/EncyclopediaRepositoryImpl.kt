@@ -1,7 +1,6 @@
 package hcmus.bugscanner.data.repository
 
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.firestore.firestore
+import dev.gitlive.firebase.firestore.FirebaseFirestore
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 
@@ -9,8 +8,9 @@ import hcmus.bugscanner.domain.repository.EncyclopediaRepository
  * Lớp thực thi (Implementation) quản lý giao tiếp với cơ sở dữ liệu Bách khoa toàn thư.
  * Sử dụng Firebase Firestore kết hợp thư viện KMP GitLive để đồng bộ đa nền tảng.
  */
-class EncyclopediaRepositoryImpl : EncyclopediaRepository {
-    private val db = Firebase.firestore
+class EncyclopediaRepositoryImpl(
+    db: FirebaseFirestore
+) : EncyclopediaRepository {
     private val encyclopediaCollection = db.collection("encyclopedia")
 
     /**

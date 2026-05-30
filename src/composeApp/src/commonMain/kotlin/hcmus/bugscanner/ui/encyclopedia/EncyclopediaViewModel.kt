@@ -1,10 +1,10 @@
-package hcmus.bugscanner.ui.wiki
+package hcmus.bugscanner.ui.encyclopedia
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import hcmus.bugscanner.data.remote.INaturalistApiService
-import hcmus.bugscanner.data.repository.EncyclopediaRepositoryImpl
 import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,10 +15,14 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * ViewModel quản lý trạng thái và logic gọi API iNaturalist / Firebase cho màn hình Bách khoa toàn thư.
+ *
+ * @param repository Đối tượng quản lý giao tiếp với cơ sở dữ liệu Firebase (Bách khoa toàn thư).
+ * @param iNaturalistApi Dịch vụ gọi API mạng để tra cứu iNaturalist.
  */
-class EncyclopediaViewModel : ViewModel() {
-    private val repository = EncyclopediaRepositoryImpl()
-    private val iNaturalistApi = INaturalistApiService()
+class EncyclopediaViewModel(
+    private val repository: EncyclopediaRepository,
+    private val iNaturalistApi: INaturalistApiService
+) : ViewModel() {
 
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
     val exploreList: StateFlow<List<BugInfo>> = _exploreList.asStateFlow()
@@ -27,6 +31,9 @@ class EncyclopediaViewModel : ViewModel() {
     val exploreSearchQuery: StateFlow<String> = _exploreSearchQuery.asStateFlow()
 
     private var exploreSearchJob: Job? = null
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _searchResults = MutableStateFlow<List<BugInfo>>(emptyList())
     val searchResults: StateFlow<List<BugInfo>> = _searchResults.asStateFlow()
@@ -54,7 +61,8 @@ class EncyclopediaViewModel : ViewModel() {
 
     /**
      * Cập nhật từ khóa tìm kiếm nội bộ và gọi truy vấn Firebase sau một khoảng trễ (Debounce).
-     * * @param query Từ khóa người dùng nhập vào.
+     *
+     * @param query Từ khóa người dùng nhập vào.
      */
     fun onExploreSearchQueryChange(query: String) {
         _exploreSearchQuery.value = query
@@ -71,11 +79,15 @@ class EncyclopediaViewModel : ViewModel() {
     /**
      * Gửi truy vấn tìm kiếm sinh vật học đến API iNaturalist.
      * Tự động format, dịch thuật và bóc tách dữ liệu JSON để trả về danh sách [BugInfo].
-     * * @param query Từ khóa tìm kiếm trên API.
+     *
+     * @param query Từ khóa tìm kiếm trên API.
      */
     fun searchInsects(query: String) {
+        _searchQuery.value = query
         val trimmedQuery = query.trim()
+
         if (trimmedQuery.length < 2) {
+            searchJob?.cancel()
             _searchResults.value = emptyList()
             return
         }

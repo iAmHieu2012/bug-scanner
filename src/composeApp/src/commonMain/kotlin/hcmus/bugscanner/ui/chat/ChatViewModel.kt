@@ -12,10 +12,10 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel quản lý logic luồng tin nhắn và giao tiếp trực tiếp với API Google Gemini.
  * Chịu trách nhiệm duy trì ngữ cảnh trò chuyện (Context History) để AI có thể hiểu các câu hỏi nối tiếp.
+ *
+ * @param geminiApi Dịch vụ gọi mạng hỗ trợ giao tiếp với Google Gemini được cung cấp bởi DI (Koin).
  */
-class ChatViewModel : ViewModel() {
-    // Khởi tạo Service gọi mạng
-    private val geminiApi = GeminiApiService()
+class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
 
     // Trạng thái danh sách tin nhắn hiện tại hiển thị trên UI
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())

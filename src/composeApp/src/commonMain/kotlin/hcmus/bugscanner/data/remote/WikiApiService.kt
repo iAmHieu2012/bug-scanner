@@ -3,10 +3,8 @@ package hcmus.bugscanner.data.remote
 import hcmus.bugscanner.domain.model.WikiResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -15,16 +13,10 @@ import kotlinx.serialization.json.jsonPrimitive
  * Service gọi API Wikipedia sử dụng Ktor (hỗ trợ Đa nền tảng).
  * Cung cấp tính năng tìm kiếm thông tin tóm tắt và tự động dịch văn bản nếu tài liệu không hỗ trợ tiếng Việt.
  * Đã lược bỏ các hàm không còn sử dụng.
+ *
+ * @param client Đối tượng [HttpClient] được cung cấp bởi hệ thống Dependency Injection.
  */
-class WikiApiService {
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                coerceInputValues = true
-            })
-        }
-    }
+class WikiApiService(private val client: HttpClient) {
 
     /**
      * Lấy đoạn văn bản tóm tắt (Extract) của một bài viết trên Wikipedia dựa vào tiêu đề.

@@ -95,6 +95,11 @@ kotlin {
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
 
+            // Koin cho Dependency Injection
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+
             implementation(libs.multiplatform.settings)
         }
         commonTest.dependencies {

@@ -21,9 +21,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import hcmus.bugscanner.data.repository.EncyclopediaRepositoryImpl
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.repository.EncyclopediaRepository
+import org.koin.compose.koinInject
 
 /**
  * Màn hình hiển thị thông tin chi tiết đầy đủ của một loài côn trùng.
@@ -48,11 +48,11 @@ fun BugDetailScreen(
     var detailedBug by remember { mutableStateOf(bug) }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Khởi tạo Repository lấy dữ liệu
-    val repository: EncyclopediaRepository = remember { EncyclopediaRepositoryImpl() }
+    // Khởi tạo Repository lấy dữ liệu thông qua Koin
+    val repository: EncyclopediaRepository = koinInject()
 
-    // Khởi tạo Wiki API để lấy thông tin mô tả chi tiết nếu cần
-    val wikiApi = remember { hcmus.bugscanner.data.remote.WikiApiService() }
+    // Khởi tạo Wiki API để lấy thông tin mô tả chi tiết nếu cần thông qua Koin
+    val wikiApi: hcmus.bugscanner.data.remote.WikiApiService = koinInject()
 
     // Fetch dữ liệu chi tiết nếu các trường quan trọng đang bị trống
     LaunchedEffect(bug.scientificName) {

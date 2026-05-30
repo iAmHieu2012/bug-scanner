@@ -3,24 +3,15 @@ package hcmus.bugscanner.data.remote
 import hcmus.bugscanner.domain.model.INaturalistResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.json.Json
 
 /**
  * Service gọi API iNaturalist sử dụng Ktor.
  * Dùng để tra cứu chéo hoặc tìm kiếm thông tin khoa học chuẩn xác của côn trùng.
+ *
+ * @param client Đối tượng [HttpClient] được cung cấp bởi hệ thống Dependency Injection.
  */
-class INaturalistApiService {
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                coerceInputValues = true
-            })
-        }
-    }
+class INaturalistApiService(private val client: HttpClient) {
 
     /**
      * Tìm kiếm một loài côn trùng trên hệ thống iNaturalist.
