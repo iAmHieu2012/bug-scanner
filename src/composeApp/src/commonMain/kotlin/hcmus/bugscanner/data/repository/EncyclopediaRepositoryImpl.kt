@@ -1,6 +1,8 @@
 package hcmus.bugscanner.data.repository
 
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import hcmus.bugscanner.data.model.BugInfoEntity
+import hcmus.bugscanner.data.model.toDomain
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 
@@ -36,7 +38,7 @@ class EncyclopediaRepositoryImpl(
 
             val snapshot = query.get()
             // Firebase KMP gọi .data() để parse trực tiếp ra Object
-            snapshot.documents.map { it.data<BugInfo>() }
+            snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
         } catch (e: Exception) {
             println("Lỗi tải danh sách Khám phá: ${e.message}")
             emptyList()
@@ -53,7 +55,7 @@ class EncyclopediaRepositoryImpl(
         return try {
             val snapshot = encyclopediaCollection.where { "name" equalTo name }.get()
             if (snapshot.documents.isNotEmpty()) {
-                snapshot.documents.first().data<BugInfo>()
+                snapshot.documents.first().data<BugInfoEntity>().toDomain()
             } else {
                 null
             }
@@ -73,7 +75,7 @@ class EncyclopediaRepositoryImpl(
         return try {
             val snapshot = encyclopediaCollection.where { "scientificName" equalTo scientificName }.get()
             if (snapshot.documents.isNotEmpty()) {
-                snapshot.documents.first().data<BugInfo>()
+                snapshot.documents.first().data<BugInfoEntity>().toDomain()
             } else {
                 null
             }

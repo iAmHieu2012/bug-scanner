@@ -4,9 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import hcmus.bugscanner.data.remote.*
 import hcmus.bugscanner.domain.model.ChatMessage
+import hcmus.bugscanner.domain.model.GeminiContent
+import hcmus.bugscanner.domain.model.GeminiPart
+import hcmus.bugscanner.domain.model.GeminiRequest
+import hcmus.bugscanner.domain.model.Instruction
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -31,31 +36,29 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
     init {
         // Lời chào mặc định khi khởi tạo màn hình Chat
         _messages.value = listOf(
-            ChatMessage("Xin chào! Mình là BugScanner AI \uD83C\uDF43. Mình có thể giúp bạn giải đáp các thắc mắc về côn trùng và thế giới tự nhiên. Bạn muốn hỏi gì nào?", isUser = false)
+            ChatMessage("Xin chào! Mình là BugScanner AI. Mình có thể giúp gì cho bạn trong việc tìm hiểu về côn trùng?", isUser = false)
         )
     }
 
     /**
-     * Gửi một tin nhắn mới từ người dùng đến hệ thống AI và xử lý phản hồi.
+     * Gửi tin nhắn của người dùng lên API của Gemini và chờ phản hồi.
+     * Tự động lưu trữ lịch sử để gửi kèm trong các request tiếp theo.
      *
-     * @param userMessage Nội dung câu hỏi/tin nhắn của người dùng.
+     * @param text Nội dung tin nhắn người dùng nhập vào.
      */
-    fun sendMessage(userMessage: String) {
-        if (userMessage.isBlank()) return
+    fun sendMessage(text: String) {
+        if (text.isBlank()) return
 
-        // 1. Cập nhật UI ngay lập tức với tin nhắn của user
-        val currentList = _messages.value.toMutableList()
-        currentList.add(ChatMessage(userMessage, isUser = true))
-        _messages.value = currentList
-
-        // 2. Thêm tin nhắn vào lịch sử hội thoại để gửi lên AI kèm theo ngữ cảnh cũ
-        chatHistory.add(GeminiContent(role = "user", parts = listOf(GeminiPart(text = userMessage))))
-
+        // 1. Thêm tin nhắn của người dùng vào UI và cập nhật trạng thái
+        _messages.update { it + ChatMessage(text, isUser = true) }
         _isTyping.value = true
+
+        // Thêm vào ngữ cảnh (Context) để gửi cho AI
+        chatHistory.add(GeminiContent(role = "user", parts = listOf(GeminiPart(text = text))))
 
         viewModelScope.launch {
             try {
-                // Xây dựng khối request với System Instruction để ép khuôn tính cách của Bot
+                // 2. Gói dữ liệu Request kèm theo System Instruction để định khuôn tính cách của Bot
                 val requestBody = GeminiRequest(
                     systemInstruction = Instruction(parts = GeminiPart("Bạn là BugScanner AI, một trợ lý ảo chuyên nghiệp về sinh học và côn trùng học. Hãy trả lời ngắn gọn, thân thiện và chính xác các câu hỏi về thiên nhiên, côn trùng, thực vật.")),
                     contents = chatHistory
@@ -70,15 +73,11 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
                 chatHistory.add(GeminiContent(role = "model", parts = listOf(GeminiPart(text = replyText))))
 
                 // 4. Cập nhật UI với câu trả lời của AI
-                val updatedList = _messages.value.toMutableList()
-                updatedList.add(ChatMessage(replyText, isUser = false))
-                _messages.value = updatedList
+                _messages.update { it + ChatMessage(replyText, isUser = false) }
 
             } catch (e: Exception) {
                 // Xử lý lỗi mạng / hết quota API
-                val updatedList = _messages.value.toMutableList()
-                updatedList.add(ChatMessage("Lỗi kết nối: ${e.message}", isUser = false, isError = true))
-                _messages.value = updatedList
+                _messages.update { it + ChatMessage("Lỗi kết nối: ${e.message}", isUser = false, isError = true) }
             } finally {
                 _isTyping.value = false
             }

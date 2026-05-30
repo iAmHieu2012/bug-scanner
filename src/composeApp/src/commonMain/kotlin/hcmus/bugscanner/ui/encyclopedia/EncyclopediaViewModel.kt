@@ -131,6 +131,7 @@ class EncyclopediaViewModel(
                         BugInfo(
                             id = taxon.id.toString(),
                             name = commonName.replaceFirstChar { it.uppercase() },
+                            englishName = taxon.englishCommonName ?: "",
                             scientificName = taxon.name,
                             description = shortDescription,
                             imageUrl = taxon.defaultPhoto?.mediumUrl

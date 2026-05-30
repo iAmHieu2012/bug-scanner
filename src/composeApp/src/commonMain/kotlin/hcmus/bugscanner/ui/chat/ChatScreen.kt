@@ -14,8 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import hcmus.bugscanner.ui.components.ChatBubble
-import hcmus.bugscanner.ui.components.TypingIndicator
+import hcmus.bugscanner.ui.chat.components.ChatBubble
+import hcmus.bugscanner.ui.chat.components.TypingIndicator
 import org.koin.compose.viewmodel.koinViewModel
 
 /**

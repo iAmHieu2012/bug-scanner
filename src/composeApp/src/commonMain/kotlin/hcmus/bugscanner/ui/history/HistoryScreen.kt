@@ -22,8 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.ScanHistory
-import hcmus.bugscanner.core.state.EmptyState
 import hcmus.bugscanner.core.utils.formatTimestamp
+import hcmus.bugscanner.ui.components.EmptyState
 import org.koin.compose.viewmodel.koinViewModel
 
 /**

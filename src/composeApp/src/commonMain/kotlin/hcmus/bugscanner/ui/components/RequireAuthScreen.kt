@@ -1,4 +1,4 @@
-package hcmus.bugscanner.core.state
+package hcmus.bugscanner.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,38 +14,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Hiển thị trạng thái trống (Empty State) hoặc thông báo lỗi cho các màn hình danh sách.
- * Sử dụng Box căn giữa tự động giúp tương thích với mọi kích thước giao diện.
+ * Màn hình chặn truy cập (Paywall/Authwall) dùng chung cho bất kỳ tính năng nào yêu cầu tài khoản.
+ * Hỗ trợ tự động căn giữa và giới hạn chiều rộng hiển thị đẹp mắt trên màn hình ngang (Web/Tablet).
  *
- * @param text Nội dung thông báo hiển thị cho người dùng.
- * @param isError Cờ xác định có phải là thông báo lỗi hay không (hiển thị màu đỏ nếu true).
+ * @param title Tiêu đề hiển thị (Mặc định: "Yêu cầu đăng nhập").
+ * @param description Đoạn văn bản giải thích lý do cần đăng nhập. Có giá trị mặc định dùng chung.
+ * @param onAuthAction Callback kích hoạt quy trình chuyển hướng người dùng sang màn hình Đăng nhập/Đăng ký.
  */
 @Composable
-fun EmptyState(text: String, isError: Boolean = false) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-    }
-}
-
-/**
- * Màn hình chặn truy cập (Paywall/Authwall) yêu cầu người dùng phải đăng nhập tài khoản thật
- * để sử dụng các tính năng cao cấp (ví dụ: Lưu lịch sử, đồng bộ cloud).
- *
- * Tích hợp giới hạn chiều rộng để hiển thị đẹp mắt trên màn hình Web/Desktop.
- *
- * @param onAuthAction Callback kích hoạt quy trình đăng xuất tài khoản Guest và chuyển về màn AuthScreen.
- */
-@Composable
-fun RequireAuthScreen(onAuthAction: () -> Unit) {
+fun RequireAuthScreen(
+    title: String = "Yêu cầu đăng nhập",
+    description: String = "Vui lòng đăng nhập hoặc tạo tài khoản để sử dụng tính năng này và đồng bộ dữ liệu của bạn.",
+    onAuthAction: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -54,7 +35,7 @@ fun RequireAuthScreen(onAuthAction: () -> Unit) {
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            // Giới hạn widthIn giúp đoạn văn bản không bị kéo dài lê thê trên màn hình ngang,
+            // Giới hạn widthIn giúp đoạn văn bản không bị kéo dài trên màn hình ngang,
             // đảm bảo tính dễ đọc (readability).
             modifier = Modifier
                 .padding(32.dp)
@@ -62,7 +43,7 @@ fun RequireAuthScreen(onAuthAction: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Rounded.Lock,
-                contentDescription = "Authentication Required", // Đã bổ sung nhãn cho Screen Reader
+                contentDescription = "Authentication Required",
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -70,14 +51,15 @@ fun RequireAuthScreen(onAuthAction: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Yêu cầu đăng nhập",
+                text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
             )
 
             Text(
-                text = "Tính năng Lịch sử chỉ dành cho thành viên đã đăng nhập để có thể lưu trữ và đồng bộ dữ liệu bảo mật.",
+                text = description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -88,7 +70,7 @@ fun RequireAuthScreen(onAuthAction: () -> Unit) {
                 onClick = onAuthAction,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier
-                    .fillMaxWidth() // Nút bấm sẽ dãn full chiều rộng khả dụng (max 400dp)
+                    .fillMaxWidth()
                     .height(48.dp)
             ) {
                 Icon(

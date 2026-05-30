@@ -11,6 +11,7 @@ import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 import hcmus.bugscanner.domain.repository.HistoryRepository
 import hcmus.bugscanner.ui.auth.AuthViewModel
 import hcmus.bugscanner.ui.chat.ChatViewModel
+import hcmus.bugscanner.ui.detail.BugDetailViewModel
 import hcmus.bugscanner.ui.history.HistoryViewModel
 import hcmus.bugscanner.ui.encyclopedia.EncyclopediaViewModel
 import io.ktor.client.HttpClient
@@ -54,6 +55,7 @@ val appModule = module {
 
     // 5. Tầng ViewModels: Koin tự động đọc Constructor để tiêm Repository và API tương ứng
     viewModelOf(::AuthViewModel)
+    viewModelOf(::BugDetailViewModel)
     viewModelOf(::ChatViewModel)
     viewModelOf(::HistoryViewModel)
     viewModelOf(::EncyclopediaViewModel)

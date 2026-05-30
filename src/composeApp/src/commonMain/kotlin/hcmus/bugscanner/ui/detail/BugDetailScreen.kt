@@ -22,75 +22,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.BugInfo
-import hcmus.bugscanner.domain.repository.EncyclopediaRepository
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình hiển thị thông tin chi tiết đầy đủ của một loài côn trùng.
+ * Đã được tái cấu trúc (Refactored) tuân thủ Clean Architecture, chuyển logic mạng sang ViewModel.
  * Tự động chuyển đổi bố cục (Adaptive Layout) dựa trên kích thước khung hình hiện tại.
  *
  * @param bug Dữ liệu cơ bản của côn trùng được truyền từ màn hình trước.
- * @param onBackClick Callback xử lý sự kiện quay lại.
- * @param onAskChatbotClick Callback chuyển hướng sang màn hình Chatbot với câu hỏi (prompt) được thiết lập sẵn.
- * @param onShareClick Callback gọi hệ thống chia sẻ (Share Intent).
+ * @param viewModel ViewModel quản lý trạng thái tải dữ liệu chi tiết (Được tiêm tự động qua Koin).
+ * @param onBackClick Callback xử lý sự kiện người dùng nhấn nút quay lại.
+ * @param onAskChatbotClick Callback chuyển hướng sang màn hình Chatbot, kèm theo câu lệnh (prompt) thiết lập sẵn.
+ * @param onShareClick Callback gọi hệ thống chia sẻ (Share Intent) native của thiết bị.
  */
 @Composable
 fun BugDetailScreen(
     bug: BugInfo,
+    viewModel: BugDetailViewModel = koinViewModel(),
     onBackClick: () -> Unit,
     onAskChatbotClick: (String) -> Unit,
     onShareClick: (BugInfo) -> Unit
 ) {
-    // Trạng thái cuộn cho phần nội dung chi tiết
     val scrollState = rememberScrollState()
 
-    // Quản lý trạng thái dữ liệu: detailedBug có thể được cập nhật thêm thông tin từ Firebase
-    var detailedBug by remember { mutableStateOf(bug) }
-    var isLoading by remember { mutableStateOf(false) }
+    // Thu thập dữ liệu trạng thái từ ViewModel
+    val detailedBug by viewModel.detailedBug.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    // Khởi tạo Repository lấy dữ liệu thông qua Koin
-    val repository: EncyclopediaRepository = koinInject()
-
-    // Khởi tạo Wiki API để lấy thông tin mô tả chi tiết nếu cần thông qua Koin
-    val wikiApi: hcmus.bugscanner.data.remote.WikiApiService = koinInject()
-
-    // Fetch dữ liệu chi tiết nếu các trường quan trọng đang bị trống
+    // Kích hoạt việc fetch dữ liệu một lần duy nhất khi màn hình khởi tạo
     LaunchedEffect(bug.scientificName) {
-        // Điều kiện chạy: Nếu đang thiếu cách xử lý (quét từ camera) HOẶC có link wiki cần tải (từ iNaturalist)
-        if (bug.treatment.isBlank() || bug.wikiUrl.isNotBlank()) {
-            isLoading = true
-
-            // 1. Ưu tiên tìm trong Firebase trước (đảm bảo tính năng Quét Camera không bị ảnh hưởng)
-            val realBug = repository.getBugByScientificName(bug.scientificName)
-
-            if (realBug != null) {
-                // Nếu đối tượng 'bug' ban đầu được truyền vào có chứa link ảnh (từ Lịch sử),
-                // thì giữ lại ảnh đó, chỉ đè các thông tin text (description, treatment...)
-                // Nếu không có ảnh lịch sử thì mới lấy ảnh mặc định của database (realBug.imageUrl)
-                detailedBug = realBug.copy(
-                    imageUrl = bug.imageUrl.takeIf { it.isNotBlank() } ?: realBug.imageUrl
-                )
-            } else if (bug.wikiUrl.isNotBlank()) {
-                // 2. Nếu Firebase KHÔNG CÓ, tiến hành bóc tách Link Wiki để kéo Text
-                // Ví dụ link: http://en.wikipedia.org/wiki/Western_honey_bee
-                val uriParts = bug.wikiUrl.split("/wiki/")
-                if (uriParts.size == 2) {
-                    val lang = uriParts[0].substringAfter("://").substringBefore(".") // Lấy "en" hoặc "vi"
-                    val title = uriParts[1] // Lấy "Western_honey_bee"
-
-                    val summary = wikiApi.getSummaryByTitle(title, lang)
-
-                    if (!summary.isNullOrBlank()) {
-                        // Cập nhật lại description bằng text mới kéo về
-                        detailedBug = detailedBug.copy(description = summary)
-                    }
-                }
-            }
-            isLoading = false
-        }
+        viewModel.loadBugDetails(bug)
     }
 
-    // Sử dụng BoxWithConstraints để đo kích thước màn hình và quyết định luồng giao diện
+    // Đảm bảo UI luôn có dữ liệu hiển thị (fallback về giá trị gốc nếu detailedBug chưa sẵn sàng)
+    val currentBug = detailedBug ?: bug
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -106,16 +72,15 @@ fun BugDetailScreen(
                     modifier = Modifier
                         .weight(0.4f)
                         .fillMaxHeight()
-                        .background(Color.Black) // Nền đen cho ảnh nếu ảnh không lấp đầy
+                        .background(Color.Black)
                 ) {
                     AsyncImage(
-                        model = detailedBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/1000?text=Hình+ảnh+côn+trùng",
+                        model = currentBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/1000?text=Hình+ảnh+côn+trùng",
                         contentDescription = "Bug Image",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // Nút Back đặt góc trên cùng bên trái
                     IconButton(
                         onClick = onBackClick,
                         modifier = Modifier
@@ -134,18 +99,15 @@ fun BugDetailScreen(
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    // Nội dung thông tin cuộn (Chiếm toàn bộ không gian còn lại bằng weight = 1f)
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .verticalScroll(scrollState)
                             .padding(24.dp)
                     ) {
-                        BugDetailContent(detailedBug, isLoading)
+                        BugDetailContent(currentBug, isLoading)
                     }
-
-                    // Thanh thao tác (BottomBar) cố định ở dưới cùng
-                    BugDetailBottomBar(detailedBug, onAskChatbotClick, onShareClick)
+                    BugDetailBottomBar(currentBug, onAskChatbotClick, onShareClick)
                 }
             }
         } else {
@@ -155,12 +117,10 @@ fun BugDetailScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 // Hình ảnh nền ở trên cùng
                 AsyncImage(
-                    model = detailedBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/500?text=Hình+ảnh+côn+trùng",
+                    model = currentBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/500?text=Hình+ảnh+côn+trùng",
                     contentDescription = "Bug Image",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(350.dp)
+                    modifier = Modifier.fillMaxWidth().height(350.dp)
                 )
 
                 // Nút Back
@@ -185,13 +145,13 @@ fun BugDetailScreen(
                         .padding(bottom = 100.dp) // Chừa khoảng trống cho BottomBar
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
-                        BugDetailContent(detailedBug, isLoading)
+                        BugDetailContent(currentBug, isLoading)
                     }
                 }
 
                 // Thanh thao tác (BottomBar) neo tại đáy Box
                 Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                    BugDetailBottomBar(detailedBug, onAskChatbotClick, onShareClick)
+                    BugDetailBottomBar(currentBug, onAskChatbotClick, onShareClick)
                 }
             }
         }
@@ -200,9 +160,10 @@ fun BugDetailScreen(
 
 /**
  * Khối Component hiển thị danh sách các trường thông tin chi tiết.
- * Trích xuất để tái sử dụng giữa các bố cục ngang/dọc.
- * * @param detailedBug Đối tượng chứa thông tin chi tiết của sinh vật.
- * @param isLoading Trạng thái tải dữ liệu từ API/Firebase.
+ * Trích xuất để tái sử dụng giữa các bố cục ngang/dọc, giữ cho hàm chính luôn gọn gàng.
+ *
+ * @param detailedBug Đối tượng chứa thông tin chi tiết của sinh vật để render.
+ * @param isLoading Trạng thái tải dữ liệu từ API/Firebase (Hiển thị con xoay nếu true).
  */
 @Composable
 private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
@@ -249,49 +210,30 @@ private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
         }
     } else {
         if (detailedBug.description.isNotBlank()) {
-            SectionCard(
-                title = "Tổng quan",
-                icon = Icons.AutoMirrored.Rounded.MenuBook,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                content = detailedBug.description
-            )
+            SectionCard(title = "Tổng quan", icon = Icons.AutoMirrored.Rounded.MenuBook, iconTint = MaterialTheme.colorScheme.secondary, content = detailedBug.description)
             Spacer(modifier = Modifier.height(16.dp))
         }
         if (detailedBug.identification.isNotBlank()) {
-            SectionCard(
-                title = "Đặc điểm nhận dạng",
-                icon = Icons.Rounded.Info,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                content = detailedBug.identification
-            )
+            SectionCard(title = "Đặc điểm nhận dạng", icon = Icons.Rounded.Info, iconTint = MaterialTheme.colorScheme.secondary, content = detailedBug.identification)
             Spacer(modifier = Modifier.height(16.dp))
         }
         if (detailedBug.danger.isNotBlank()) {
-            SectionCard(
-                title = "Mức độ nguy hại",
-                icon = Icons.Rounded.Warning,
-                iconTint = MaterialTheme.colorScheme.error,
-                content = detailedBug.danger
-            )
+            SectionCard(title = "Mức độ nguy hại", icon = Icons.Rounded.Warning, iconTint = MaterialTheme.colorScheme.error, content = detailedBug.danger)
             Spacer(modifier = Modifier.height(16.dp))
         }
         if (detailedBug.treatment.isNotBlank()) {
-            SectionCard(
-                title = "Biện pháp xử lý (Khuyên dùng)",
-                icon = Icons.Rounded.Eco,
-                iconTint = MaterialTheme.colorScheme.primary,
-                content = detailedBug.treatment
-            )
+            SectionCard(title = "Biện pháp xử lý (Khuyên dùng)", icon = Icons.Rounded.Eco, iconTint = MaterialTheme.colorScheme.primary, content = detailedBug.treatment)
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 /**
- * Thanh nút bấm hành động được neo dưới cùng màn hình (Share, AI Chat).
- * * @param detailedBug Đối tượng chứa thông tin sinh vật để chia sẻ hoặc hỏi AI.
- * @param onAskChatbotClick Callback điều hướng sang Chatbot.
- * @param onShareClick Callback kích hoạt chia sẻ native.
+ * Thanh nút bấm hành động được neo cố định dưới cùng màn hình (Share, AI Chat).
+ *
+ * @param detailedBug Đối tượng chứa thông tin sinh vật để truyền dữ liệu cho tính năng chia sẻ hoặc hỏi AI.
+ * @param onAskChatbotClick Callback điều hướng sang màn hình Chatbot.
+ * @param onShareClick Callback kích hoạt tính năng chia sẻ native.
  */
 @Composable
 private fun BugDetailBottomBar(
@@ -335,11 +277,12 @@ private fun BugDetailBottomBar(
 }
 
 /**
- * Component thẻ thông tin chuẩn hóa cho từng mục (Đặc điểm, Xử lý...).
- * * @param title Tiêu đề của thẻ.
- * @param icon Biểu tượng minh họa.
- * @param iconTint Màu sắc của biểu tượng.
- * @param content Nội dung văn bản hiển thị.
+ * Component thẻ thông tin chuẩn hóa để hiển thị từng mục tài liệu (Đặc điểm, Xử lý...).
+ *
+ * @param title Tiêu đề lớn hiển thị đầu thẻ.
+ * @param icon Biểu tượng minh họa nằm cạnh tiêu đề.
+ * @param iconTint Màu sắc chủ đạo của biểu tượng.
+ * @param content Nội dung văn bản chi tiết.
  */
 @Composable
 fun SectionCard(title: String, icon: ImageVector, iconTint: Color, content: String) {

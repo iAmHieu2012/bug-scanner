@@ -15,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
-import hcmus.bugscanner.core.state.EmptyState
+import hcmus.bugscanner.ui.components.EmptyState
 import hcmus.bugscanner.ui.scan.utils.getBugColor
 
 /**

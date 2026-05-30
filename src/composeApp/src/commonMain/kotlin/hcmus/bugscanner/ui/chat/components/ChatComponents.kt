@@ -1,4 +1,4 @@
-package hcmus.bugscanner.ui.components
+package hcmus.bugscanner.ui.chat.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,7 +20,6 @@ import hcmus.bugscanner.domain.model.ChatMessage
  * Thiết kế theo chuẩn UI Chat hiện đại:
  * - Tin nhắn của Bot (AI): Căn trái, màu nền phụ, bo góc vuông ở dưới cùng bên trái.
  * - Tin nhắn của Người dùng: Căn phải, màu nền chính, bo góc vuông ở dưới cùng bên phải.
- * Tích hợp giới hạn chiều rộng linh hoạt giúp hiển thị đẹp mắt trên cả Mobile và Web/Desktop.
  *
  * @param message Đối tượng khối dữ liệu chứa nội dung văn bản, trạng thái người gửi và trạng thái lỗi.
  */
@@ -31,75 +30,67 @@ fun ChatBubble(message: ChatMessage) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 8.dp), // Thêm padding ngang để không bị sát lề
-        // Đẩy bong bóng về đúng phía người gửi
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Bottom
+            .padding(vertical = 6.dp, horizontal = 8.dp),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
-        // --- Avatar của Chatbot (Bên trái) ---
+        // Avatar AI (Hiển thị bên trái)
         if (!isUser) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(32.dp)
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(32.dp).align(Alignment.Bottom)
             ) {
                 Icon(
                     imageVector = Icons.Rounded.SmartToy,
-                    contentDescription = "Bot Avatar",
+                    contentDescription = "AI",
                     modifier = Modifier.padding(6.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        // --- Khung chứa nội dung tin nhắn ---
+        // Bong bóng tin nhắn
         Box(
             modifier = Modifier
-                // Cho phép bong bóng phình to tối đa 75% chiều rộng màn hình khả dụng,
-                // giải quyết vấn đề bong bóng bị quá nhỏ trên Desktop/Web
-                .fillMaxWidth(0.75f)
+                .weight(1f, fill = false)
                 .clip(
                     RoundedCornerShape(
                         topStart = 20.dp,
                         topEnd = 20.dp,
-                        // Xử lý "đuôi" bong bóng tùy theo người gửi
-                        bottomStart = if (isUser) 20.dp else 4.dp,
-                        bottomEnd = if (isUser) 4.dp else 20.dp
+                        bottomStart = if (isUser) 20.dp else 4.dp, // Vuông góc bot
+                        bottomEnd = if (isUser) 4.dp else 20.dp    // Vuông góc user
                     )
                 )
                 .background(
-                    if (isUser) MaterialTheme.colorScheme.primary
+                    if (message.isError) MaterialTheme.colorScheme.errorContainer
+                    else if (isUser) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.surfaceVariant
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = message.text,
-                color = if (isUser) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else if (message.isError) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                color = if (message.isError) MaterialTheme.colorScheme.onErrorContainer
+                else if (isUser) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge
             )
         }
 
-        // --- Avatar của Người dùng (Bên phải) ---
+        // Avatar User (Hiển thị bên phải)
         if (isUser) {
             Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                modifier = Modifier.size(32.dp)
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(32.dp).align(Alignment.Bottom)
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Person,
-                    contentDescription = "User Avatar",
+                    contentDescription = "User",
                     modifier = Modifier.padding(6.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
@@ -108,7 +99,7 @@ fun ChatBubble(message: ChatMessage) {
 
 /**
  * Hiệu ứng hiển thị trạng thái đang chờ AI xử lý (Typing Indicator).
- * Nên được đưa vào cây UI (Composition) khi người dùng vừa gửi tin nhắn và đang chờ luồng phản hồi từ API (Gemini/Backend).
+ * Nên được đưa vào cây UI (Composition) khi người dùng vừa gửi tin nhắn và đang chờ luồng phản hồi từ API.
  */
 @Composable
 fun TypingIndicator() {

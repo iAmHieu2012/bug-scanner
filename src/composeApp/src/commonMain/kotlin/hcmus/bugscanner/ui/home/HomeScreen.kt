@@ -20,7 +20,7 @@ import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.ui.detail.BugDetailScreen
 import hcmus.bugscanner.ui.history.HistoryScreen
 import hcmus.bugscanner.ui.history.HistoryViewModel
-import hcmus.bugscanner.core.state.RequireAuthScreen
+import hcmus.bugscanner.ui.components.RequireAuthScreen
 import hcmus.bugscanner.ui.chat.ChatScreen
 import hcmus.bugscanner.ui.encyclopedia.EncyclopediaScreen
 import org.koin.compose.viewmodel.koinViewModel
@@ -215,7 +215,7 @@ private fun HomeContent(
             historyViewModel.addHistory(detectedName, imageBytes)
 
             onBugSelected(
-                BugInfo(
+                BugInfo.empty().copy(
                     id = detectedName,
                     name = "Đang tải...",
                     scientificName = detectedName
@@ -227,7 +227,7 @@ private fun HomeContent(
                 HistoryScreen(
                     onItemClick = { historyItem ->
                         onBugSelected(
-                            BugInfo(
+                            BugInfo.empty().copy(
                                 id = historyItem.bugName,
                                 name = historyItem.bugName,
                                 scientificName = historyItem.bugName,
