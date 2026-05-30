@@ -167,11 +167,11 @@ compose.desktop {
 buildConfig {
     packageName("hcmus.bugscanner")
 
-    // Đọc API Key từ properties bạn đã load sẵn ở đầu file
-    // Sinh ra biến BuildConfig.*_API_KEY cho toàn bộ nền tảng
-    val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
+    // Đọc API Key: Ưu tiên lấy từ biến môi trường (GitHub Actions) trước, 
+    // nếu không có (chạy ở local) thì mới lấy từ properties.
+    val geminiKey = System.getenv("GEMINI_API_KEY") ?: properties.getProperty("GEMINI_API_KEY") ?: ""
     buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
 
-    val imgbbKey = properties.getProperty("IMGBB_API_KEY") ?: ""
+    val imgbbKey = System.getenv("IMGBB_API_KEY") ?: properties.getProperty("IMGBB_API_KEY") ?: ""
     buildConfigField("String", "IMGBB_API_KEY", "\"$imgbbKey\"")
 }

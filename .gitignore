@@ -16,5 +16,3 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
-**/google-services.json
-**/firebase-config.json

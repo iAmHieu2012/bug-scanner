@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "744753522860",
+    "project_id": "bugscanner-2026",
+    "storage_bucket": "bugscanner-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744753522860:android:f58fb5b9ecfc07c5801709",
+        "android_client_info": {
+          "package_name": "hcmus.bugscanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQObGw_koiRC2elAtLMs64RrhcbLzALac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
