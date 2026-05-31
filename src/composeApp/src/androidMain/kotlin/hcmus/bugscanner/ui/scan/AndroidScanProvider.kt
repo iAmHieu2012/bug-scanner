@@ -28,7 +28,7 @@ object AndroidScanProvider : PlatformScanProvider {
      * Sử dụng [rememberLauncherForActivityResult] để gọi hộp thoại xin quyền mặc định của hệ điều hành.
      *
      * @param onGranted Callback được gọi khi ứng dụng đã có sẵn quyền hoặc người dùng vừa bấm "Cho phép".
-     * @param onDenied Callback được gọi khi chưa có quyền. Truyền vào lambda chứa lệnh kích hoạt hộp thoại xin quyền để UI sử dụng.
+     * @param onDenied Callback được gọi khi chưa có quyền. Truyền vào lambda chứa lệnh kích hoạt hộp thoại xin quyền.
      */
     @Composable
     override fun RequireCameraPermission(
@@ -51,7 +51,7 @@ object AndroidScanProvider : PlatformScanProvider {
         if (isGranted) {
             onGranted()
         } else {
-            onDenied{
+            onDenied {
                 launcher.launch(Manifest.permission.CAMERA)
             }
         }
@@ -59,21 +59,22 @@ object AndroidScanProvider : PlatformScanProvider {
 
     /**
      * Component hiển thị luồng Camera trực tiếp (CameraX) trên Android.
-     * Mọi logic khởi tạo AI nặng nề đều đã được đẩy vào ScanViewModel để chống rò rỉ RAM.
+     * Quản lý tiến trình nhận diện AI và thực thi lệnh chụp ảnh ngầm từ người dùng.
      *
      * @param modifier Modifier để tùy chỉnh kích thước, vị trí của màn hình Camera.
-     * @param onResult Callback trả về [FrameResult] chứa tọa độ Bounding Box từ AI để vẽ lên giao diện.
-     * @param onLiveFrameCaptured Callback trả về mảng byte (ByteArray) của khung hình camera nếu AI phát hiện côn trùng.
+     * @param captureTrigger Cờ tín hiệu kích hoạt lệnh trích xuất khung hình.
+     * @param onResult Callback trả về [FrameResult] chứa tọa độ Bounding Box từ AI.
+     * @param onFrameCaptured Callback trả về mảng byte (ByteArray) của ảnh vừa được chụp.
      */
     @Composable
     override fun NativeCameraView(
         modifier: Modifier,
+        captureTrigger: Long,
         onResult: (FrameResult) -> Unit,
-        onLiveFrameCaptured: (ByteArray?) -> Unit
+        onFrameCaptured: (ByteArray) -> Unit
     ) {
         val context = LocalContext.current.applicationContext
 
-        // Sử dụng ViewModelFactory chuẩn của Android để đảm bảo ScanViewModel chỉ sinh ra 1 lần duy nhất
         val viewModel: ScanViewModel = viewModel(
             factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -83,7 +84,6 @@ object AndroidScanProvider : PlatformScanProvider {
             }
         )
 
-        // Quan sát State trực tiếp từ ViewModel
         val isReady by viewModel.isReady.collectAsState()
         val frameResult by viewModel.frameResult.collectAsState()
 
@@ -97,38 +97,79 @@ object AndroidScanProvider : PlatformScanProvider {
             AndroidCameraScreen(
                 viewModel = viewModel,
                 modifier = modifier,
-                onLiveFrameCaptured = onLiveFrameCaptured
+                captureTrigger = captureTrigger,
+                onFrameCaptured = onFrameCaptured
             )
         }
     }
 
     /**
      * Component hiển thị và phân tích ảnh tĩnh trên Android.
-     * Chuyển đổi định danh ảnh (URI) thành Bitmap để mô hình AI xử lý và vẽ lên Canvas.
+     * Chuyển đổi định danh ảnh (URI) hoặc mảng byte thành Bitmap, thực hiện phân tích qua ViewModel
+     * và hiển thị kết quả lên màn hình.
      *
      * @param modifier Modifier tùy chỉnh giao diện.
-     * @param imageId Chuỗi URI của bức ảnh tĩnh (nằm trong thư viện hoặc vừa chụp).
-     * @param frameResult Kết quả tọa độ phân tích từ AI để vẽ khung giới hạn.
+     * @param imageId Chuỗi URI của bức ảnh tĩnh.
+     * @param imageBytes Mảng byte của ảnh (được ưu tiên sử dụng để dựng hình ảnh tức thời).
+     * @param frameResult Kết quả tọa độ phân tích từ AI (có thể null nếu đang chờ xử lý).
+     * @param onResultUpdate Callback cập nhật kết quả sau khi thực hiện phân tích lại từ Bitmap.
      */
     @Composable
-    override fun NativeStaticDetectionView(modifier: Modifier, imageId: String?, frameResult: FrameResult?) {
+    override fun NativeStaticDetectionView(
+        modifier: Modifier,
+        imageId: String?,
+        imageBytes: ByteArray?,
+        frameResult: FrameResult?,
+        onResultUpdate: (FrameResult) -> Unit
+    ) {
         val context = LocalContext.current
-        // Chuyển đổi định danh (URI dạng String) trở lại thành Bitmap để vẽ
-        val bitmap = remember(imageId) {
-            if (imageId != null) uriToBitmap(context, imageId.toUri()) else null
+
+        // Khởi tạo ViewModel để xử lý logic phân tích AI trên Android
+        val viewModel: ScanViewModel = viewModel(
+            factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                    return ScanViewModel(context) as T
+                }
+            }
+        )
+
+        // Chuyển đổi source ảnh thành Bitmap để phục vụ cho việc xử lý của Model
+        val bitmap = remember(imageId, imageBytes) {
+            if (imageBytes != null) {
+                android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            } else if (imageId != null) {
+                uriToBitmap(context, imageId.toUri())
+            } else {
+                null
+            }
         }
-        if (frameResult != null) {
+
+        // Tự động phân tích ảnh khi có Bitmap mới
+        LaunchedEffect(bitmap) {
+            if (bitmap != null && imageBytes != null) {
+                viewModel.analyzeImage(bitmap, 0)
+                onResultUpdate(viewModel.frameResult.value)
+            }
+        }
+
+        // Hiển thị màn hình kết quả hoặc Loading nếu đang chờ phân tích
+        if (frameResult != null && bitmap != null) {
             AndroidStaticDetectionScreen(bitmap = bitmap, frameResult = frameResult, modifier = modifier)
+        } else if (bitmap != null) {
+            Box(modifier = modifier, contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 
     /**
      * Khởi tạo Helper hỗ trợ việc chọn ảnh từ Thư viện (Gallery) hoặc chụp ảnh bằng App Camera gốc của Android.
      *
-     * @param onModeChange Callback chuyển đổi chế độ UI khi người dùng đã chọn xong ảnh.
+     * @param onModeChange Callback chuyển đổi chế độ UI.
      * @param onResult Callback trả về kết quả phân tích AI của ảnh tĩnh.
      * @param onImageIdCaptured Callback trả về đường dẫn URI (dạng chuỗi) của ảnh.
-     * @param onImageBytesCaptured Callback trả về mảng byte (ByteArray) của ảnh tĩnh để phục vụ việc upload.
+     * @param onImageBytesCaptured Callback trả về mảng byte (ByteArray) của ảnh tĩnh.
      * @return [ImagePickerHelper] được cấu hình sẵn cho Android.
      */
     @Composable

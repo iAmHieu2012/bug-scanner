@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,35 +53,41 @@ import kotlin.time.Duration.Companion.milliseconds
  * Kết hợp sử dụng thẻ `<video>` ẩn và vẽ lại lên giao diện Compose bằng `Canvas`.
  *
  * @param modifier Tùy chỉnh kích thước và vị trí của Camera View.
- * @param onResult Bắn kết quả AI (Bounding Boxes) lên UI Component cha để thống kê.
- * @param onLiveFrameCaptured Xuất mảng byte (ByteArray) của khung hình hiện tại nếu AI tìm thấy côn trùng.
+ * @param captureTrigger Biến kích hoạt trạng thái chụp ngầm.
+ * @param onResult Bắn kết quả AI (Bounding Boxes) lên UI Component cha.
+ * @param onFrameCaptured Xuất mảng byte (ByteArray) chất lượng cao của khung hình khi nhận được lệnh chụp.
  */
 @Composable
 fun WebCameraScreen(
     modifier: Modifier = Modifier,
+    captureTrigger: Long,
     onResult: (FrameResult) -> Unit,
-    onLiveFrameCaptured: (ByteArray?) -> Unit
+    onFrameCaptured: (ByteArray) -> Unit
 ) {
     val textMeasurer = rememberTextMeasurer()
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var currentFrameResult by remember { mutableStateOf<FrameResult?>(null) }
     var isAiReady by remember { mutableStateOf(false) }
+    var pendingCapture by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(captureTrigger) {
+        if (captureTrigger > 0L) {
+            pendingCapture = true
+        }
+    }
+
     DisposableEffect(Unit) {
-        // Khởi tạo thẻ video ẩn trên DOM để hứng stream từ WebRTC
         val video = document.createElement("video") as HTMLVideoElement
         video.autoplay = true
-        video.playsInline = true // Yêu cầu bắt buộc trên iOS Safari để không bật Fullscreen Player
+        video.playsInline = true
 
-        // Khởi tạo thẻ canvas ẩn để chụp ảnh từ luồng video
         val htmlCanvas = document.createElement("canvas") as HTMLCanvasElement
         val ctx = htmlCanvas.getContext("2d") as CanvasRenderingContext2D
 
         var streamData: dynamic = null
         var isDetecting = false
 
-        // Yêu cầu quyền Camera từ trình duyệt (Ưu tiên camera sau - environment)
         val navigatorDyn = window.navigator.asDynamic()
         navigatorDyn.mediaDevices.getUserMedia(js("{ video: { facingMode: 'environment' } }"))
             .then { stream ->
@@ -90,43 +97,40 @@ fun WebCameraScreen(
                 println("Lỗi mở camera Web: $e")
             }
 
-        // Vòng lặp lấy khung hình liên tục để vẽ lên giao diện Compose
         val job = coroutineScope.launch {
-            // LUỒNG 1: Tải AI ngầm (Cho UI vẽ Camera trước)
             launch {
                 delay(1000.milliseconds)
                 isAiReady = WebYoloDetector.initialize()
             }
 
-            // LUỒNG 2: Xử lý khung hình
             while (isActive) {
-                delay(33.milliseconds) // ~30 FPS
+                delay(33.milliseconds)
 
                 if (video.videoWidth > 0 && video.videoHeight > 0) {
                     htmlCanvas.width = video.videoWidth
                     htmlCanvas.height = video.videoHeight
                     ctx.drawImage(video, 0.0, 0.0, htmlCanvas.width.toDouble(), htmlCanvas.height.toDouble())
 
-                    // 1. Trích xuất hình ảnh (Base64) chuyển sang Compose ImageBitmap
                     try {
-                        val dataUrl = htmlCanvas.toDataURL("image/jpeg", 0.6) // Nén mức 60% để tối ưu RAM
+                        val dataUrl = htmlCanvas.toDataURL("image/jpeg", 0.5)
                         val base64Data = dataUrl.substringAfter(",")
                         val binaryString = window.atob(base64Data)
                         val byteArray = ByteArray(binaryString.length) { i -> binaryString[i].code.toByte() }
                         imageBitmap = Image.makeFromEncoded(byteArray).toComposeImageBitmap()
 
-                        // Kích hoạt callback xuất mảng byte lưu ảnh NẾU AI tìm thấy đối tượng
-                        if (currentFrameResult?.boxes?.isNotEmpty() == true) {
-                            onLiveFrameCaptured(byteArray)
-                        } else {
-                            onLiveFrameCaptured(null)
+                        if (pendingCapture) {
+                            pendingCapture = false
+                            val hqDataUrl = htmlCanvas.toDataURL("image/jpeg", 0.95)
+                            val hqBase64 = hqDataUrl.substringAfter(",")
+                            val hqBinary = window.atob(hqBase64)
+                            val hqByteArray = ByteArray(hqBinary.length) { i -> hqBinary[i].code.toByte() }
+                            onFrameCaptured(hqByteArray)
                         }
 
                     } catch (e: Exception) {
                         println("Lỗi render hình ảnh: ${e.message}")
                     }
 
-                    // 2. Chạy luồng phân tích AI ngầm bằng WebGL (CHỈ CHẠY KHI AI SẴN SÀNG)
                     if (isAiReady && !isDetecting) {
                         isDetecting = true
                         launch {
@@ -143,7 +147,6 @@ fun WebCameraScreen(
             }
         }
 
-        // Dọn dẹp luồng WebRTC và giải phóng DOM khi Component bị hủy
         onDispose {
             job.cancel()
             if (streamData != null) {
@@ -170,7 +173,6 @@ fun WebCameraScreen(
                 val imgWidth = imageBitmap!!.width.toFloat()
                 val imgHeight = imageBitmap!!.height.toFloat()
 
-                // Vẽ hình ảnh khớp màn hình
                 val scale = maxOf(canvasWidth / imgWidth, canvasHeight / imgHeight)
                 val drawWidth = imgWidth * scale
                 val drawHeight = imgHeight * scale
@@ -183,7 +185,6 @@ fun WebCameraScreen(
                     dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt())
                 )
 
-                // Vẽ Bounding Boxes
                 currentFrameResult?.boxes?.forEach { box ->
                     val left = (box.x1 * drawWidth + offsetX).coerceIn(0f, canvasWidth)
                     val top = (box.y1 * drawHeight + offsetY).coerceIn(0f, canvasHeight)

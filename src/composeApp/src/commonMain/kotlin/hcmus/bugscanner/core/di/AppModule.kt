@@ -14,6 +14,7 @@ import hcmus.bugscanner.ui.chat.ChatViewModel
 import hcmus.bugscanner.ui.detail.BugDetailViewModel
 import hcmus.bugscanner.ui.history.HistoryViewModel
 import hcmus.bugscanner.ui.encyclopedia.EncyclopediaViewModel
+import hcmus.bugscanner.ui.scan.ScanFallbackViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -59,4 +60,5 @@ val appModule = module {
     viewModelOf(::ChatViewModel)
     viewModelOf(::HistoryViewModel)
     viewModelOf(::EncyclopediaViewModel)
+    viewModelOf(::ScanFallbackViewModel)
 }

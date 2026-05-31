@@ -25,32 +25,45 @@ interface PlatformScanProvider {
 
     /**
      * Component hiển thị luồng Camera trực tiếp.
+     *
      * @param modifier Modifier tùy chỉnh kích thước, vị trí.
+     * @param captureTrigger Biến trạng thái kích hoạt lệnh chụp ngầm khung hình.
      * @param onResult Callback trả về kết quả tọa độ Bounding Box của AI.
-     * @param onLiveFrameCaptured Callback trả về mảng byte (ByteArray) của khung hình camera HIỆN TẠI nếu AI phát hiện có côn trùng. Trả về null nếu không có.
+     * @param onFrameCaptured Callback trả về mảng byte (ByteArray) của khung hình vừa chụp ngầm.
      */
     @Composable
     fun NativeCameraView(
         modifier: Modifier,
+        captureTrigger: Long,
         onResult: (FrameResult) -> Unit,
-        onLiveFrameCaptured: (ByteArray?) -> Unit
+        onFrameCaptured: (ByteArray) -> Unit
     )
 
     /**
      * Component hiển thị hình ảnh tĩnh để nhận diện.
+     *
      * @param modifier Modifier tùy chỉnh kích thước, vị trí.
      * @param imageId Đường dẫn/Định danh của hình ảnh tĩnh.
-     * @param frameResult Kết quả phân tích Bounding Box.
+     * @param imageBytes Mảng byte của ảnh (được ưu tiên sử dụng để render ảnh đóng băng).
+     * @param frameResult Kết quả phân tích Bounding Box ban đầu.
+     * @param onResultUpdate Callback cập nhật lại kết quả sau khi phân tích chuyên sâu ảnh tĩnh.
      */
     @Composable
-    fun NativeStaticDetectionView(modifier: Modifier, imageId: String?, frameResult: FrameResult?)
+    fun NativeStaticDetectionView(
+        modifier: Modifier,
+        imageId: String?,
+        imageBytes: ByteArray?,
+        frameResult: FrameResult?,
+        onResultUpdate: (FrameResult) -> Unit
+    )
 
     /**
      * Khởi tạo Helper xử lý thư viện ảnh và chụp tĩnh.
+     *
      * @param onModeChange Callback chuyển đổi chế độ UI.
-     * @param onResult Callback trả về kết quả AI của ảnh.
+     * @param onResult Callback trả về kết quả AI của ảnh tĩnh.
      * @param onImageIdCaptured Callback trả về đường dẫn URI của ảnh.
-     * @param onImageBytesCaptured Callback trả về mảng byte (ByteArray) của ảnh tĩnh để upload.
+     * @param onImageBytesCaptured Callback trả về mảng byte của ảnh để upload.
      */
     @Composable
     fun rememberImagePickerHelper(
@@ -62,8 +75,9 @@ interface PlatformScanProvider {
 
     /**
      * Hàm kiểm tra và xin quyền Camera.
+     *
      * @param onGranted Callback được gọi khi quyền đã được cấp.
-     * @param onDenied Callback được gọi khi chưa có quyền, cung cấp hàm để UI gọi khi cần xin quyền.
+     * @param onDenied Callback được gọi khi chưa có quyền.
      */
     @Composable
     fun RequireCameraPermission(
@@ -72,7 +86,8 @@ interface PlatformScanProvider {
     )
 }
 
-/** * Biến cục bộ (CompositionLocal) truyền PlatformScanProvider xuyên suốt cây UI mà không cần pass qua từng hàm.
+/**
+ * Biến cục bộ (CompositionLocal) truyền PlatformScanProvider xuyên suốt cây UI.
  */
 val LocalPlatformScanProvider = staticCompositionLocalOf<PlatformScanProvider> {
     error("Chưa cung cấp PlatformScanProvider cho nền tảng này!")

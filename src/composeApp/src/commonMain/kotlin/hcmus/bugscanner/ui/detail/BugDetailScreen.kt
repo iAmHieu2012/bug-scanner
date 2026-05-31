@@ -63,9 +63,6 @@ fun BugDetailScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         if (maxWidth > 800.dp) {
-            // =================================================================
-            // LAYOUT MÀN HÌNH RỘNG (Web / Desktop / Tablet ngang)
-            // =================================================================
             Row(modifier = Modifier.fillMaxSize()) {
                 // Cột trái (40%): Hiển thị hình ảnh kích thước lớn và nút Back
                 Box(
@@ -111,9 +108,6 @@ fun BugDetailScreen(
                 }
             }
         } else {
-            // =================================================================
-            // LAYOUT MÀN HÌNH HẸP (Mobile / Tablet dọc)
-            // =================================================================
             Box(modifier = Modifier.fillMaxSize()) {
                 // Hình ảnh nền ở trên cùng
                 AsyncImage(

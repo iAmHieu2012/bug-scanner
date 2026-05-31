@@ -174,4 +174,7 @@ buildConfig {
 
     val imgbbKey = System.getenv("IMGBB_API_KEY") ?: properties.getProperty("IMGBB_API_KEY") ?: ""
     buildConfigField("String", "IMGBB_API_KEY", "\"$imgbbKey\"")
+
+    val iNatToken = System.getenv("INATURALIST_API_TOKEN") ?: properties.getProperty("INATURALIST_API_TOKEN") ?: ""
+    buildConfigField("String", "INATURALIST_API_TOKEN", "\"$iNatToken\"")
 }
