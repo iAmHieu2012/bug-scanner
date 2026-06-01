@@ -3,6 +3,7 @@ package hcmus.bugscanner.core.di
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import hcmus.bugscanner.data.remote.GeminiApiService
+import hcmus.bugscanner.data.remote.GroqApiService
 import hcmus.bugscanner.data.remote.INaturalistApiService
 import hcmus.bugscanner.data.remote.WikiApiService
 import hcmus.bugscanner.data.repository.EncyclopediaRepositoryImpl
@@ -47,6 +48,7 @@ val appModule = module {
 
     // 3. Tầng API Services: Koin tự động tìm HttpClient ở trên (qua hàm get()) để tiêm vào
     single { GeminiApiService(client = get()) }
+    single { GroqApiService(client = get()) }
     single { INaturalistApiService(client = get()) }
     single { WikiApiService(client = get()) }
 

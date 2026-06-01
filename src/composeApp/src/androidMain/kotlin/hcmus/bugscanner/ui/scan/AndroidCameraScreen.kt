@@ -106,9 +106,23 @@ fun AndroidCameraScreen(
                                 // Kiểm tra và thực thi lệnh chụp ảnh ngầm
                                 if (currentTrigger > lastCapturedTrigger) {
                                     lastCapturedTrigger = currentTrigger
+
+                                    // Bẻ lại góc ảnh gốc cho đúng với chiều người dùng đang cầm máy
+                                    val finalBitmap = if (rotation != 0) {
+                                        val matrix = android.graphics.Matrix()
+                                        matrix.postRotate(rotation.toFloat())
+                                        android.graphics.Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                                    } else {
+                                        bitmap
+                                    }
+
                                     val stream = ByteArrayOutputStream()
-                                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, stream)
+                                    finalBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, stream)
                                     onFrameCaptured(stream.toByteArray())
+
+                                    if (rotation != 0) {
+                                        finalBitmap.recycle()
+                                    }
                                 }
 
                                 viewModel.analyzeImage(bitmap, rotation)

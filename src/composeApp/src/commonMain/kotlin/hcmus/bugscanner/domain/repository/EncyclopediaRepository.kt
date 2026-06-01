@@ -30,4 +30,13 @@ interface EncyclopediaRepository {
      * @return Đối tượng [BugInfo] nếu tìm thấy, ngược lại trả về null.
      */
     suspend fun getBugByScientificName(scientificName: String): BugInfo?
+
+    /**
+     * Lưu trữ thông tin chi tiết của một loài côn trùng mới lên cơ sở dữ liệu.
+     * Hỗ trợ cơ chế Crowdsourcing: Dữ liệu do AI sinh ra sẽ được lưu lại để tối ưu hóa truy vấn cho các lần sau.
+     *
+     * @param bug Đối tượng [BugInfo] chứa thông tin sinh vật cần lưu.
+     * @return `true` nếu lưu thành công, ngược lại `false`.
+     */
+    suspend fun saveBugToFirebase(bug: BugInfo): Boolean
 }

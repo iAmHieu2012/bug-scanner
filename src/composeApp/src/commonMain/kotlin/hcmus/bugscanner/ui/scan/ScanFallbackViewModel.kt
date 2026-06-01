@@ -3,6 +3,7 @@ package hcmus.bugscanner.ui.scan
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import hcmus.bugscanner.data.remote.INaturalistApiService
+import hcmus.bugscanner.domain.model.BugInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,19 +29,52 @@ class ScanFallbackViewModel(
 
     /**
      * Gửi dữ liệu hình ảnh lên máy chủ iNaturalist để định danh loài côn trùng.
+     * Tự động trích xuất và đóng gói kết quả sơ bộ thành đối tượng [BugInfo].
      *
      * @param imageBytes Mảng byte (ByteArray) của bức ảnh cần phân tích.
-     * @param onResult Callback trả về tên phổ thông (hoặc tên khoa học) của sinh vật nếu nhận diện thành công, trả về null nếu thất bại hoặc có lỗi mạng.
+     * @param onResult Callback trả về đối tượng [BugInfo] chứa thông tin sinh vật nếu nhận diện thành công, trả về null nếu thất bại hoặc có lỗi mạng.
      */
-    fun analyzeFallbackImage(imageBytes: ByteArray, onResult: (String?) -> Unit) {
+    fun analyzeFallbackImage(imageBytes: ByteArray, onResult: (BugInfo?) -> Unit) {
         viewModelScope.launch {
             _isAnalyzing.value = true
             try {
                 val response = apiService.identifyImageByVision(imageBytes)
-                val bestMatch = response.results.firstOrNull()
-                // Ưu tiên lấy tên phổ thông tiếng Việt, nếu không có thì dùng tên khoa học gốc
-                val detectedName = bestMatch?.preferredCommonName ?: bestMatch?.name
-                onResult(detectedName)
+                val taxon = response.results.firstOrNull()
+
+                if (taxon != null) {
+                    val rankVN = when(taxon.rank) {
+                        "species" -> "Loài"
+                        "subspecies" -> "Phân loài"
+                        "genus" -> "Chi"
+                        "family" -> "Họ"
+                        "order" -> "Bộ"
+                        "class" -> "Lớp"
+                        "phylum" -> "Ngành"
+                        else -> taxon.rank?.replaceFirstChar { it.uppercase() } ?: "Không rõ"
+                    }
+
+                    val scientificName = taxon.name
+                    val englishName = taxon.englishCommonName ?: "Chưa cập nhật"
+                    val bioStats = "• Tên khoa học chuẩn: $scientificName\n" +
+                            "• Tên quốc tế (Tiếng Anh): $englishName\n" +
+                            "• Cấp bậc sinh học: $rankVN"
+
+                    val bugInfo = BugInfo(
+                        id = taxon.id.toString(),
+                        name = scientificName,
+                        englishName = englishName,
+                        scientificName = scientificName,
+                        description = "",
+                        imageUrl = taxon.defaultPhoto?.mediumUrl ?: taxon.defaultPhoto?.squareUrl ?: "",
+                        identification = bioStats,
+                        danger = "",
+                        treatment = "",
+                        wikiUrl = taxon.wikipediaUrl ?: ""
+                    )
+                    onResult(bugInfo)
+                } else {
+                    onResult(null)
+                }
             } catch (e: Exception) {
                 println("Lỗi nhận diện ảnh qua API iNaturalist: ${e.message}")
                 onResult(null)

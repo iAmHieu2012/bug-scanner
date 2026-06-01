@@ -32,15 +32,13 @@ enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT }
 
 /**
  * Màn hình chính đóng vai trò là bộ định tuyến nội bộ (Internal Router) cho các tính năng cốt lõi.
- * Sử dụng `WindowSizeClass` để hỗ trợ hiển thị linh hoạt (Adaptive Layout):
- * - Màn hình lớn (Web/Tablet): Hiển thị NavigationRail bên trái.
- * - Màn hình nhỏ (Mobile): Hiển thị NavigationBar ở dưới cùng.
+ * Sử dụng `WindowSizeClass` để hỗ trợ hiển thị linh hoạt (Adaptive Layout).
  *
  * @param windowSizeClass Kích thước màn hình hiện tại để thiết lập Layout Responsive.
  * @param isLoggedIn Trạng thái xác thực hiện tại của người dùng.
  * @param onAuthAction Callback yêu cầu đăng nhập/đăng xuất.
  * @param onShareClick Callback xử lý sự kiện chia sẻ thông tin côn trùng.
- * @param scanTabContent Component giao diện Tab Quét nhận diện được tiêm (inject) từ bên ngoài. Hàm trả về tên côn trùng và mảng byte ảnh (nếu có).
+ * @param scanTabContent Component giao diện Tab Quét nhận diện được tiêm (inject) từ bên ngoài.
  * @param historyViewModel ViewModel quản lý thao tác với Database lịch sử.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,7 +48,7 @@ fun HomeScreen(
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo) -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String, ByteArray?) -> Unit) -> Unit,
+    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (BugInfo, ByteArray?) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel = koinViewModel()
 ) {
     var currentTab by remember { mutableStateOf(AppTab.SCAN) }
@@ -204,23 +202,16 @@ private fun HomeContent(
     currentTab: AppTab,
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (String, ByteArray?) -> Unit) -> Unit,
+    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (BugInfo, ByteArray?) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
     onBugSelected: (BugInfo) -> Unit,
     initialChatPrompt: String?,
     onClearChatPrompt: () -> Unit
 ) {
     when (currentTab) {
-        AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { detectedName, imageBytes ->
-            historyViewModel.addHistory(detectedName, imageBytes)
-
-            onBugSelected(
-                BugInfo.empty().copy(
-                    id = detectedName,
-                    name = "Đang tải...",
-                    scientificName = detectedName
-                )
-            )
+        AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { detectedBug, imageBytes ->
+            historyViewModel.addHistory(detectedBug.name, imageBytes)
+            onBugSelected(detectedBug)
         }
         AppTab.HISTORY -> {
             if (isLoggedIn) {

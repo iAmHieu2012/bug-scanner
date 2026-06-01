@@ -1,0 +1,38 @@
+name: Auto Update iNaturalist Token
+
+on:
+  # Chạy tự động vào lúc 00:00 và 12:00 mỗi ngày
+  schedule:
+    - cron: "0 0,12 * * *" 
+  # Cho phép bạn bấm nút chạy bằng tay trên web để test
+  workflow_dispatch: 
+
+jobs:
+  update-token:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run Python Script to Fetch Token
+        env:
+          INAT_USERNAME: ${{ secrets.INAT_USERNAME }}
+          INAT_PASSWORD: ${{ secrets.INAT_PASSWORD }}
+        run: python .github/scripts/update_inat_token.py
+
+      - name: Save Token to GitHub Secrets
+        env:
+          # Cấp quyền sửa Secret cho GitHub CLI bằng PAT
+          GH_TOKEN: ${{ secrets.GH_PAT }} 
+        run: |
+          # Ghi đè token mới vào biến INATURALIST_API_TOKEN
+          gh secret set INATURALIST_API_TOKEN -b "$NEW_INAT_TOKEN" -R ${{ github.repository }}
+          echo "Đã cập nhật INATURALIST_API_TOKEN vào kho Secrets thành công!"

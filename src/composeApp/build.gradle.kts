@@ -172,6 +172,9 @@ buildConfig {
     val geminiKey = System.getenv("GEMINI_API_KEY") ?: properties.getProperty("GEMINI_API_KEY") ?: ""
     buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
 
+    val groqKey = System.getenv("GROQ_API_KEY") ?: properties.getProperty("GROQ_API_KEY") ?: ""
+    buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
+
     val imgbbKey = System.getenv("IMGBB_API_KEY") ?: properties.getProperty("IMGBB_API_KEY") ?: ""
     buildConfigField("String", "IMGBB_API_KEY", "\"$imgbbKey\"")
 

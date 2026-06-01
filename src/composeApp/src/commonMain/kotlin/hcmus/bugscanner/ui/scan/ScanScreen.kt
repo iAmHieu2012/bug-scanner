@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import bugscanner.composeapp.generated.resources.*
+import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
 import hcmus.bugscanner.ui.scan.components.ScannerOverlay
@@ -31,31 +32,28 @@ import org.koin.compose.viewmodel.koinViewModel
  *
  * @param isLoggedIn Trạng thái xác thực hiện tại để hiển thị nút đăng nhập/đăng xuất.
  * @param onAuthAction Callback xử lý khi người dùng nhấn nút xác thực.
- * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhấn vào một kết quả.
+ * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhận diện thành công (kèm dữ liệu sinh học và mảng byte hình ảnh).
  * @param fallbackViewModel ViewModel quản lý luồng gọi mạng dự phòng để phân tích AI chuyên sâu.
  */
 @Composable
 fun ScanScreen(
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
-    onDetectedBugClick: (String, ByteArray?) -> Unit,
+    onDetectedBugClick: (BugInfo, ByteArray?) -> Unit,
     fallbackViewModel: ScanFallbackViewModel = koinViewModel()
 ) {
     val platformProvider = LocalPlatformScanProvider.current
 
-    // Quản lý trạng thái dữ liệu hình ảnh và kết quả nhận diện
     var currentMode by remember { mutableStateOf(ScanMode.LIVE) }
     var frameResult by remember { mutableStateOf<FrameResult?>(null) }
     var currentImageId by remember { mutableStateOf<String?>(null) }
     var capturedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
 
-    // Quản lý trạng thái luồng Camera và cờ kích hoạt lệnh chụp ảnh ngầm
     var isScanningLive by remember { mutableStateOf(true) }
     var captureTrigger by remember { mutableLongStateOf(0L) }
 
     val isAnalyzingFallback by fallbackViewModel.isAnalyzing.collectAsState()
 
-    // Trình hỗ trợ mở thư viện ảnh hệ thống và cập nhật trạng thái UI
     val pickerHelper = platformProvider.rememberImagePickerHelper(
         onModeChange = {
             currentMode = it
@@ -93,7 +91,7 @@ fun ScanScreen(
                             onResultUpdate = { frameResult = it },
                             onFrameCaptured = { bytes ->
                                 capturedImageBytes = bytes
-                                isScanningLive = false // Đóng băng luồng UI ngay khi nhận được ảnh chụp từ Native
+                                isScanningLive = false
                             }
                         )
 
@@ -101,8 +99,6 @@ fun ScanScreen(
                             currentMode = currentMode,
                             isScanningLive = isScanningLive,
                             onToggleLive = {
-                                // Nếu đang Live: Kích hoạt cò súng (trigger) để Native Camera bắt đầu trích xuất frame.
-                                // Nếu đang Freeze: Mở lại luồng Live Camera bình thường.
                                 if (isScanningLive) captureTrigger++ else isScanningLive = true
                             },
                             pickerHelper = pickerHelper,
@@ -110,7 +106,7 @@ fun ScanScreen(
                             onClearResult = {
                                 frameResult = null
                                 capturedImageBytes = null
-                                captureTrigger = 0L // Đặt lại cò súng về 0 để ngăn lỗi tự động chụp khi Camera khởi động lại
+                                captureTrigger = 0L
                             },
                             alignmentModifier = Modifier.align(Alignment.BottomCenter)
                         )
@@ -126,14 +122,21 @@ fun ScanScreen(
                         isAnalyzingFallback = isAnalyzingFallback,
                         onFallbackClick = {
                             capturedImageBytes?.let { bytes ->
-                                fallbackViewModel.analyzeFallbackImage(bytes) { aiName ->
-                                    if (aiName != null) {
-                                        onDetectedBugClick(aiName, bytes)
+                                fallbackViewModel.analyzeFallbackImage(bytes) { bugInfo ->
+                                    if (bugInfo != null) {
+                                        onDetectedBugClick(bugInfo, bytes)
                                     }
                                 }
                             }
                         },
-                        onBugClick = onDetectedBugClick,
+                        onBugClick = { name, bytes ->
+                            val bugInfo = BugInfo.empty().copy(
+                                id = name,
+                                name = name,
+                                scientificName = name
+                            )
+                            onDetectedBugClick(bugInfo, bytes)
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -162,7 +165,7 @@ fun ScanScreen(
                         onResultUpdate = { frameResult = it },
                         onFrameCaptured = { bytes ->
                             capturedImageBytes = bytes
-                            isScanningLive = false // Đóng băng luồng UI ngay khi nhận được ảnh chụp từ Native
+                            isScanningLive = false
                         }
                     )
 
@@ -170,8 +173,6 @@ fun ScanScreen(
                         currentMode = currentMode,
                         isScanningLive = isScanningLive,
                         onToggleLive = {
-                            // Nếu đang Live: Kích hoạt cò súng (trigger) để Native Camera bắt đầu trích xuất frame.
-                            // Nếu đang Freeze: Mở lại luồng Live Camera bình thường.
                             if (isScanningLive) captureTrigger++ else isScanningLive = true
                         },
                         pickerHelper = pickerHelper,
@@ -179,7 +180,7 @@ fun ScanScreen(
                         onClearResult = {
                             frameResult = null
                             capturedImageBytes = null
-                            captureTrigger = 0L // Đặt lại cò súng về 0 để ngăn lỗi tự động chụp khi Camera khởi động lại
+                            captureTrigger = 0L
                         },
                         alignmentModifier = Modifier.align(Alignment.BottomCenter)
                     )
@@ -193,14 +194,21 @@ fun ScanScreen(
                     isAnalyzingFallback = isAnalyzingFallback,
                     onFallbackClick = {
                         capturedImageBytes?.let { bytes ->
-                            fallbackViewModel.analyzeFallbackImage(bytes) { aiName ->
-                                if (aiName != null) {
-                                    onDetectedBugClick(aiName, bytes)
+                            fallbackViewModel.analyzeFallbackImage(bytes) { bugInfo ->
+                                if (bugInfo != null) {
+                                    onDetectedBugClick(bugInfo, bytes)
                                 }
                             }
                         }
                     },
-                    onBugClick = onDetectedBugClick,
+                    onBugClick = { name, bytes ->
+                        val bugInfo = BugInfo.empty().copy(
+                            id = name,
+                            name = name,
+                            scientificName = name
+                        )
+                        onDetectedBugClick(bugInfo, bytes)
+                    },
                     modifier = Modifier.fillMaxWidth().height(300.dp)
                 )
             }
@@ -276,18 +284,15 @@ private fun ScanContent(
         onGranted = {
             if (currentMode == ScanMode.LIVE) {
                 if (!isScanningLive) {
-                    // Xử lý luồng Đóng băng (Freeze): Ưu tiên hiển thị khung hình vừa chụp
                     if (capturedImageBytes != null) {
                         platformProvider.NativeStaticDetectionView(
                             modifier = Modifier.fillMaxSize(),
                             imageId = null,
                             imageBytes = capturedImageBytes,
                             frameResult = frameResult,
-                            onResultUpdate = onResultUpdate // Chạy lại AI Re-detect trên ảnh tĩnh để đảm bảo độ chính xác
+                            onResultUpdate = onResultUpdate
                         )
                     } else {
-                        // Xử lý Race Condition: Giao diện chuyển trạng thái Đóng băng nhưng luồng Native chưa xuất xong ảnh.
-                        // Hiển thị cảnh báo tạm thời thay vì văng lỗi NullPointerException.
                         Box(
                             modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)),
                             contentAlignment = Alignment.Center
@@ -302,7 +307,6 @@ private fun ScanContent(
                         }
                     }
                 } else {
-                    // Render luồng Camera Live liên tục
                     platformProvider.NativeCameraView(
                         modifier = Modifier.fillMaxSize(),
                         captureTrigger = captureTrigger,
@@ -312,7 +316,6 @@ private fun ScanContent(
                     ScannerOverlay()
                 }
             } else {
-                // Xử lý luồng hiển thị ảnh tĩnh được chọn từ Thư viện (Gallery)
                 platformProvider.NativeStaticDetectionView(
                     modifier = Modifier.fillMaxSize(),
                     imageId = currentImageId,
@@ -357,7 +360,6 @@ private fun ScanControlButtons(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Nút mở thư viện ảnh (Gallery)
         IconButton(
             onClick = {
                 onClearResult()
@@ -371,7 +373,6 @@ private fun ScanControlButtons(
             Icon(Icons.Rounded.PhotoLibrary, contentDescription = "Thư viện ảnh", tint = Color.White)
         }
 
-        // Nút Action Trung tâm (Live / Freeze)
         val isFrozenOrStatic = !isScanningLive || currentMode != ScanMode.LIVE
         Button(
             onClick = {
@@ -400,7 +401,6 @@ private fun ScanControlButtons(
             }
         }
 
-        // Spacer để cân bằng bố cục với nút Thư viện ảnh ở bên trái
         Spacer(modifier = Modifier.size(56.dp))
     }
 }

@@ -84,4 +84,37 @@ class EncyclopediaRepositoryImpl(
             null
         }
     }
+
+    /**
+     * Lưu thông tin một loài côn trùng mới lên Firestore.
+     * Sử dụng Tên khoa học (scientificName) làm Document ID để đảm bảo tính duy nhất.
+     * Dữ liệu được ánh xạ sang dạng Map để an toàn với mọi cấu hình Serialization.
+     *
+     * @param bug Đối tượng sinh vật cần lưu trữ.
+     * @return `true` nếu ghi dữ liệu thành công, ngược lại `false`.
+     */
+    override suspend fun saveBugToFirebase(bug: BugInfo): Boolean {
+        return try {
+            val docId = bug.scientificName.ifBlank { bug.id }.replace(" ", "_")
+
+            val bugData = mapOf(
+                "id" to bug.id,
+                "name" to bug.name,
+                "englishName" to bug.englishName,
+                "scientificName" to bug.scientificName,
+                "description" to bug.description,
+                "imageUrl" to bug.imageUrl,
+                "identification" to bug.identification,
+                "danger" to bug.danger,
+                "treatment" to bug.treatment,
+                "wikiUrl" to bug.wikiUrl
+            )
+
+            encyclopediaCollection.document(docId).set(bugData)
+            true
+        } catch (e: Exception) {
+            println("Lỗi khi lưu dữ liệu lên Firebase: ${e.message}")
+            false
+        }
+    }
 }
