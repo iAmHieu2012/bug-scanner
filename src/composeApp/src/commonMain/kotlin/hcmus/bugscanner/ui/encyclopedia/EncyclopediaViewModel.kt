@@ -78,7 +78,7 @@ class EncyclopediaViewModel(
 
     /**
      * Gửi truy vấn tìm kiếm sinh vật học đến API iNaturalist.
-     * Tự động format, dịch thuật và bóc tách dữ liệu JSON để trả về danh sách [BugInfo].
+     * Tự động format, dịch thuật cấp bậc phân loại và bóc tách dữ liệu JSON để trả về danh sách [BugInfo] chuẩn hóa.
      *
      * @param query Từ khóa tìm kiếm trên API.
      */
@@ -102,7 +102,6 @@ class EncyclopediaViewModel(
 
                 if (results.isNotEmpty()) {
                     val bugs = results.map { taxon ->
-                        // 1. Dịch cấp bậc
                         val rankVN = when(taxon.rank) {
                             "species" -> "Loài"
                             "subspecies" -> "Phân loài"
@@ -114,16 +113,13 @@ class EncyclopediaViewModel(
                             else -> taxon.rank?.replaceFirstChar { it.uppercase() } ?: "Không rõ"
                         }
 
-                        // 2. Tên phổ thông (Sẽ hiện làm tiêu đề chính của Card)
                         val commonName = taxon.preferredCommonName
                             ?: taxon.englishCommonName
                             ?: taxon.name
 
-                        // 3. XÂY DỰNG LẠI MÔ TẢ NGẮN CHO THẺ CARD (Vừa khít 3 dòng của BugItemCard)
                         val shortDescription = "• Phân loại sinh học: $rankVN\n" +
                                 "• Tên quốc tế: ${taxon.englishCommonName ?: "Chưa cập nhật"}\n"
 
-                        // 4. Đẩy các thông số vào Đặc điểm nhận dạng (Sẽ hiện trong màn hình Chi tiết)
                         val bioStats = "• Tên khoa học chuẩn: ${taxon.name}\n" +
                                 "• Tên quốc tế (Tiếng Anh): ${taxon.englishCommonName ?: "Chưa cập nhật"}\n" +
                                 "• Cấp bậc sinh học: $rankVN"

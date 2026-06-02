@@ -33,7 +33,6 @@ fun ChatBubble(message: ChatMessage) {
             .padding(vertical = 6.dp, horizontal = 8.dp),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
-        // Avatar AI (Hiển thị bên trái)
         if (!isUser) {
             Surface(
                 shape = CircleShape,
@@ -50,7 +49,6 @@ fun ChatBubble(message: ChatMessage) {
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        // Bong bóng tin nhắn
         Box(
             modifier = Modifier
                 .weight(1f, fill = false)
@@ -58,8 +56,8 @@ fun ChatBubble(message: ChatMessage) {
                     RoundedCornerShape(
                         topStart = 20.dp,
                         topEnd = 20.dp,
-                        bottomStart = if (isUser) 20.dp else 4.dp, // Vuông góc bot
-                        bottomEnd = if (isUser) 4.dp else 20.dp    // Vuông góc user
+                        bottomStart = if (isUser) 20.dp else 4.dp,
+                        bottomEnd = if (isUser) 4.dp else 20.dp
                     )
                 )
                 .background(
@@ -78,7 +76,6 @@ fun ChatBubble(message: ChatMessage) {
             )
         }
 
-        // Avatar User (Hiển thị bên phải)
         if (isUser) {
             Spacer(modifier = Modifier.width(8.dp))
             Surface(

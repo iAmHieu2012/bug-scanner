@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel chịu trách nhiệm quản lý trạng thái hiển thị lịch sử và kết nối với Firebase.
  * Quản lý luồng dữ liệu hai chiều: Kéo danh sách về (Fetch) và Đẩy dữ liệu + hình ảnh lên (Save/Upload).
+ * Người dùng dưới quyền Khách (Anonymous) sẽ bị từ chối quyền lưu trữ.
  *
  * @param repository Đối tượng quản lý các thao tác lưu trữ và truy xuất lịch sử.
  */
@@ -32,19 +33,18 @@ class HistoryViewModel(
 
     /**
      * Lưu một kết quả nhận diện mới vào lịch sử người dùng.
-     * Tiến trình bao gồm: Kiểm tra đăng nhập -> Upload ảnh lên Storage (nếu có) -> Lấy URL -> Ghép với Tên sinh vật -> Lưu Firestore.
+     * Tự động xử lý tuần tự: Upload ảnh lên Storage (nếu có) -> Lấy URL ảnh -> Tạo Entity -> Lưu Firestore.
      *
      * @param bugName Tên của loài côn trùng được mô hình AI phân loại thành công.
-     * @param imageBytes Dữ liệu thô của bức ảnh bị đóng khung nhận diện. Mặc định là `null` nếu quá trình quét không sinh ra ảnh.
+     * @param imageBytes Dữ liệu thô của bức ảnh. Mặc định là `null` nếu quá trình quét không sinh ra ảnh.
      */
     fun addHistory(bugName: String, imageBytes: ByteArray? = null) {
         val currentUser = Firebase.auth.currentUser
-        // Khách (Anonymous) không được phép lưu lịch sử vào Database
+
         if (currentUser != null && !currentUser.isAnonymous) {
             viewModelScope.launch {
                 var uploadedUrl = ""
 
-                // 1. Tải ảnh lên Storage trước tiên nếu ByteArray tồn tại
                 if (imageBytes != null) {
                     val url = repository.uploadImage(currentUser.uid, imageBytes)
                     if (url != null) {
@@ -52,15 +52,13 @@ class HistoryViewModel(
                     }
                 }
 
-                // 2. Tạo Entity lịch sử hoàn chỉnh với URL ảnh tương ứng
                 val newHistory = ScanHistory(
                     userId = currentUser.uid,
                     bugName = bugName,
-                    timestamp = getCurrentTimeMillis(), // Đã được đồng bộ sang Double cho Web JS
+                    timestamp = getCurrentTimeMillis(),
                     imageUrl = uploadedUrl
                 )
 
-                // 3. Đẩy lên Firestore
                 repository.saveHistory(newHistory)
             }
         }

@@ -124,7 +124,6 @@ object AndroidScanProvider : PlatformScanProvider {
     ) {
         val context = LocalContext.current
 
-        // Khởi tạo ViewModel để xử lý logic phân tích AI trên Android
         val viewModel: ScanViewModel = viewModel(
             factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -134,7 +133,6 @@ object AndroidScanProvider : PlatformScanProvider {
             }
         )
 
-        // Chuyển đổi source ảnh thành Bitmap để phục vụ cho việc xử lý của Model
         val bitmap = remember(imageId, imageBytes) {
             if (imageBytes != null) {
                 android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
@@ -145,7 +143,6 @@ object AndroidScanProvider : PlatformScanProvider {
             }
         }
 
-        // Tự động phân tích ảnh khi có Bitmap mới
         LaunchedEffect(bitmap) {
             if (bitmap != null && imageBytes != null) {
                 viewModel.analyzeImage(bitmap, 0)
@@ -153,7 +150,6 @@ object AndroidScanProvider : PlatformScanProvider {
             }
         }
 
-        // Hiển thị màn hình kết quả hoặc Loading nếu đang chờ phân tích
         if (frameResult != null && bitmap != null) {
             AndroidStaticDetectionScreen(bitmap = bitmap, frameResult = frameResult, modifier = modifier)
         } else if (bitmap != null) {

@@ -12,7 +12,6 @@ import kotlinx.serialization.json.jsonPrimitive
 /**
  * Service gọi API Wikipedia sử dụng Ktor (hỗ trợ Đa nền tảng).
  * Cung cấp tính năng tìm kiếm thông tin tóm tắt và tự động dịch văn bản nếu tài liệu không hỗ trợ tiếng Việt.
- * Đã lược bỏ các hàm không còn sử dụng.
  *
  * @param client Đối tượng [HttpClient] được cung cấp bởi hệ thống Dependency Injection.
  */

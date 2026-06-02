@@ -44,17 +44,13 @@ fun BugDetailScreen(
     onShareClick: (BugInfo) -> Unit
 ) {
     val scrollState = rememberScrollState()
-
-    // Thu thập dữ liệu trạng thái từ ViewModel
     val detailedBug by viewModel.detailedBug.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // Kích hoạt việc fetch dữ liệu một lần duy nhất khi màn hình khởi tạo
     LaunchedEffect(bug.scientificName) {
         viewModel.loadBugDetails(bug)
     }
 
-    // Đảm bảo UI luôn có dữ liệu hiển thị (fallback về giá trị gốc nếu detailedBug chưa sẵn sàng)
     val currentBug = detailedBug ?: bug
 
     BoxWithConstraints(
@@ -64,7 +60,6 @@ fun BugDetailScreen(
     ) {
         if (maxWidth > 800.dp) {
             Row(modifier = Modifier.fillMaxSize()) {
-                // Cột trái (40%): Hiển thị hình ảnh kích thước lớn và nút Back
                 Box(
                     modifier = Modifier
                         .weight(0.4f)
@@ -89,7 +84,6 @@ fun BugDetailScreen(
                     }
                 }
 
-                // Cột phải (60%): Cuộn nội dung thông tin và BottomBar cố định đáy
                 Column(
                     modifier = Modifier
                         .weight(0.6f)
@@ -109,7 +103,6 @@ fun BugDetailScreen(
             }
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Hình ảnh nền ở trên cùng
                 AsyncImage(
                     model = currentBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/500?text=Hình+ảnh+côn+trùng",
                     contentDescription = "Bug Image",
@@ -117,7 +110,6 @@ fun BugDetailScreen(
                     modifier = Modifier.fillMaxWidth().height(350.dp)
                 )
 
-                // Nút Back
                 IconButton(
                     onClick = onBackClick,
                     modifier = Modifier
@@ -128,7 +120,6 @@ fun BugDetailScreen(
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
                 }
 
-                // Vùng nội dung cuộn đè lên hình ảnh một khoảng (padding top 300.dp)
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -136,14 +127,13 @@ fun BugDetailScreen(
                         .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
                         .background(MaterialTheme.colorScheme.background)
                         .verticalScroll(scrollState)
-                        .padding(bottom = 100.dp) // Chừa khoảng trống cho BottomBar
+                        .padding(bottom = 100.dp)
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         BugDetailContent(currentBug, isLoading)
                     }
                 }
 
-                // Thanh thao tác (BottomBar) neo tại đáy Box
                 Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                     BugDetailBottomBar(currentBug, onAskChatbotClick, onShareClick)
                 }
@@ -161,7 +151,6 @@ fun BugDetailScreen(
  */
 @Composable
 private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
-    // Header: Tên phổ thông, Tên khoa học và Nhãn trạng thái
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -197,7 +186,6 @@ private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    // Trạng thái Loading hoặc Danh sách thẻ thông tin
     if (isLoading) {
         Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)

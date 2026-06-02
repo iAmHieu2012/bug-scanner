@@ -44,31 +44,19 @@ class WebShareManager : ShareManager {
         val shareText = "Tôi vừa phát hiện ra loài: $bugName trên ứng dụng BugScanner. Tên khoa học: $scientificName."
 
         try {
-            // Ép kiểu navigator về dynamic để vượt qua rào cản kiểu dữ liệu của Wasm
             val navigator: dynamic = window.navigator
 
-            // Kiểm tra xem trình duyệt có hỗ trợ Web Share API hay không
             if (navigator.share != undefined) {
-
-                // Khởi tạo Object cấu hình an toàn cho Wasm (Thay thế cho js("{}"))
                 val shareData = createJsObject().unsafeCast<ShareData>()
                 shareData.title = "Nhận diện côn trùng qua BugScanner"
                 shareData.text = shareText
-                shareData.url = appLink // Đính kèm Link tải app
+                shareData.url = appLink
 
-                // NẾU CÓ ẢNH -> KIỂM TRA QUYỀN ĐÍNH KÈM FILE (Web Share API Level 2)
                 if (imageBytes != null && navigator.canShare != undefined) {
-
-                    // Chuyển ByteArray của Kotlin sang Uint8Array của JS để trình duyệt có thể đọc
                     val uint8Array = Uint8Array(imageBytes.toTypedArray())
-
-                    // Khởi tạo đối tượng File của HTML5 thông qua JS thuần
                     val file = js("new window.File([uint8Array], 'bug_scanned.jpg', {type: 'image/jpeg'})")
-
-                    // Gói file vào một mảng Javascript Array
                     val filesArray = arrayOf(file)
 
-                    // Tạo dữ liệu test để hỏi hệ điều hành xem nó có duyệt cho share file này không
                     val testData = createJsObject()
                     testData.files = filesArray
 
@@ -77,8 +65,6 @@ class WebShareManager : ShareManager {
                     }
                 }
 
-                // BẮT BUỘC PHẢI CÓ .catch() ĐỂ CHẶN LỖI DOMException CỦA TRÌNH DUYỆT
-                // Xảy ra khi người dùng hủy chia sẻ hoặc trình duyệt chặn (ví dụ: iframe, thiếu HTTPS).
                 val promise = navigator.share(shareData)
                 promise.catch {
                     fallbackToClipboard(shareText, appLink)

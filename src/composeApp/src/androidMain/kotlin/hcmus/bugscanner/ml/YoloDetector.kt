@@ -32,7 +32,6 @@ import java.nio.channels.FileChannel
 class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PATH) {
     private var interpreter: Interpreter? = null
 
-    // Luồng dữ liệu trạng thái phát ra kết quả nhận diện của frame ảnh mới nhất
     private val _frameResult = MutableStateFlow(FrameResult(emptyList(), 0, 0))
     val frameResult: StateFlow<FrameResult> = _frameResult.asStateFlow()
 
@@ -40,13 +39,11 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
     private var lastRotation = -1
     private val tensorImage = TensorImage(DataType.FLOAT32)
 
-    // Khởi tạo trước vùng đệm chứa output: Shape dạng [1, 106, 16464] (Chuẩn YOLOv8 mặc định)
     private val outputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, 106, 16464), DataType.FLOAT32)
 
     init {
         val options = Interpreter.Options()
         val compatList = CompatibilityList()
-        // Cấu hình tăng tốc phần cứng qua GPU Delegate nếu thiết bị hỗ trợ, ngược lại dùng CPU đa luồng
         if (compatList.isDelegateSupportedOnThisDevice) {
             options.addDelegate(GpuDelegate(compatList.bestOptionsForThisDevice))
         } else {
@@ -57,6 +54,10 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
 
     /**
      * Tải tệp tin mô hình định dạng `.tflite` từ thư mục assets dưới dạng bộ đệm bộ nhớ trực tiếp (MappedByteBuffer).
+     *
+     * @param context Context của ứng dụng để mở tệp tin từ assets.
+     * @param modelPath Đường dẫn tệp tin mô hình trong assets.
+     * @return Bộ đệm bộ nhớ [MappedByteBuffer] chứa dữ liệu của tệp mô hình.
      */
     private fun loadModelFile(context: Context, modelPath: String): MappedByteBuffer {
         val fd = context.assets.openFd(modelPath)
@@ -81,7 +82,6 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
         if (interpreter == null) return
 
         try {
-            // Khởi tạo lại ImageProcessor nếu cấu trúc góc quay của camera thay đổi
             if (imageProcessor == null || rotationDegrees != lastRotation) {
                 lastRotation = rotationDegrees
                 imageProcessor = ImageProcessor.Builder()
@@ -90,7 +90,6 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
                     .add(NormalizeOp(0f, 255f))
                     .build()
             }
-            // Tính toán kích thước gốc của frame sau khi xoay để bounding box vẽ chính xác trên UI
             val isRotated = rotationDegrees % 180 != 0
             val sourceW = if (isRotated) inputBitmap.height else inputBitmap.width
             val sourceH = if (isRotated) inputBitmap.width else inputBitmap.height
@@ -98,10 +97,8 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
             tensorImage.load(inputBitmap)
             val processedImage = imageProcessor!!.process(tensorImage)
 
-            // Đưa con trỏ bộ đệm đầu ra về vị trí số 0 trước khi chạy nhận diện
             interpreter?.run(processedImage.buffer, outputBuffer.buffer.rewind())
 
-            // Giải mã ma trận đầu ra phẳng (FloatArray) và áp dụng thuật toán NMS lọc box
             val results = parseYoloOutput(outputBuffer.floatArray)
             Log.d("YOLO_DEBUG", "Số vật thể: ${results.size}")
             _frameResult.value = FrameResult(results, sourceW, sourceH)
@@ -115,28 +112,29 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
      * Giải mã ma trận đầu ra phẳng của mô hình YOLOv8 thành danh sách các Bounding Box thô.
      * Ma trận đầu ra có kích thước hàng nhân cột là (106 x 16464) chuyển thành mảng 1 chiều.
      * Trong đó: 4 hàng đầu là tọa độ (cx, cy, w, h), 102 hàng sau là điểm số (score) của các nhãn sâu bệnh.
+     *
+     * @param array Mảng phẳng chứa dữ liệu đầu ra từ mô hình TensorFlow Lite.
+     * @return Danh sách các kết quả nhận diện [DetectionResult] thô được trích xuất.
      */
     private fun parseYoloOutput(array: FloatArray): List<DetectionResult> {
         val boxes = mutableListOf<DetectionResult>()
-        val numColumns = 16464 // Số lượng bọc bounding box dự đoán (anchors)
-        val numRows = 106      // 4 tọa độ + 102 class nhãn côn trùng
+        val numColumns = 16464
+        val numRows = 106
 
         val maxScores = FloatArray(numColumns)
         val classIds = IntArray(numColumns) { -1 }
 
-        // Duyệt qua các hàng điểm số (từ hàng số 4 đến 105) để tìm Class có Score cao nhất cho từng cột
         for (r in 4 until numRows) {
             val rowOffset = r * numColumns
             for (c in 0 until numColumns) {
                 val score = array[rowOffset + c]
                 if (score > maxScores[c]) {
                     maxScores[c] = score
-                    classIds[c] = r - 4 // Lưu ID nhãn tìm được (0 -> 101)
+                    classIds[c] = r - 4
                 }
             }
         }
 
-        // Lọc các cột có điểm số vượt ngưỡng tin cậy để chuyển đổi sang hệ tọa độ góc (x1, y1, x2, y2)
         for (c in 0 until numColumns) {
             if (maxScores[c] > YoloConstants.CONFIDENCE_THRESHOLD) {
                 val cx = array[0 * numColumns + c]
@@ -144,7 +142,6 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
                 val w = array[2 * numColumns + c]
                 val h = array[3 * numColumns + c]
 
-                // Chuyển đổi từ dạng Tâm-Rộng-Cao (Center X/Y, Width, Height) sang dạng pixel Góc cạnh (X1, Y1, X2, Y2)
                 val x1 = cx - w / 2
                 val y1 = cy - h / 2
                 val x2 = cx + w / 2
@@ -154,13 +151,15 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
             }
         }
 
-        // Loại bỏ các ô trùng lặp đè lên nhau cho cùng một vật thể
         return applyNMS(boxes)
     }
 
     /**
      * Áp dụng thuật toán Non-Maximum Suppression (NMS) nhằm giữ lại box tối ưu nhất.
      * Các box có độ phủ chồng chéo nhau lớn hơn [YoloConstants.IOU_THRESHOLD] sẽ bị triệt tiêu.
+     *
+     * @param boxes Danh sách các Bounding Box thô thu được từ mô hình.
+     * @return Danh sách các Bounding Box tối ưu sau khi đã lọc bỏ chồng lấp.
      */
     private fun applyNMS(boxes: List<DetectionResult>): List<DetectionResult> {
         val sortedBoxes = boxes.sortedByDescending { it.score }
@@ -181,22 +180,22 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
 
     /**
      * Tính toán chỉ số tỉ lệ diện tích chồng lấn Intersection over Union (IoU) giữa hai Bounding Box.
+     *
+     * @param box1 Khung giới hạn thứ nhất.
+     * @param box2 Khung giới hạn thứ hai.
+     * @return Tỷ lệ chồng lấn diện tích giao nhau trên diện tích hợp nhất [Float].
      */
     private fun calculateIoU(box1: DetectionResult, box2: DetectionResult): Float {
-        // Tìm tọa độ vùng intersection
         val xA = maxOf(box1.x1, box2.x1)
         val yA = maxOf(box1.y1, box2.y1)
         val xB = minOf(box1.x2, box2.x2)
         val yB = minOf(box1.y2, box2.y2)
 
-        // Diện tích vùng intersection
         val interArea = maxOf(0f, xB - xA) * maxOf(0f, yB - yA)
 
-        // Diện tích của từng Box riêng biệt
         val box1Area = (box1.x2 - box1.x1) * (box1.y2 - box1.y1)
         val box2Area = (box2.x2 - box2.x1) * (box2.y2 - box2.y1)
 
-        // IoU = Diện tích vùng intersection / Diện tích vùng union
         return interArea / (box1Area + box2Area - interArea)
     }
 

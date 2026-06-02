@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 
 /**
  * Cấu hình hệ thống màu sắc cho giao diện Sáng (Light Mode).
- * Map các màu tĩnh từ file Color.kt vào các token chuẩn của Material 3.
  */
 private val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
@@ -44,7 +43,6 @@ private val LightColorScheme = lightColorScheme(
 
 /**
  * Cấu hình hệ thống màu sắc cho giao diện Tối (Dark Mode).
- * Map các màu tĩnh từ file Color.kt vào các token chuẩn của Material 3.
  */
 private val DarkColorScheme = darkColorScheme(
     primary = md_theme_dark_primary,
@@ -80,7 +78,7 @@ private val DarkColorScheme = darkColorScheme(
 
 /**
  * Hàm Wrapper cốt lõi cung cấp Theme (Giao diện) cho toàn bộ ứng dụng.
- * Tự động chuyển đổi màu sắc Sáng/Tối dựa theo cài đặt hệ thống của thiết bị.
+ * Tự động chuyển đổi màu sắc Sáng/Tối dựa theo cấu hình hệ thống của thiết bị.
  *
  * @param useDarkTheme Cờ xác định xem có đang sử dụng chế độ ban đêm hay không.
  * @param content Thành phần giao diện (UI Tree) bên trong sẽ được áp dụng Theme này.

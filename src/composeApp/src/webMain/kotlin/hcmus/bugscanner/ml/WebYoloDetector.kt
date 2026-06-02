@@ -11,6 +11,13 @@ import kotlin.js.Promise
 /**
  * Lớp dữ liệu trung gian để map chuỗi JSON trả về từ JavaScript.
  * Thay thế cho việc sử dụng Array<dynamic> vốn không được hỗ trợ trên Wasm.
+ *
+ * @property x Tọa độ X góc trên bên trái của Bounding Box.
+ * @property y Tọa độ Y góc trên bên trái của Bounding Box.
+ * @property width Chiều rộng của Bounding Box.
+ * @property height Chiều cao của Bounding Box.
+ * @property label Mã nhãn (ID) của đối tượng được nhận diện.
+ * @property confidence Điểm tin cậy của kết quả nhận diện.
  */
 @Serializable
 private data class JsDetection(
@@ -22,8 +29,19 @@ private data class JsDetection(
     val confidence: Float
 )
 
-// Khai báo ngoại vi (external) kết nối trực tiếp với các hàm toàn cục trong file yolo_helper.js.
+/**
+ * Hàm ngoại vi khởi tạo mô hình YOLO thông qua TensorFlow.js.
+ *
+ * @return [Promise] chứa kết quả khởi tạo (true nếu thành công).
+ */
 internal external fun initYolo(): Promise<Boolean>
+
+/**
+ * Hàm ngoại vi gửi phần tử HTML chứa ảnh/video sang JavaScript để nhận diện.
+ *
+ * @param source Phần tử HTML (<img> hoặc <video>) chứa dữ liệu ảnh.
+ * @return [Promise] chứa chuỗi JSON biểu diễn danh sách kết quả nhận diện.
+ */
 internal external fun detectBugsJS(source: HTMLElement): Promise<String>
 
 /**
@@ -32,12 +50,12 @@ internal external fun detectBugsJS(source: HTMLElement): Promise<String>
  */
 object WebYoloDetector {
 
-    // Khởi tạo Json parser bỏ qua các key không xác định để tránh lỗi parse.
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
     /**
      * Kích hoạt khởi chạy AI Model từ JS.
-     * @return Trả về true nếu tải AI thành công, false nếu thất bại.
+     *
+     * @return Trả về `true` nếu tải AI thành công, `false` nếu thất bại.
      */
     suspend fun initialize(): Boolean {
         return try {
@@ -58,10 +76,8 @@ object WebYoloDetector {
      */
     suspend fun analyze(sourceElement: HTMLElement, sourceWidth: Int, sourceHeight: Int): FrameResult {
         return try {
-            // Gọi hàm JS và chờ kết quả trả về dạng chuỗi JSON
             val jsonResult = detectBugsJS(sourceElement).await()
 
-            // Decode chuỗi JSON thành Object Kotlin an toàn cho cả Wasm
             val jsList = jsonParser.decodeFromString<List<JsDetection>>(jsonResult)
 
             val detectionBoxes = jsList.map { obj ->

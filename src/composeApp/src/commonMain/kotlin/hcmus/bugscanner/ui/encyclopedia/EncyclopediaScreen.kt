@@ -40,7 +40,6 @@ fun EncyclopediaScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Thanh chọn Tab điều hướng (Khám phá nội bộ hoặc Tra cứu Wikipedia)
         PrimaryTabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -67,7 +66,6 @@ fun EncyclopediaScreen(
             )
         }
 
-        // Nội dung của từng Tab
         if (selectedTabIndex == 0) {
             ExploreTab(viewModel = viewModel, onBugSelected = onBugSelected)
         } else {
@@ -78,6 +76,7 @@ fun EncyclopediaScreen(
 
 /**
  * Tab hiển thị danh sách các loài côn trùng nổi bật dạng lưới động (Adaptive Grid).
+ * Card được cấu hình tỷ lệ 1:1 cho hình ảnh để duy trì tính đồng nhất trên giao diện đa cột.
  *
  * @param viewModel ViewModel chứa luồng dữ liệu Khám phá.
  * @param onBugSelected Callback xử lý nhấn vào thẻ côn trùng.
@@ -113,8 +112,6 @@ fun ExploreTab(
             }
         } else {
             LazyVerticalGrid(
-                // Adaptive Layout: Mỗi cột rộng ít nhất 150dp. Compose sẽ tự động chèn thêm cột
-                // nếu màn hình đủ rộng, ngăn chặn tình trạng phần tử bị kéo giãn thô kệch.
                 columns = GridCells.Adaptive(minSize = 150.dp),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -135,7 +132,6 @@ fun ExploreTab(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    // Khóa tỷ lệ khung hình 1:1 cho ảnh để các card luôn cao bằng nhau
                                     .aspectRatio(1f)
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                             )
@@ -156,7 +152,6 @@ fun ExploreTab(
 
 /**
  * Tab tra cứu thông tin côn trùng qua API iNaturalist.
- * Sử dụng Adaptive Grid để tối ưu không gian trên các màn hình lớn.
  *
  * @param viewModel ViewModel chứa logic tìm kiếm iNaturalist.
  * @param onBugSelected Callback xử lý nhấn vào thẻ kết quả tìm kiếm.
@@ -192,8 +187,6 @@ fun SearchTab(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                // Thay vì dùng LazyColumn (1 cột duy nhất), ta nâng cấp lên LazyVerticalGrid
-                // Mỗi BugItemCard cần không gian lớn hơn dạng thẻ mini bên ExploreTab, nên minSize = 350dp
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 350.dp),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp),
@@ -202,8 +195,6 @@ fun SearchTab(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(searchResults) { bug ->
-                        // Đảm bảo BugItemCard đã được loại bỏ thuộc tính Modifier.fillMaxWidth()
-                        // bên trong nội bộ của nó (như ta đã sửa ở file trước) để nó ngoan ngoãn chui vào Grid
                         BugItemCard(bug = bug, onClick = onBugSelected)
                     }
                 }

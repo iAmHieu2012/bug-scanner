@@ -85,7 +85,7 @@ fun DetectionPanel(
             Spacer(Modifier.height(16.dp))
 
             if (isInitial) {
-                EmptyState("Đang chờ hình ảnh... \uD83D\uDD0D")
+                EmptyState("Đang chờ hình ảnh... 🔍")
             } else if (isYoloFailed && imageBytesToSave != null) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),

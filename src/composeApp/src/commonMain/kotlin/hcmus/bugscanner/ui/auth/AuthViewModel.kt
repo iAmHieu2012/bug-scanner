@@ -39,31 +39,28 @@ sealed class AuthState {
  * Giao tiếp trực tiếp với Firebase Authentication thông qua thư viện hỗ trợ KMP (GitLive).
  */
 class AuthViewModel : ViewModel() {
-    // Khởi tạo Firebase Auth instance
+
     private val auth = Firebase.auth
 
-    // Trạng thái nội bộ
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
-        // KIỂM TRA PHIÊN ĐĂNG NHẬP (AUTO-LOGIN) KHI MỞ APP
         checkCurrentUser()
     }
 
     /**
-     * Kiểm tra xem thiết bị đã có user nào đăng nhập từ trước chưa.
+     * Kiểm tra xem thiết bị đã có người dùng nào đăng nhập từ trước chưa.
+     * Chuyển trạng thái sang Success nếu đã có phiên bản lưu trữ cục bộ.
      */
     private fun checkCurrentUser() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            // Đã có tài khoản lưu sẵn -> Vào thẳng App
             _authState.value = AuthState.Success(
                 uid = currentUser.uid,
                 isGuest = currentUser.isAnonymous
             )
         } else {
-            // Chưa có tài khoản -> Ở lại trạng thái Idle để hiện màn hình Đăng nhập
             _authState.value = AuthState.Idle
         }
     }
@@ -72,7 +69,7 @@ class AuthViewModel : ViewModel() {
      * Đăng ký một tài khoản mới bằng Email và Mật khẩu.
      *
      * @param email Địa chỉ email người dùng nhập.
-     * @param pass Mật khẩu người dùng nhập (Nên >= 6 ký tự).
+     * @param pass Mật khẩu người dùng nhập.
      */
     fun signUpWithEmail(email: String, pass: String) {
         if (email.isBlank() || pass.isBlank()) {

@@ -4,8 +4,11 @@ package hcmus.bugscanner.ml
  * Lớp đối tượng Singleton chứa các hằng số cấu hình tĩnh cho mô hình nhận diện vật thể YOLO.
  */
 object YoloConstants {
-    /** Đường dẫn tham chiếu đến file mô hình đã được huấn luyện (TensorFlow Lite). */
-    const val MODEL_PATH = "model.tflite" // link model: huggingface: "Yashwanth1508/AgroAI-pest-detection"
+    /**
+     * Đường dẫn tham chiếu đến file mô hình đã được huấn luyện (TensorFlow Lite).
+     * Nguồn tham chiếu mô hình gốc: HuggingFace (Yashwanth1508/AgroAI-pest-detection).
+     */
+    const val MODEL_PATH = "model.tflite"
 
     /** Kích thước chiều dài và chiều rộng bắt buộc của hình ảnh đầu vào (pixels) trước khi đưa vào mô hình. */
     const val INPUT_SIZE = 896
@@ -16,7 +19,8 @@ object YoloConstants {
     /** Ngưỡng Intersection over Union (IoU) dùng cho thuật toán Non-Maximum Suppression (NMS) để lọc các hộp giới hạn trùng lặp. */
     const val IOU_THRESHOLD = 0.4f
 
-    /** * Danh sách 102 nhãn (labels) tương ứng với các loài sinh vật được mô hình nhận diện.
+    /**
+     * Danh sách 102 nhãn (labels) tương ứng với các loài sinh vật được mô hình nhận diện.
      * Mảng này đã được chuẩn hóa sử dụng Tên Khoa Học và khớp tuyệt đối với chỉ số Index đầu ra của tập dữ liệu IP102.
      */
     val LABELS = arrayOf(
@@ -126,7 +130,7 @@ object YoloConstants {
 
     /**
      * Từ điển dịch thuật sang Tiếng Việt.
-     * Dùng để hiển thị lên UI cho thân thiện với người dùng (như ở màn hình DetectionPanel).
+     * Dùng để hiển thị lên UI cho thân thiện với người dùng.
      */
     val BUG_DICTIONARY = mapOf(
         "Cnaphalocrocis medinalis" to "Sâu cuốn lá lúa nhỏ",

@@ -28,8 +28,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình hiển thị danh sách lịch sử nhận diện của người dùng.
- * Tích hợp tự động đo lường kích thước (BoxWithConstraints) để chuyển đổi từ danh sách dọc (List)
- * sang dạng lưới (Grid) trên các màn hình kích thước lớn (Web/Tablet).
+ * Hỗ trợ Adaptive Layout: Tự động chuyển đổi giữa danh sách dọc (Mobile) và dạng lưới (Web/Tablet).
  *
  * @param historyViewModel ViewModel chịu trách nhiệm lấy dữ liệu lịch sử từ Database/API.
  * @param onItemClick Callback kích hoạt khi người dùng nhấn vào một thẻ lịch sử.
@@ -88,7 +87,6 @@ fun HistoryScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(historyList) { item: ScanHistory ->
-                            // 2. Truyền sự kiện click vào thẻ
                             HistoryItemCard(item, onClick = { onItemClick(item) })
                         }
                     }
@@ -102,7 +100,7 @@ fun HistoryScreen(
  * Thẻ (Card) hiển thị một bản ghi (record) trong lịch sử kèm theo hình ảnh nhận diện thực tế.
  *
  * @param item Khối dữ liệu chứa thông tin của một lần nhận diện.
- * @param onClick Hàm kích hoạt khi nhấn vào thẻ.
+ * @param onClick Hàm kích hoạt khi nhấn vào thẻ để xem chi tiết.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,7 +120,6 @@ fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Tải và hiển thị ảnh thu nhỏ (Thumbnail) từ Firebase Storage
             AsyncImage(
                 model = item.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/150?text=No+Image",
                 contentDescription = "Ảnh chụp ${item.bugName}",

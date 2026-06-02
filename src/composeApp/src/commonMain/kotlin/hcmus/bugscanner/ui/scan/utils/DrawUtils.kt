@@ -12,6 +12,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Size as ComposeSize
 
+private val bugColors = listOf(
+    Color(0xFFE53935),
+    Color(0xFFFF9800),
+    Color(0xFFFFC107),
+    Color(0xFF4CAF50),
+    Color(0xFF2196F3),
+    Color(0xFF9C27B0),
+    Color(0xFFE91E63),
+    Color(0xFF00C8C8),
+    Color(0xFF795548)
+)
+
 /**
  * Hàm sinh màu tự động và cố định (deterministic) cho từng loại côn trùng dựa vào mã băm (hash) của tên loài.
  * Đảm bảo mỗi loài luôn có một màu sắc nhận diện nhất quán trên giao diện.
@@ -20,18 +32,7 @@ import androidx.compose.ui.geometry.Size as ComposeSize
  * @return [Color] Màu sắc đại diện.
  */
 fun getBugColor(className: String): Color {
-    val colors = listOf(
-        Color(0xFFE53935), // Đỏ
-        Color(0xFFFF9800), // Cam
-        Color(0xFFFFC107), // Vàng
-        Color(0xFF4CAF50), // Lục
-        Color(0xFF2196F3), // Lam
-        Color(0xFF9C27B0), // Tím
-        Color(0xFFE91E63), // Hồng
-        Color(0xFF00C8C8), // Xanh ngọc
-        Color(0xFF795548)  // Nâu
-    )
-    return colors[(className.hashCode() and 0x7FFFFFFF) % colors.size]
+    return bugColors[(className.hashCode() and 0x7FFFFFFF) % bugColors.size]
 }
 
 /**
@@ -60,7 +61,6 @@ fun DrawScope.drawYoloBoundingBox(
 
     if (width <= 0f || height <= 0f) return
 
-    // Lấy màu riêng cho từng con bọ từ hàm dùng chung
     val boxColor = getBugColor(className)
 
     drawRoundRect(

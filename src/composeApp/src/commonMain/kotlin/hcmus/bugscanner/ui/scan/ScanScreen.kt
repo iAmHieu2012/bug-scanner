@@ -300,7 +300,7 @@ private fun ScanContent(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Rounded.ImageNotSupported, null, modifier = Modifier.size(64.dp), tint = Color.White.copy(alpha = 0.6f))
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text("Chưa bắt kịp khung hình \ud83d\udc1b", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("Chưa bắt kịp khung hình 🐛", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("Hãy bấm Quét lại và đợi khung nhận diện hiện rõ", color = Color.White.copy(alpha = 0.7f))
                             }

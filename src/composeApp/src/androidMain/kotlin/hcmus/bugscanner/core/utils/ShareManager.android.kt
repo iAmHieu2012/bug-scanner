@@ -34,39 +34,30 @@ class AndroidShareManager(private val context: Context) : ShareManager {
             putExtra(Intent.EXTRA_SUBJECT, "Nhận diện côn trùng qua BugScanner")
             putExtra(Intent.EXTRA_TEXT, shareText)
 
-            // Kiểm tra nếu có dữ liệu hình ảnh thì tiến hành ghi ra file vật lý
             if (imageBytes != null && imageBytes.isNotEmpty()) {
                 try {
-                    // 1. Tạo thư mục tạm trong vùng nhớ Cache của ứng dụng
                     val cachePath = File(context.cacheDir, "shared_images")
                     cachePath.mkdirs()
 
-                    // 2. Ghi mảng byte thành file JPEG
                     val file = File(cachePath, "bug_scanned_image.jpg")
                     FileOutputStream(file).use { stream ->
                         stream.write(imageBytes)
                     }
 
-                    // 3. Tạo URI an toàn thông qua FileProvider để cấp quyền cho app khác (Zalo, FB...) đọc
                     val authority = "${context.packageName}.fileprovider"
                     val uri = FileProvider.getUriForFile(context, authority, file)
 
-                    // 4. Chuyển kiểu Intent sang hình ảnh và đính kèm URI
                     type = "image/jpeg"
                     putExtra(Intent.EXTRA_STREAM, uri)
-
-                    // Yêu cầu bắt buộc: Cấp quyền đọc URI tạm thời cho ứng dụng đích
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 } catch (e: Exception) {
-                    // Nếu lỗi lưu file (hết dung lượng, v.v.), bỏ qua lỗi và vẫn share văn bản bình thường
                     e.printStackTrace()
                 }
             }
         }
 
-        // Tạo hộp thoại chọn ứng dụng (Chooser) thân thiện với người dùng
         val chooser = Intent.createChooser(shareIntent, "Chia sẻ kết quả qua")
-        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // Yêu cầu khi gọi startActivity từ bên ngoài Activity
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(chooser)
     }
 }

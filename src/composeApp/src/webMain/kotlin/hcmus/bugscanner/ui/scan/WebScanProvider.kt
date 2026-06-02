@@ -86,7 +86,6 @@ object WebScanProvider : PlatformScanProvider {
 
         val coroutineScope = rememberCoroutineScope()
 
-        // Logic phân tích ảnh tĩnh trên Web bằng cách tạo element img giả lập
         LaunchedEffect(displayId) {
             if (displayId != null && imageBytes != null) {
                 val img = kotlinx.browser.document.createElement("img") as org.w3c.dom.HTMLImageElement
@@ -104,7 +103,6 @@ object WebScanProvider : PlatformScanProvider {
             }
         }
 
-        // Hiển thị kết quả hoặc Loading spinner
         if (frameResult != null) {
             WebStaticDetectionScreen(
                 modifier = modifier,

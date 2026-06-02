@@ -38,7 +38,7 @@ enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT }
  * @param isLoggedIn Trạng thái xác thực hiện tại của người dùng.
  * @param onAuthAction Callback yêu cầu đăng nhập/đăng xuất.
  * @param onShareClick Callback xử lý sự kiện chia sẻ thông tin côn trùng.
- * @param scanTabContent Component giao diện Tab Quét nhận diện được tiêm (inject) từ bên ngoài.
+ * @param scanTabContent Component giao diện Tab Quét được tiêm (inject) từ bên ngoài.
  * @param historyViewModel ViewModel quản lý thao tác với Database lịch sử.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -193,9 +193,9 @@ fun HomeScreen(
  * @param onAuthAction Callback xử lý xác thực.
  * @param scanTabContent Nội dung giao diện Tab Quét.
  * @param historyViewModel ViewModel quản lý dữ liệu lịch sử.
- * @param onBugSelected Callback truyền dữ liệu côn trùng khi một bản ghi được nhấn vào.
+ * @param onBugSelected Callback truyền dữ liệu côn trùng khi một bản ghi được nhấn.
  * @param initialChatPrompt Nội dung prompt mặc định cần truyền vào Chatbot.
- * @param onClearChatPrompt Callback làm sạch nội dung prompt mặc định sau khi đã gửi đi.
+ * @param onClearChatPrompt Callback làm sạch nội dung prompt mặc định.
  */
 @Composable
 private fun HomeContent(

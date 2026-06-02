@@ -39,7 +39,6 @@ fun rememberAndroidImagePickerHelper(
     val coroutineScope = rememberCoroutineScope()
     var yoloDetector by remember { mutableStateOf<YoloDetector?>(null) }
 
-    // Dọn dẹp bộ nhớ mô hình AI khi Helper này không còn được sử dụng
     DisposableEffect(Unit) {
         onDispose {
             yoloDetector?.close()
@@ -48,6 +47,8 @@ fun rememberAndroidImagePickerHelper(
 
     /**
      * Chạy phân tích AI trên bức ảnh vừa được chọn/chụp.
+     *
+     * @param uri Đường dẫn URI của tệp tin hình ảnh cần xử lý suy luận AI.
      */
     fun analyze(uri: Uri) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -56,7 +57,6 @@ fun rememberAndroidImagePickerHelper(
             }
             val bmp = uriToBitmap(context, uri)
             bmp?.let {
-                // Nén ảnh sang ByteArray bên luồng I/O
                 val stream = ByteArrayOutputStream()
                 it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, stream)
                 val imageBytes = stream.toByteArray()
@@ -66,13 +66,12 @@ fun rememberAndroidImagePickerHelper(
 
                 withContext(Dispatchers.Main) {
                     onResult(yoloDetector!!.frameResult.value)
-                    onImageBytesCaptured(imageBytes) // Bắn dữ liệu ảnh ra ngoài
+                    onImageBytesCaptured(imageBytes)
                 }
             }
         }
     }
 
-    // Launcher kích hoạt Intent mở thư viện ảnh
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             onModeChange(ScanMode.IMAGE_UPLOAD)
@@ -81,7 +80,6 @@ fun rememberAndroidImagePickerHelper(
         }
     }
 
-    // Launcher kích hoạt Intent mở Camera chụp ảnh tĩnh (Lưu file tạm)
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
@@ -100,14 +98,12 @@ fun rememberAndroidImagePickerHelper(
             }
 
             override fun launchCamera() {
-                // Sinh tên file duy nhất dựa trên thời gian để tránh ghi đè
                 val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val file = File.createTempFile(
                     "BUGSCANNER_${timeStamp}_",
                     ".jpg",
                     context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
                 )
-                // Sinh URI an toàn thông qua FileProvider theo chuẩn bảo mật Android
                 val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                 capturedImageUri = uri
                 cameraLauncher.launch(uri)

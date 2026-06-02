@@ -53,7 +53,6 @@ fun AndroidCameraScreen(
 
     val cameraExecutor = viewModel.cameraExecutor
 
-    // Quản lý trạng thái lệnh chụp ảnh để đồng bộ với luồng Background của CameraX
     var currentTrigger by remember { mutableLongStateOf(0L) }
     var lastCapturedTrigger by remember { mutableLongStateOf(0L) }
 
@@ -103,11 +102,9 @@ fun AndroidCameraScreen(
                                 val bitmap = imageProxy.toBitmap()
                                 val rotation = imageProxy.imageInfo.rotationDegrees
 
-                                // Kiểm tra và thực thi lệnh chụp ảnh ngầm
                                 if (currentTrigger > lastCapturedTrigger) {
                                     lastCapturedTrigger = currentTrigger
 
-                                    // Bẻ lại góc ảnh gốc cho đúng với chiều người dùng đang cầm máy
                                     val finalBitmap = if (rotation != 0) {
                                         val matrix = android.graphics.Matrix()
                                         matrix.postRotate(rotation.toFloat())
