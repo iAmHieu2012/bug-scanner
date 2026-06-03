@@ -44,7 +44,7 @@ window.detectBugsJS = async function(sourceElement) {
         });
 
         // 2. CHẠY DỰ ĐOÁN (INFERENCE)
-        const predictions = await window.yoloModel.executeAsync(tensor);
+        const predictions = window.yoloModel.execute(tensor);
 
         // 3. ĐIỀU CHỈNH MA TRẬN ĐẦU RA (POST-PROCESSING)
         // Chuyển đổi ma trận YOLO - Dùng tf.tidy() để dọn dẹp tensor trung gian từ hàm squeeze/transpose.

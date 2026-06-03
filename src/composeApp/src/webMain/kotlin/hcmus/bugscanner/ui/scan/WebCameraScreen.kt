@@ -23,15 +23,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
@@ -42,7 +40,6 @@ import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.jetbrains.skia.Image
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLVideoElement
@@ -65,11 +62,22 @@ fun WebCameraScreen(
     onFrameCaptured: (ByteArray) -> Unit
 ) {
     val textMeasurer = rememberTextMeasurer()
-    var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var currentFrameResult by remember { mutableStateOf<FrameResult?>(null) }
     var isAiReady by remember { mutableStateOf(false) }
     var pendingCapture by remember { mutableStateOf(false) }
+    var videoWidth by remember { mutableStateOf(0f) }
+    var videoHeight by remember { mutableStateOf(0f) }
     val coroutineScope = rememberCoroutineScope()
+
+    val videoElement = remember {
+        (document.createElement("video") as HTMLVideoElement).apply {
+            autoplay = true
+            playsInline = true
+            style.position = "absolute"
+            style.objectFit = "cover"
+            style.zIndex = "-1"
+        }
+    }
 
     LaunchedEffect(captureTrigger) {
         if (captureTrigger > 0L) {
@@ -78,21 +86,19 @@ fun WebCameraScreen(
     }
 
     DisposableEffect(Unit) {
-        val video = document.createElement("video") as HTMLVideoElement
-        video.autoplay = true
-        video.playsInline = true
+        document.body?.appendChild(videoElement)
 
         val htmlCanvas = document.createElement("canvas") as HTMLCanvasElement
-        val ctx = htmlCanvas.getContext("2d") as CanvasRenderingContext2D
+        val ctx = htmlCanvas.getContext("2d", js("{ willReadFrequently: true }")) as CanvasRenderingContext2D
 
         var streamData: dynamic = null
         var isDetecting = false
 
         val navigatorDyn = window.navigator.asDynamic()
-        navigatorDyn.mediaDevices.getUserMedia(js("{ video: { facingMode: 'environment' } }"))
+        navigatorDyn.mediaDevices.getUserMedia(js("{ video: { facingMode: 'environment', width: { ideal: 896 }, height: { ideal: 896 } } }"))
             .then { stream ->
                 streamData = stream
-                video.srcObject = stream
+                videoElement.srcObject = stream
             }.catch { e: dynamic ->
                 println("Lỗi mở camera Web: $e")
             }
@@ -104,38 +110,34 @@ fun WebCameraScreen(
             }
 
             while (isActive) {
-                delay(33.milliseconds)
+                delay(100.milliseconds)
 
-                if (video.videoWidth > 0 && video.videoHeight > 0) {
-                    htmlCanvas.width = video.videoWidth
-                    htmlCanvas.height = video.videoHeight
-                    ctx.drawImage(video, 0.0, 0.0, htmlCanvas.width.toDouble(), htmlCanvas.height.toDouble())
+                if (videoElement.videoWidth > 0 && videoElement.videoHeight > 0) {
+                    videoWidth = videoElement.videoWidth.toFloat()
+                    videoHeight = videoElement.videoHeight.toFloat()
 
-                    try {
-                        val dataUrl = htmlCanvas.toDataURL("image/jpeg", 0.5)
-                        val base64Data = dataUrl.substringAfter(",")
-                        val binaryString = window.atob(base64Data)
-                        val byteArray = ByteArray(binaryString.length) { i -> binaryString[i].code.toByte() }
-                        imageBitmap = Image.makeFromEncoded(byteArray).toComposeImageBitmap()
+                    if (pendingCapture) {
+                        pendingCapture = false
+                        try {
+                            htmlCanvas.width = videoElement.videoWidth
+                            htmlCanvas.height = videoElement.videoHeight
+                            ctx.drawImage(videoElement, 0.0, 0.0, htmlCanvas.width.toDouble(), htmlCanvas.height.toDouble())
 
-                        if (pendingCapture) {
-                            pendingCapture = false
                             val hqDataUrl = htmlCanvas.toDataURL("image/jpeg", 0.95)
                             val hqBase64 = hqDataUrl.substringAfter(",")
                             val hqBinary = window.atob(hqBase64)
                             val hqByteArray = ByteArray(hqBinary.length) { i -> hqBinary[i].code.toByte() }
                             onFrameCaptured(hqByteArray)
+                        } catch (e: Exception) {
+                            println("Lỗi chụp ảnh: ${e.message}")
                         }
-
-                    } catch (e: Exception) {
-                        println("Lỗi render hình ảnh: ${e.message}")
                     }
 
                     if (isAiReady && !isDetecting) {
                         isDetecting = true
                         launch {
                             try {
-                                val result = WebYoloDetector.analyze(video, video.videoWidth, video.videoHeight)
+                                val result = WebYoloDetector.analyze(videoElement, videoElement.videoWidth, videoElement.videoHeight)
                                 currentFrameResult = result
                                 onResult(result)
                             } finally {
@@ -155,12 +157,24 @@ fun WebCameraScreen(
                     tracks[i].stop()
                 }
             }
-            video.srcObject = null
+            videoElement.srcObject = null
+            videoElement.remove()
         }
     }
 
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        if (imageBitmap == null) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                val position = coordinates.positionInWindow()
+                videoElement.style.left = "${position.x}px"
+                videoElement.style.top = "${position.y}px"
+                videoElement.style.width = "${coordinates.size.width}px"
+                videoElement.style.height = "${coordinates.size.height}px"
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        if (videoWidth == 0f || videoHeight == 0f) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(16.dp))
@@ -168,22 +182,19 @@ fun WebCameraScreen(
             }
         } else {
             Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(
+                    color = Color.Transparent,
+                    blendMode = androidx.compose.ui.graphics.BlendMode.Clear
+                )
+
                 val canvasWidth = size.width
                 val canvasHeight = size.height
-                val imgWidth = imageBitmap!!.width.toFloat()
-                val imgHeight = imageBitmap!!.height.toFloat()
 
-                val scale = maxOf(canvasWidth / imgWidth, canvasHeight / imgHeight)
-                val drawWidth = imgWidth * scale
-                val drawHeight = imgHeight * scale
+                val scale = maxOf(canvasWidth / videoWidth, canvasHeight / videoHeight)
+                val drawWidth = videoWidth * scale
+                val drawHeight = videoHeight * scale
                 val offsetX = (canvasWidth - drawWidth) / 2f
                 val offsetY = (canvasHeight - drawHeight) / 2f
-
-                drawImage(
-                    image = imageBitmap!!,
-                    dstOffset = IntOffset(offsetX.toInt(), offsetY.toInt()),
-                    dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt())
-                )
 
                 currentFrameResult?.boxes?.forEach { box ->
                     val left = (box.x1 * drawWidth + offsetX).coerceIn(0f, canvasWidth)
@@ -195,7 +206,13 @@ fun WebCameraScreen(
 
                     if (width > 0f && height > 0f) {
                         val boxColor = getBugColor(box.className)
-                        drawRoundRect(color = boxColor, topLeft = Offset(left, top), size = Size(width, height), cornerRadius = CornerRadius(16f, 16f), style = Stroke(width = 5f))
+                        drawRoundRect(
+                            color = boxColor,
+                            topLeft = Offset(left, top),
+                            size = Size(width, height),
+                            cornerRadius = CornerRadius(16f, 16f),
+                            style = Stroke(width = 5f)
+                        )
 
                         val labelText = "${box.className} (${(box.score * 100).toInt()}%)"
                         val textStyle = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -204,8 +221,17 @@ fun WebCameraScreen(
                         val textHeight = textLayoutResult.size.height.toFloat()
 
                         val labelTop = maxOf(0f, top - textHeight - 12f)
-                        drawRoundRect(color = boxColor.copy(alpha = 0.85f), topLeft = Offset(left, labelTop), size = Size(textWidth + 24f, textHeight + 12f), cornerRadius = CornerRadius(12f, 12f))
-                        drawText(textLayoutResult = textLayoutResult, color = Color.White, topLeft = Offset(left + 12f, labelTop + 6f))
+                        drawRoundRect(
+                            color = boxColor.copy(alpha = 0.85f),
+                            topLeft = Offset(left, labelTop),
+                            size = Size(textWidth + 24f, textHeight + 12f),
+                            cornerRadius = CornerRadius(12f, 12f)
+                        )
+                        drawText(
+                            textLayoutResult = textLayoutResult,
+                            color = Color.White,
+                            topLeft = Offset(left + 12f, labelTop + 6f)
+                        )
                     }
                 }
             }
