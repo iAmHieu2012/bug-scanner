@@ -34,5 +34,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }} 
         run: |
           # Ghi đè token mới vào biến INATURALIST_API_TOKEN
-          gh secret set INATURALIST_API_TOKEN -b "$NEW_INAT_TOKEN" -R ${{ github.repository }}
+          gh secret set INATURALIST_API_TOKEN -b "${{ env.NEW_INAT_TOKEN }}" -R ${{ github.repository }}
           echo "Đã cập nhật INATURALIST_API_TOKEN vào kho Secrets thành công!"
+      
+      - name: Trigger Firebase Deploy Workflow
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          echo "Kích hoạt quá trình Build & Deploy web mới..."
+          gh workflow run firebase-hosting-merge.yml --ref main
