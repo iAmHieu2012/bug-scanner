@@ -6,107 +6,164 @@
 ![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20Web-lightgray)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 
-An intelligent multiplatform application for real-time insect detection and classification using machine learning. Built with **Kotlin Multiplatform** and **Compose**, BugScanner leverages **YOLO object detection** and **TensorFlow Lite** to provide accurate insect identification across **Android** and **Web** platforms.
+BugScanner is a full-stack, multiplatform insect detection and classification ecosystem built with **Kotlin Multiplatform (KMP)** and **Compose Multiplatform**. It goes beyond a simple identification tool — it combines on-device edge AI inference, cloud-based fallback identification, an LLM-powered chatbot, and a self-expanding Firestore encyclopedia into a single, unified application for **Android** and **Web**.
+
+## ⚙️ How It Works
+
+BugScanner uses a **Hybrid Detection Engine** with two tiers to ensure speed, offline capability, and high accuracy:
+
+1. **On-Device Inference (YOLO11s):** A quantized YOLO11s model runs locally on the device CPU/GPU via TensorFlow Lite (Android) or TensorFlow.js (Web). This provides real-time bounding box detection and species classification with near-zero latency, requiring no network connection.
+2. **Cloud Fallback (iNaturalist API):** When the local model's confidence is low or the species falls outside its training set, the app automatically escalates the image to the iNaturalist Computer Vision API — a database of over 100,000 species — for deep analysis.
 
 ## ✨ Features
 
-- **🔐 User Authentication** – Secure login and account management via Firebase
-- **📷 Real-time Camera Detection** – Live camera scanning using YOLO models
-- **📁 Gallery Image Scanning** – Analyze existing images from device storage
-- **📚 Insect Encyclopedia** – Comprehensive database with detailed species information
-- **💬 AI Chat Support** – Integrated Gemini AI chat for user assistance
-- **📊 Scan History** – Track and manage all detection records
-- **🔄 Multi-Platform** – Seamless experience on Android and Web
+* **📷 Real-Time Camera Detection:** Live YOLO inference on the camera feed with freeze-frame capture for high-confidence results.
+* **📁 Gallery Image Scanning:** Single-pass inference on static images picked from device storage.
+* **☁️ Cloud Fallback Identification:** Automatic escalation to the iNaturalist CV API when local confidence is insufficient.
+* **📚 Dynamic Insect Encyclopedia:** A Firestore-backed database that auto-expands. New species discovered by users are written back automatically. Fully cached for offline support.
+* **💬 BugScanner AI Chatbot:** Context-aware assistant powered by Google Gemini and Groq (LLaMA 3), with biological data pre-injected into the system prompt.
+* **📊 Scan History:** Persistent scan records with lightweight cloud image hosting via IMGBB.
+* **🔐 Secure Authentication:** User login and account management handled seamlessly via Firebase Authentication.
+* **📱 Adaptive UI & Native Sharing:** Automatically switches between Bottom Navigation Bar (mobile) and Navigation Rail (desktop/web). Implements native sharing via Intents (Android) and Web Share API (Web).
 
 ## 🛠️ Tech Stack
 
 | Component | Technology |
-|-----------|------------|
+| ----------- | ------------ |
 | **Language** | Kotlin 2.x |
 | **UI Framework** | Jetpack Compose Multiplatform |
-| **Architecture** | MVVM (Model-View-ViewModel) |
-| **ML Framework** | TensorFlow Lite, YOLO object detection |
-| **AI Integration** | Google Gemini API |
-| **Camera** | AndroidX Camera for Android |
-| **Backend** | REST API + Firebase |
-| **Authentication** | Firebase Authentication |
-| **Build System** | Gradle with Kotlin DSL |
+| **Architecture** | MVVM + Repository pattern |
+| **Dependency Injection** | Koin |
+| **Navigation** | Voyager |
+| **ML (Android)** | TensorFlow Lite with GPU delegate (YOLO11s) |
+| **ML (Web)** | TensorFlow.js via Kotlin/JS bridge |
+| **AI Chatbot** | Google Gemini API (`gemini-1.5-flash`) + Groq (LLaMA 3) |
+| **Fallback API** | iNaturalist Computer Vision API |
+| **Backend & Auth** | Firebase Firestore, Firebase Authentication |
+| **Camera** | AndroidX CameraX (`ImageAnalysis`) / WebRTC `getUserMedia` |
+| **Build System** | Gradle with Kotlin DSL + Version Catalogs |
+
+## 📐 Architecture Overview
+
+BugScanner follows a strict **MVVM (Model-View-ViewModel)** pattern with a clean separation between shared business logic and platform-specific implementations using KMP's `expect`/`actual` mechanism.
+
+```mermaid
+graph TD
+    subgraph "commonMain (Shared)"
+        UI["Compose UI Screens"]
+        VM["ViewModels"]
+        REPO["Repositories"]
+        DOMAIN["Domain Models"]
+    end
+
+    subgraph "Platform Layer"
+        AND["androidMain: CameraX + TFLite"]
+        WEB["jsMain: WebRTC + TF.js"]
+    end
+
+    subgraph "External Services"
+        FIREBASE["Firebase Auth + Firestore"]
+        INAT["iNaturalist CV API"]
+        GEMINI["Gemini API"]
+        GROQ["Groq / LLaMA 3"]
+        IMGBB["IMGBB Image Hosting"]
+    end
+
+    UI --> VM --> REPO --> DOMAIN
+    AND -.->|actual| UI
+    WEB -.->|actual| UI
+    REPO --> FIREBASE
+    REPO --> INAT
+    REPO --> GEMINI
+    REPO --> GROQ
+    REPO --> IMGBB
+
+```
+
+### Detection Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ScanScreen
+    participant YoloDetector
+    participant iNaturalistAPI
+
+    User->>ScanScreen: Point camera at insect
+    ScanScreen->>YoloDetector: processFrame(ByteArray)
+    YoloDetector-->>ScanScreen: BBoxes + Labels + Confidence
+
+    alt Confidence is high
+        ScanScreen->>User: Show result immediately
+    else Confidence is low
+        User->>ScanScreen: Trigger "Deep Scan"
+        ScanScreen->>iNaturalistAPI: identifyImageByVision(bytes)
+        iNaturalistAPI-->>ScanScreen: Species result (Insecta class)
+        ScanScreen->>User: Show enriched result
+    end
+
+```
 
 ## 📁 Project Structure
 
-```
+```text
 bug-scanner/
 ├── src/
-│   ├── composeApp/                    # Main Compose Multiplatform module
+│   ├── composeApp/                     # Main Compose Multiplatform module
 │   │   ├── src/
-│   │   │   ├── commonMain/            # Shared code for all platforms
-│   │   │   │   └── kotlin/hcmus/bugscanner/
-│   │   │   │       ├── App.kt         # Main app entry point
-│   │   │   │       ├── Platform.kt    # Platform utilities
-│   │   │   │       ├── domain/        # Business logic & entities
-│   │   │   │       ├── data/          # Repositories & API clients
-│   │   │   │       ├── ml/            # ML-related utilities
-│   │   │   │       ├── core/          # Core utilities & constants
-│   │   │   │       └── ui/            # Shared Compose components
-│   │   │   │
-│   │   │   ├── androidMain/           # Android-specific implementation
-│   │   │   │   ├── kotlin/hcmus/bugscanner/
-│   │   │   │   ├── assets/            # ML models (model.tflite)
-│   │   │   │   ├── res/               # Android resources
-│   │   │   │   └── AndroidManifest.xml
-│   │   │   │
-│   │   │   ├── webMain/               # Web platform implementation
-│   │   │   │   ├── kotlin/
-│   │   │   │   └── resources/
-│   │   │   │
-│   │   │   ├── commonTest/            # Shared unit tests
-│   │   │   │
-│   │   │   └── (iosMain/jvmMain/etc)  # Other platform folders (not active)
-│   │   │
-│   │   ├── build.gradle.kts
-│   │   ├── google-services.json       # Firebase config (Android)
-│   │   └── webpack.config.d/          # Webpack configuration (Web)
-│   │
-│   ├── iosApp/                        # Native iOS Xcode project (planned)
-│   ├── gradle/                        # Gradle wrapper & version catalog
+│   │   │   ├── commonMain/             # Shared code (UI, Domain, Repos, ViewModels)
+│   │   │   ├── androidMain/            # Android implementations (CameraX, TFLite)
+│   │   │   │   └── assets/             # Place model.tflite here
+│   │   │   ├── webMain/                # Web implementations (TF.js, WebRTC)
+│   │   │   └── jsMain/                 # Kotlin/JS bridge and web polyfills
+│   │   ├── build.gradle.kts            # App-level build configuration
+│   │   └── google-services.json        # Firebase configuration (Android)
+│   ├── gradle/                         # Gradle wrapper & Version Catalog (libs.versions.toml)
 │   └── settings.gradle.kts
-│
-├── docs/                              # Project documentation
-├── README.md                          # This file
-└── LICENSE                            # Apache 2.0 License
+├── .github/workflows/                  # CI/CD: Firebase deploy, token rotation
+├── docs/                               # Extended technical documentation
+└── README.md
+
 ```
 
 ## 📋 Prerequisites
 
-### For Android Development
-- Android Studio (latest with Kotlin Multiplatform support)
-- Android SDK API level 24+
-- JDK 17 or higher
-
-### For Web Development
-- JDK 17 or higher
-- Modern web browser (Chrome, Firefox, Safari, Edge)
+* **JDK 17** or higher
+* **Android Studio** (Koala or newer) with Kotlin Multiplatform plugin installed
+* **Node.js** (Required for the Kotlin/JS web target)
+* **Modern Web Browser** (Chrome, Firefox, Safari, Edge)
 
 ## 🚀 Getting Started
 
-### Clone & Setup
+### 1. Clone the Repository
 
 ```bash
 git clone <repository-url>
 cd bug-scanner/src
-```
-
-### Configure Required Files
-
-Before building, ensure these files are in place:
 
 ```
-composeApp/google-services.json
-composeApp/src/androidMain/assets/model.tflite    # YOLO model for Android
-composeApp/src/webMain/resources/firebase-config.json
+
+### 2. Configure API Keys
+
+Create a `local.properties` file in the `src/` directory with the following keys. These are injected at compile time via the BuildConfig plugin.
+
+```properties
+GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
+IMGBB_API_KEY=your_imgbb_api_key
+INATURALIST_API_TOKEN=your_inaturalist_jwt_token
+
 ```
 
-### Build & Run
+### 3. Place Required Assets
+
+Ensure the following files are placed in their respective directories before building:
+
+* `composeApp/google-services.json` *(Firebase config for Android)*
+* `composeApp/src/androidMain/assets/model.tflite` *(YOLO11s quantized model)*
+* `composeApp/src/webMain/resources/firebase-config.json` *(Firebase config for Web)*
+
+### 4. Build & Run
 
 #### ▶️ Android
 
@@ -114,86 +171,65 @@ composeApp/src/webMain/resources/firebase-config.json
 # Build debug APK
 ./gradlew :composeApp:assembleDebug
 
-# Or run directly (requires emulator/device)
+# Install directly to a connected device or emulator
 ./gradlew :composeApp:installDebug
 
-# Run from Android Studio
-# Select "composeApp" run configuration and click Run
 ```
 
 #### 🌐 Web
 
 ```bash
-# Run development server
+# Start hot-reloading development server
 ./gradlew :composeApp:jsBrowserDevelopmentRun
+# Open browser at: http://localhost:8080
 
-# Then open browser at: http://localhost:8080
+# Build for production
+./gradlew :composeApp:jsBrowserDistribution
+
 ```
 
 ## 💻 Development Guide
 
-### Architecture Overview
+Adding a new feature involves standard MVVM/Clean Architecture steps:
 
-BugScanner follows the **MVVM (Model-View-ViewModel)** architectural pattern:
+1. **Domain:** Define the model in `commonMain/domain/model/`.
+2. **Data:** Create or update a repository in `commonMain/data/repository/`.
+3. **Presentation:** Build a ViewModel in `commonMain/ui/<feature>/` and design the UI components.
+4. **Platform-Specifics:** Use `expect`/`actual` for features requiring native APIs (e.g., file pickers, sensors).
 
-```
-┌─────────────────────────────────────┐
-│  UI Layer (Compose Components)      │
-├─────────────────────────────────────┤
-│  ViewModel (Business Logic State)   │
-├─────────────────────────────────────┤
-│  Repository (Data Abstraction)      │
-├─────────────────────────────────────┤
-│  Data Sources (API, Database, etc)  │
-└─────────────────────────────────────┘
-```
+## ⚠️ Known Limitations & Bugs
 
-### Code Organization
+| Area | Issue / Limitation |
+| --- | --- |
+| **Thermal Throttling (Android)** | Continuous YOLO inference on mobile hardware can cause CPU/GPU heat buildup, triggering OS-level throttling and FPS drops. |
+| **App Bundle Size** | Bundling the YOLO11s `.tflite` model in `assets/` for offline use significantly increases the base APK size. |
+| **IMGBB Bottleneck** | Cloud AI flows require successful IMGBB image uploads. Slow networks can create visible delays. |
+| **Web Single-Thread** | The JS target runs on a single thread; processing high-res image byte arrays can temporarily block the UI. |
+| **Cold-Start Offline** | If the app has never been launched with a network connection, the Firestore cache will be empty and the encyclopedia will not load offline. |
+| **Android Share Intent Bug** | Meta apps (like Messenger) silently discard text when sharing an image + text together. *Workaround implemented: Fallback to sharing the image URL as text and copying text to the clipboard.* |
+| **Desktop Web Share API** | Desktop browsers often lack Web Share API support. *Workaround implemented: Fallback to clipboard copy and virtual `<a>` tag downloads.* |
 
-**Common Code** (`commonMain`)
-- Domain models and entities
-- Repository interfaces and implementations
-- ViewModels
-- Shared UI components and screens
+## 🔄 CI/CD
 
-**Platform-Specific Code**
-- **Android** – Camera integration, Android sensors, platform utilities
-- **Web** – Browser-specific implementations, WASM optimizations
+GitHub Actions are configured in `.github/workflows/` to handle a complete multiplatform pipeline:
 
-### Adding a New Feature
-
-1. **Define the domain model** in `commonMain/domain/model/`
-2. **Create a repository** in `commonMain/data/repository/`
-3. **Build a ViewModel** in `commonMain/ui/viewmodel/`
-4. **Design UI components** in `commonMain/ui/screens/` or `commonMain/ui/components/`
-5. **Add platform-specific code** as needed (e.g., camera access for Android)
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| **Gradle sync fails** | Run `./gradlew clean` and sync again. Clear IDE caches if needed. |
-| **Model file not found** | Ensure `model.tflite` exists in `composeApp/src/androidMain/assets/` |
-| **Firebase auth errors** | Verify `google-services.json` is in `composeApp/` directory |
-| **Web build fails** | Clear `node_modules` and `.gradle`, then rebuild |
-| **Camera permission denied** | Check `AndroidManifest.xml` permissions on Android |
+* **Android APK Build:** Automatically compiles and archives a debug `.apk` artifact on every push to the main branch.
+* **Firebase Hosting Deployment:** Automatic Kotlin/JS builds and staging/production deployments for Pull Requests and Merges.
+* **iNaturalist Token Rotation:** A scheduled `cron` job running a Python script to automatically fetch and update the JWT token in GitHub Secrets before expiration.
 
 ## 📚 Resources
 
-- [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/)
-- [Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform)
-- [TensorFlow Lite Documentation](https://www.tensorflow.org/lite)
-- [YOLO Object Detection](https://docs.ultralytics.com/)
-- [Firebase Documentation](https://firebase.google.com/docs)
+* [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/)
+* [Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform)
+* [TensorFlow Lite](https://www.tensorflow.org/lite) | [TensorFlow.js](https://www.tensorflow.org/js)
+* [Ultralytics YOLO](https://docs.ultralytics.com/)
+* [Firebase Documentation](https://firebase.google.com/docs)
+* [iNaturalist API](https://api.inaturalist.org/v1/docs/)
 
-## 📄 License
+## 📄 License & 🎓 Credits
 
 Licensed under the [Apache License 2.0](LICENSE).
 
-## 🎓 Credits
+Developed at **HCMUS** (Ho Chi Minh City University of Science).
 
-Developed at **HCMUS** (Ho Chi Minh City University of Science)
-
----
-
-For questions or contributions, please open an issue or submit a pull request.
+*For questions, issues, or contributions, please open an issue or submit a pull request.*
