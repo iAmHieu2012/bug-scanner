@@ -2,6 +2,7 @@ package hcmus.bugscanner.ui.splash
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,14 +11,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import bugscanner.composeapp.generated.resources.Res
-import bugscanner.composeapp.generated.resources.icon_bugscanner
+import hcmus.bugscanner.domain.repository.EncyclopediaRepository
+import hcmus.bugscanner.ui.theme.AppIcon
+import hcmus.bugscanner.ui.theme.IconBugscanner
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.milliseconds
-import org.jetbrains.compose.resources.painterResource
 
 /**
  * Component hiển thị màn hình chờ (Splash Screen) khi ứng dụng vừa khởi chạy.
@@ -29,7 +31,18 @@ import org.jetbrains.compose.resources.painterResource
 fun SplashScreen(onSplashFinished: () -> Unit) {
     val scale = remember { Animatable(0.5f) }
 
+    val encyclopediaRepository: EncyclopediaRepository = koinInject()
+
     LaunchedEffect(key1 = true) {
+        launch {
+            try {
+                encyclopediaRepository.prefetchDatabase()
+                println("Đã tải xong Database lúc Splash Screen!")
+            } catch (e: Exception) {
+                println("Lỗi tải data Offline ở Splash: ${e.message}")
+            }
+        }
+
         scale.animateTo(
             targetValue = 1.2f,
             animationSpec = tween(durationMillis = 800)
@@ -52,11 +65,10 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                     .size(120.dp)
                     .scale(scale.value)
             ) {
-                Icon(
-                    painter = painterResource(Res.drawable.icon_bugscanner),
+                Image(
+                    imageVector = AppIcon.IconBugscanner,
                     contentDescription = "App Logo",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier.padding(24.dp).fillMaxSize()
                 )
             }
 

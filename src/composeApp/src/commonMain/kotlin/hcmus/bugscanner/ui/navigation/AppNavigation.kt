@@ -42,8 +42,8 @@ fun AppNavigation(
                         onAuthAction = {
                             authViewModel.signOut()
                         },
-                        onShareClick = { bug ->
-                            shareManager.shareBugInfo(bug.name, bug.scientificName)
+                        onShareClick = { bug, imageBytes ->
+                            shareManager.shareBugInfo(bug.name, bug.scientificName, imageBytes)
                         },
                         scanTabContent = { isLog, onAuth, onDetected ->
                             ScanScreen(

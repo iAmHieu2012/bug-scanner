@@ -1,5 +1,6 @@
 package hcmus.bugscanner.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +20,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import bugscanner.composeapp.generated.resources.Res
 import bugscanner.composeapp.generated.resources.icon_bugscanner
+import hcmus.bugscanner.ui.theme.AppIcon
+import hcmus.bugscanner.ui.theme.IconBugscanner
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -59,10 +62,9 @@ fun AuthScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        painter = painterResource(Res.drawable.icon_bugscanner),
+                    Image(
+                        imageVector = AppIcon.IconBugscanner,
                         contentDescription = "App Logo Large",
-                        tint = Color.Unspecified,
                         modifier = Modifier.size(120.dp).padding(bottom = 24.dp)
                     )
                     Text(
@@ -161,10 +163,9 @@ private fun AuthForm(
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 8.dp
         ) {
-            Icon(
-                painter = painterResource(Res.drawable.icon_bugscanner),
+            Image(
+                imageVector = AppIcon.IconBugscanner,
                 contentDescription = "Form Logo",
-                tint = Color.Unspecified,
                 modifier = Modifier.padding(16.dp).size(64.dp)
             )
         }

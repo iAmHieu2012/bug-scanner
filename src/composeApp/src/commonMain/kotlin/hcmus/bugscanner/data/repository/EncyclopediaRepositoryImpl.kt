@@ -86,6 +86,19 @@ class EncyclopediaRepositoryImpl(
     }
 
     /**
+     * Tải toàn bộ dữ liệu từ collection "encyclopedia".
+     * Lệnh get() này sẽ ép Firebase SDK trên Android/iOS tải data về và nhét vào Local Cache.
+     */
+    override suspend fun prefetchDatabase() {
+        try {
+            encyclopediaCollection.get()
+            println("Đã tải xong bản sao Bách khoa toàn thư vào máy!")
+        } catch (e: Exception) {
+            println("Lỗi tải bản sao Database: ${e.message}")
+        }
+    }
+
+    /**
      * Lưu thông tin một loài côn trùng mới lên Firestore.
      * Sử dụng Tên khoa học (scientificName) làm Document ID để đảm bảo tính duy nhất.
      * Dữ liệu được ánh xạ sang dạng Map để an toàn với mọi cấu hình Serialization.

@@ -32,6 +32,11 @@ interface EncyclopediaRepository {
     suspend fun getBugByScientificName(scientificName: String): BugInfo?
 
     /**
+     * Tải trước toàn bộ Database về Local Cache để dùng Offline.
+     */
+    suspend fun prefetchDatabase()
+
+    /**
      * Lưu trữ thông tin chi tiết của một loài côn trùng mới lên cơ sở dữ liệu.
      * Hỗ trợ cơ chế Crowdsourcing: Dữ liệu do AI sinh ra sẽ được lưu lại để tối ưu hóa truy vấn cho các lần sau.
      *

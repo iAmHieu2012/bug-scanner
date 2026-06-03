@@ -47,13 +47,15 @@ fun HomeScreen(
     windowSizeClass: WindowSizeClass,
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
-    onShareClick: (BugInfo) -> Unit,
+    onShareClick: (BugInfo, ByteArray?) -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (BugInfo, ByteArray?) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel = koinViewModel()
 ) {
     var currentTab by remember { mutableStateOf(AppTab.SCAN) }
     var selectedBug by remember { mutableStateOf<BugInfo?>(null) }
+    var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var initialChatPrompt by remember { mutableStateOf<String?>(null) }
+
     val bugToShow = selectedBug
 
     val navItems: List<Triple<AppTab, String, ImageVector>> = listOf(
@@ -68,13 +70,19 @@ fun HomeScreen(
     if (bugToShow != null) {
         BugDetailScreen(
             bug = bugToShow,
-            onBackClick = { selectedBug = null },
+            onBackClick = {
+                selectedBug = null
+                selectedImageBytes = null
+            },
             onAskChatbotClick = { prompt ->
                 initialChatPrompt = prompt
                 selectedBug = null
+                selectedImageBytes = null
                 currentTab = AppTab.CHATBOT
             },
-            onShareClick = onShareClick
+            onShareClick = { bug ->
+                onShareClick(bug, selectedImageBytes)
+            }
         )
     } else {
         if (isWideScreen) {
@@ -122,7 +130,10 @@ fun HomeScreen(
                         onAuthAction = onAuthAction,
                         scanTabContent = scanTabContent,
                         historyViewModel = historyViewModel,
-                        onBugSelected = { selectedBug = it },
+                        onBugSelected = { bug, bytes ->
+                            selectedBug = bug
+                            selectedImageBytes = bytes
+                        },
                         initialChatPrompt = initialChatPrompt,
                         onClearChatPrompt = { initialChatPrompt = null }
                     )
@@ -175,7 +186,10 @@ fun HomeScreen(
                         onAuthAction = onAuthAction,
                         scanTabContent = scanTabContent,
                         historyViewModel = historyViewModel,
-                        onBugSelected = { selectedBug = it },
+                        onBugSelected = { bug, bytes ->
+                            selectedBug = bug
+                            selectedImageBytes = bytes
+                        },
                         initialChatPrompt = initialChatPrompt,
                         onClearChatPrompt = { initialChatPrompt = null }
                     )
@@ -204,14 +218,14 @@ private fun HomeContent(
     onAuthAction: () -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (BugInfo, ByteArray?) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
-    onBugSelected: (BugInfo) -> Unit,
+    onBugSelected: (BugInfo, ByteArray?) -> Unit,
     initialChatPrompt: String?,
     onClearChatPrompt: () -> Unit
 ) {
     when (currentTab) {
         AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { detectedBug, imageBytes ->
             historyViewModel.addHistory(detectedBug.name, imageBytes)
-            onBugSelected(detectedBug)
+            onBugSelected(detectedBug, imageBytes)
         }
         AppTab.HISTORY -> {
             if (isLoggedIn) {
@@ -223,7 +237,8 @@ private fun HomeContent(
                                 name = historyItem.bugName,
                                 scientificName = historyItem.bugName,
                                 imageUrl = historyItem.imageUrl
-                            )
+                            ),
+                            null
                         )
                     }
                 )
@@ -231,7 +246,7 @@ private fun HomeContent(
                 RequireAuthScreen(onAuthAction = onAuthAction)
             }
         }
-        AppTab.WIKI -> EncyclopediaScreen(onBugSelected = onBugSelected)
+        AppTab.WIKI -> EncyclopediaScreen(onBugSelected = { onBugSelected(it, null) })
         AppTab.CHATBOT -> {
             ChatScreen(initialPrompt = initialChatPrompt)
             LaunchedEffect(initialChatPrompt) {

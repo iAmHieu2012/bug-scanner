@@ -54,7 +54,11 @@ class WebShareManager : ShareManager {
 
                 if (imageBytes != null && navigator.canShare != undefined) {
                     val uint8Array = Uint8Array(imageBytes.toTypedArray())
-                    val file = js("new window.File([uint8Array], 'bug_scanned.jpg', {type: 'image/jpeg'})")
+
+                    val fileOpts = createJsObject()
+                    fileOpts.type = "image/jpeg"
+                    val file = window.asDynamic().File(arrayOf(uint8Array), "bug_scanned.jpg", fileOpts)
+
                     val filesArray = arrayOf(file)
 
                     val testData = createJsObject()

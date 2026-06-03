@@ -1,7 +1,10 @@
 package hcmus.bugscanner.core.utils
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -29,14 +32,14 @@ class AndroidShareManager(private val context: Context) : ShareManager {
     override fun shareBugInfo(bugName: String, scientificName: String, imageBytes: ByteArray?, appLink: String) {
         val shareText = "Tôi vừa phát hiện ra loài: $bugName trên BugScanner.\nTên khoa học: $scientificName.\n\nKhám phá ngay tại: $appLink"
 
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "Nhận diện côn trùng qua BugScanner")
-            putExtra(Intent.EXTRA_TEXT, shareText)
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("BugScanner Share", shareText)
+        clipboard.setPrimaryClip(clip)
 
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
             if (imageBytes != null && imageBytes.isNotEmpty()) {
                 try {
-                    val cachePath = File(context.cacheDir, "shared_images")
+                    val cachePath = File(context.externalCacheDir ?: context.cacheDir, "shared_images")
                     cachePath.mkdirs()
 
                     val file = File(cachePath, "bug_scanned_image.jpg")
@@ -49,15 +52,22 @@ class AndroidShareManager(private val context: Context) : ShareManager {
 
                     type = "image/jpeg"
                     putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    clipData = ClipData.newRawUri("", uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+            } else {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, shareText)
             }
         }
 
+        Toast.makeText(context, "Đã sao chép nội dung, hãy 'Dán' (Paste) chữ khi gửi nhé!", Toast.LENGTH_LONG).show()
+
         val chooser = Intent.createChooser(shareIntent, "Chia sẻ kết quả qua")
-        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         context.startActivity(chooser)
     }
 }
