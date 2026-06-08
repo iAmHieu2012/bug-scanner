@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
-import hcmus.bugscanner.core.utils.getCurrentTimeMillis
+import hcmus.bugscanner.core.utils.TimeUtils.getCurrentTimeMillis
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -55,6 +55,8 @@ fun HomeScreen(
     var selectedBug by remember { mutableStateOf<BugInfo?>(null) }
     var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var initialChatPrompt by remember { mutableStateOf<String?>(null) }
+    var initialChatImage by remember { mutableStateOf<ByteArray?>(null) }
+    var initialChatImageUrl by remember { mutableStateOf<String?>(null) }
 
     val bugToShow = selectedBug
 
@@ -76,6 +78,8 @@ fun HomeScreen(
             },
             onAskChatbotClick = { prompt ->
                 initialChatPrompt = prompt
+                initialChatImage = selectedImageBytes
+                initialChatImageUrl = bugToShow.imageUrl
                 selectedBug = null
                 selectedImageBytes = null
                 currentTab = AppTab.CHATBOT
@@ -105,7 +109,11 @@ fun HomeScreen(
                             label = { Text(label, fontSize = 12.sp) },
                             selected = currentTab == tab,
                             onClick = {
-                                if (tab == AppTab.CHATBOT) initialChatPrompt = null
+                                if (tab == AppTab.CHATBOT) {
+                                    initialChatPrompt = null
+                                    initialChatImage = null
+                                    initialChatImageUrl = null
+                                }
                                 currentTab = tab
                             },
                             colors = NavigationRailItemDefaults.colors(
@@ -135,7 +143,13 @@ fun HomeScreen(
                             selectedImageBytes = bytes
                         },
                         initialChatPrompt = initialChatPrompt,
-                        onClearChatPrompt = { initialChatPrompt = null }
+                        initialChatImage = initialChatImage,
+                        initialChatImageUrl = initialChatImageUrl,
+                        onClearChatPrompt = {
+                            initialChatPrompt = null
+                            initialChatImage = null
+                            initialChatImageUrl = null
+                        }
                     )
                 }
             }
@@ -160,7 +174,11 @@ fun HomeScreen(
                                     label = { Text(label, fontSize = 10.sp) },
                                     selected = currentTab == tab,
                                     onClick = {
-                                        if (tab == AppTab.CHATBOT) initialChatPrompt = null
+                                        if (tab == AppTab.CHATBOT) {
+                                            initialChatPrompt = null
+                                            initialChatImage = null
+                                            initialChatImageUrl = null
+                                        }
                                         currentTab = tab
                                     },
                                     colors = NavigationBarItemDefaults.colors(
@@ -191,7 +209,13 @@ fun HomeScreen(
                             selectedImageBytes = bytes
                         },
                         initialChatPrompt = initialChatPrompt,
-                        onClearChatPrompt = { initialChatPrompt = null }
+                        initialChatImage = initialChatImage,
+                        initialChatImageUrl = initialChatImageUrl,
+                        onClearChatPrompt = {
+                            initialChatPrompt = null
+                            initialChatImage = null
+                            initialChatImageUrl = null
+                        }
                     )
                 }
             }
@@ -209,7 +233,9 @@ fun HomeScreen(
  * @param historyViewModel ViewModel quản lý dữ liệu lịch sử.
  * @param onBugSelected Callback truyền dữ liệu côn trùng khi một bản ghi được nhấn.
  * @param initialChatPrompt Nội dung prompt mặc định cần truyền vào Chatbot.
- * @param onClearChatPrompt Callback làm sạch nội dung prompt mặc định.
+ * @param initialChatImage Hình ảnh đính kèm dạng byte mặc định.
+ * @param initialChatImageUrl Hình ảnh đính kèm dạng URL mặc định.
+ * @param onClearChatPrompt Callback làm sạch nội dung prompt và ảnh.
  */
 @Composable
 private fun HomeContent(
@@ -220,6 +246,8 @@ private fun HomeContent(
     historyViewModel: HistoryViewModel,
     onBugSelected: (BugInfo, ByteArray?) -> Unit,
     initialChatPrompt: String?,
+    initialChatImage: ByteArray?,
+    initialChatImageUrl: String?,
     onClearChatPrompt: () -> Unit
 ) {
     when (currentTab) {
@@ -248,9 +276,13 @@ private fun HomeContent(
         }
         AppTab.WIKI -> EncyclopediaScreen(onBugSelected = { onBugSelected(it, null) })
         AppTab.CHATBOT -> {
-            ChatScreen(initialPrompt = initialChatPrompt)
-            LaunchedEffect(initialChatPrompt) {
-                if (initialChatPrompt != null) {
+            ChatScreen(
+                initialPrompt = initialChatPrompt,
+                initialImageBytes = initialChatImage,
+                initialImageUrl = initialChatImageUrl
+            )
+            LaunchedEffect(initialChatPrompt, initialChatImage, initialChatImageUrl) {
+                if (initialChatPrompt != null || initialChatImage != null || initialChatImageUrl != null) {
                     onClearChatPrompt()
                 }
             }

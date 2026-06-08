@@ -12,7 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.ChatMessage
 
 /**
@@ -20,8 +22,9 @@ import hcmus.bugscanner.domain.model.ChatMessage
  * Thiết kế theo chuẩn UI Chat hiện đại:
  * - Tin nhắn của Bot (AI): Căn trái, màu nền phụ, bo góc vuông ở dưới cùng bên trái.
  * - Tin nhắn của Người dùng: Căn phải, màu nền chính, bo góc vuông ở dưới cùng bên phải.
+ * Hỗ trợ hiển thị thêm hình ảnh đính kèm (nếu có) ngay phía trên nội dung văn bản.
  *
- * @param message Đối tượng khối dữ liệu chứa nội dung văn bản, trạng thái người gửi và trạng thái lỗi.
+ * @param message Đối tượng khối dữ liệu chứa nội dung văn bản, hình ảnh đính kèm (Byte), trạng thái người gửi và trạng thái lỗi.
  */
 @Composable
 fun ChatBubble(message: ChatMessage) {
@@ -67,13 +70,30 @@ fun ChatBubble(message: ChatMessage) {
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Text(
-                text = message.text,
-                color = if (message.isError) MaterialTheme.colorScheme.onErrorContainer
-                else if (isUser) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Column {
+                if (message.imageBytes != null) {
+                    AsyncImage(
+                        model = message.imageBytes,
+                        contentDescription = "Ảnh đính kèm",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .clip(RoundedCornerShape(12.dp))
+                            .padding(bottom = if (message.text.isNotBlank()) 8.dp else 0.dp)
+                    )
+                }
+
+                if (message.text.isNotBlank()) {
+                    Text(
+                        text = message.text,
+                        color = if (message.isError) MaterialTheme.colorScheme.onErrorContainer
+                        else if (isUser) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
         }
 
         if (isUser) {

@@ -1,5 +1,6 @@
 package hcmus.bugscanner.domain.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -7,14 +8,15 @@ import kotlinx.serialization.Serializable
  *
  * @property model Tên mô hình AI được sử dụng (VD: "llama-3.3-70b-versatile").
  * @property messages Danh sách các đoạn hội thoại hoặc nội dung cần gửi.
- * @property response_format Cấu hình định dạng trả về (VD: ép buộc trả về JSON).
+ * @property responseFormat Cấu hình định dạng trả về (VD: ép buộc trả về JSON).
  * @property temperature Độ sáng tạo của câu trả lời (từ 0.0 đến 1.0, số nhỏ giúp văn bản nhất quán và chính xác hơn).
  */
 @Serializable
 data class GroqRequest(
     val model: String,
     val messages: List<GroqMessage>,
-    val response_format: GroqResponseFormat,
+    @SerialName("response_format")
+    val responseFormat: GroqResponseFormat,
     val temperature: Double
 )
 

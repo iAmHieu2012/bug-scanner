@@ -50,7 +50,7 @@ class GroqApiService(private val client: HttpClient) {
                 GroqMessage(role = "system", content = "You are a professional agricultural assistant. You must output ONLY valid JSON without Markdown."),
                 GroqMessage(role = "user", content = prompt)
             ),
-            response_format = GroqResponseFormat(type = "json_object"),
+            responseFormat = GroqResponseFormat(type = "json_object"),
             temperature = 0.2
         )
 

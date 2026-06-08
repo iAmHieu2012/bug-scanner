@@ -14,15 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import bugscanner.composeapp.generated.resources.Res
-import bugscanner.composeapp.generated.resources.icon_bugscanner
 import hcmus.bugscanner.ui.theme.AppIcon
 import hcmus.bugscanner.ui.theme.IconBugscanner
-import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**

@@ -28,7 +28,7 @@ data class Instruction(
  * DTO đại diện cho một thông điệp (Message) trong luồng chat.
  *
  * @property role Vai trò của người gửi (VD: "user" cho người dùng, "model" cho AI).
- * @property parts Danh sách các thành phần của thông điệp (text, ảnh).
+ * @property parts Danh sách các thành phần của thông điệp (bao gồm cả văn bản và hình ảnh đính kèm).
  */
 @Serializable
 data class GeminiContent(
@@ -37,13 +37,28 @@ data class GeminiContent(
 )
 
 /**
- * DTO chứa thành phần nội dung chi tiết.
+ * DTO chứa thành phần nội dung chi tiết (Văn bản hoặc Hình ảnh).
+ * Một Part có thể chứa chữ, chứa ảnh, hoặc chứa cả hai tuỳ vào ngữ cảnh.
  *
- * @property text Chuỗi văn bản truyền đi hoặc nhận về.
+ * @property text Chuỗi văn bản truyền đi hoặc nhận về (có thể null nếu tin nhắn chỉ có ảnh).
+ * @property inlineData Khối dữ liệu hình ảnh đính kèm (có thể null nếu tin nhắn chỉ có chữ).
  */
 @Serializable
 data class GeminiPart(
-    val text: String
+    val text: String? = null,
+    val inlineData: GeminiInlineData? = null
+)
+
+/**
+ * DTO đại diện cho dữ liệu hình ảnh nội tuyến (Inline Data) gửi lên Gemini để AI "nhìn".
+ *
+ * @property mimeType Định dạng của tệp hình ảnh (VD: "image/jpeg", "image/png").
+ * @property data Chuỗi dữ liệu hình ảnh thô đã được mã hóa sang chuẩn Base64.
+ */
+@Serializable
+data class GeminiInlineData(
+    val mimeType: String,
+    val data: String
 )
 
 /**
