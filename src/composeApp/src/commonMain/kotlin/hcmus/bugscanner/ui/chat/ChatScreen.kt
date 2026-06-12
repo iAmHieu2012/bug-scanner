@@ -106,7 +106,7 @@ fun ChatScreen(
                 ) {
                     if (imageToSend != null || urlToSend != null) {
                         Box(
-                            modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+                            modifier = Modifier.padding(top = 12.dp, end = 12.dp, bottom = 8.dp, start = 8.dp)
                         ) {
                             AsyncImage(
                                 model = imageToSend ?: urlToSend,
@@ -125,15 +125,15 @@ fun ChatScreen(
                                 },
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .offset(x = 8.dp, y = (-8).dp)
-                                    .size(24.dp)
+                                    .offset(x = 6.dp, y = (-6).dp)
+                                    .size(20.dp)
                                     .background(MaterialTheme.colorScheme.error, CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Close,
                                     contentDescription = "Xóa ảnh",
                                     tint = MaterialTheme.colorScheme.onError,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(12.dp)
                                 )
                             }
                         }

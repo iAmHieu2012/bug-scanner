@@ -92,14 +92,6 @@ fun ScanScreen(
                             onFrameCaptured = { bytes ->
                                 capturedImageBytes = bytes
                                 isScanningLive = false
-                            }
-                        )
-
-                        ScanControlButtons(
-                            currentMode = currentMode,
-                            isScanningLive = isScanningLive,
-                            onToggleLive = {
-                                if (isScanningLive) captureTrigger++ else isScanningLive = true
                             },
                             pickerHelper = pickerHelper,
                             onModeChange = { currentMode = it },
@@ -108,7 +100,9 @@ fun ScanScreen(
                                 capturedImageBytes = null
                                 captureTrigger = 0L
                             },
-                            alignmentModifier = Modifier.align(Alignment.BottomCenter)
+                            onToggleLive = {
+                                if (isScanningLive) captureTrigger++ else isScanningLive = true
+                            }
                         )
                     }
                 }
@@ -166,14 +160,6 @@ fun ScanScreen(
                         onFrameCaptured = { bytes ->
                             capturedImageBytes = bytes
                             isScanningLive = false
-                        }
-                    )
-
-                    ScanControlButtons(
-                        currentMode = currentMode,
-                        isScanningLive = isScanningLive,
-                        onToggleLive = {
-                            if (isScanningLive) captureTrigger++ else isScanningLive = true
                         },
                         pickerHelper = pickerHelper,
                         onModeChange = { currentMode = it },
@@ -182,7 +168,9 @@ fun ScanScreen(
                             capturedImageBytes = null
                             captureTrigger = 0L
                         },
-                        alignmentModifier = Modifier.align(Alignment.BottomCenter)
+                        onToggleLive = {
+                            if (isScanningLive) captureTrigger++ else isScanningLive = true
+                        }
                     )
                 }
 
@@ -256,7 +244,7 @@ private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
 
 /**
  * Component chịu trách nhiệm hiển thị luồng Camera trực tiếp hoặc ảnh tĩnh thông qua Native Provider.
- * Xử lý cơ chế đóng băng khung hình (Freeze Frame) và đồng bộ hóa kết quả AI.
+ * Xử lý cơ chế đóng băng khung hình (Freeze Frame), đồng bộ hóa kết quả AI và điều khiển hiển thị cụm nút chức năng.
  *
  * @param currentMode Chế độ quét hiện tại (LIVE hoặc tải ảnh tĩnh).
  * @param currentImageId Định danh URI của ảnh tĩnh đang được chọn từ Thư viện.
@@ -267,6 +255,10 @@ private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
  * @param platformProvider Giao diện Native của nền tảng (Android/Web).
  * @param onResultUpdate Callback đồng bộ trạng thái kết quả AI lên Component cha.
  * @param onFrameCaptured Callback nhận dữ liệu hình ảnh sau khi Camera chụp ngầm thành công.
+ * @param pickerHelper Công cụ hỗ trợ mở thư viện ảnh hệ thống.
+ * @param onModeChange Callback chuyển đổi chế độ giao diện UI.
+ * @param onClearResult Callback xóa các kết quả nhận diện.
+ * @param onToggleLive Callback điều phối logic thay đổi trạng thái đóng băng hoặc tiếp tục.
  */
 @Composable
 private fun ScanContent(
@@ -278,50 +270,66 @@ private fun ScanContent(
     captureTrigger: Long,
     platformProvider: PlatformScanProvider,
     onResultUpdate: (FrameResult) -> Unit,
-    onFrameCaptured: (ByteArray) -> Unit
+    onFrameCaptured: (ByteArray) -> Unit,
+    pickerHelper: ImagePickerHelper,
+    onModeChange: (ScanMode) -> Unit,
+    onClearResult: () -> Unit,
+    onToggleLive: () -> Unit
 ) {
     platformProvider.RequireCameraPermission(
         onGranted = {
-            if (currentMode == ScanMode.LIVE) {
-                if (!isScanningLive) {
-                    if (capturedImageBytes != null) {
-                        platformProvider.NativeStaticDetectionView(
-                            modifier = Modifier.fillMaxSize(),
-                            imageId = null,
-                            imageBytes = capturedImageBytes,
-                            frameResult = frameResult,
-                            onResultUpdate = onResultUpdate
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Rounded.ImageNotSupported, null, modifier = Modifier.size(64.dp), tint = Color.White.copy(alpha = 0.6f))
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("Chưa bắt kịp khung hình 🐛", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("Hãy bấm Quét lại và đợi khung nhận diện hiện rõ", color = Color.White.copy(alpha = 0.7f))
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (currentMode == ScanMode.LIVE) {
+                    if (!isScanningLive) {
+                        if (capturedImageBytes != null) {
+                            platformProvider.NativeStaticDetectionView(
+                                modifier = Modifier.fillMaxSize(),
+                                imageId = null,
+                                imageBytes = capturedImageBytes,
+                                frameResult = frameResult,
+                                onResultUpdate = onResultUpdate
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Rounded.ImageNotSupported, null, modifier = Modifier.size(64.dp), tint = Color.White.copy(alpha = 0.6f))
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text("Chưa bắt kịp khung hình \uD83D\uDC1B", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("Hãy bấm Quét lại và đợi khung nhận diện hiện rõ", color = Color.White.copy(alpha = 0.7f))
+                                }
                             }
                         }
+                    } else {
+                        platformProvider.NativeCameraView(
+                            modifier = Modifier.fillMaxSize(),
+                            captureTrigger = captureTrigger,
+                            onResult = onResultUpdate,
+                            onFrameCaptured = onFrameCaptured
+                        )
+                        ScannerOverlay()
                     }
                 } else {
-                    platformProvider.NativeCameraView(
+                    platformProvider.NativeStaticDetectionView(
                         modifier = Modifier.fillMaxSize(),
-                        captureTrigger = captureTrigger,
-                        onResult = onResultUpdate,
-                        onFrameCaptured = onFrameCaptured
+                        imageId = currentImageId,
+                        imageBytes = null,
+                        frameResult = frameResult,
+                        onResultUpdate = onResultUpdate
                     )
-                    ScannerOverlay()
                 }
-            } else {
-                platformProvider.NativeStaticDetectionView(
-                    modifier = Modifier.fillMaxSize(),
-                    imageId = currentImageId,
-                    imageBytes = null,
-                    frameResult = frameResult,
-                    onResultUpdate = onResultUpdate
+
+                ScanControlButtons(
+                    currentMode = currentMode,
+                    isScanningLive = isScanningLive,
+                    onToggleLive = onToggleLive,
+                    pickerHelper = pickerHelper,
+                    onModeChange = onModeChange,
+                    onClearResult = onClearResult,
+                    alignmentModifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
         },

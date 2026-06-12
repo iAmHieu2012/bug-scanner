@@ -78,8 +78,11 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
                 }
 
                 if (finalBytes != null) {
+                    val isPng = finalBytes.size > 3 && finalBytes[0] == 0x89.toByte() && finalBytes[1] == 0x50.toByte()
+                    val mimeType = if (isPng) "image/png" else "image/jpeg"
+
                     val base64String = Base64.encode(finalBytes)
-                    userParts.add(GeminiPart(inlineData = GeminiInlineData(mimeType = "image/jpeg", data = base64String)))
+                    userParts.add(GeminiPart(inlineData = GeminiInlineData(mimeType = mimeType, data = base64String)))
                 }
 
                 chatHistory.add(GeminiContent(role = "user", parts = userParts))
@@ -89,9 +92,13 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
                     contents = chatHistory
                 )
 
-                val response = geminiApi.generateContent(requestBody)
-                val replyText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Xin lỗi, mình không có phản hồi."
+                var response = geminiApi.generateContent(requestBody)
+                var replyText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: ""
 
+                if (replyText.isBlank()) {
+                    response = geminiApi.generateContent(requestBody)
+                    replyText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Xin lỗi, hệ thống AI đang bận hoặc không thể phân tích ảnh này ngay lúc này."
+                }
                 chatHistory.add(GeminiContent(role = "model", parts = listOf(GeminiPart(text = replyText))))
                 _messages.update { it + ChatMessage(text = replyText, isUser = false) }
 
