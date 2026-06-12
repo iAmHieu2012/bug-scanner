@@ -13,28 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.ml.YoloConstants
-import hcmus.bugscanner.ui.components.EmptyState
 import hcmus.bugscanner.ui.scan.ScanMode
 import hcmus.bugscanner.ui.scan.utils.getBugColor
 
-/**
- * Bảng điều khiển (Panel) hiển thị danh sách thống kê kết quả nhận diện từ AI.
- * Tự động nhóm các sinh vật cùng loại, đếm số lượng và lấy độ chính xác cao nhất.
- * Tích hợp cơ chế dự phòng (Fallback) gọi API iNaturalist khi mô hình AI Offline không đạt độ tin cậy.
- *
- * @param currentMode Chế độ quét hiện tại.
- * @param isScanningLive Trạng thái luồng camera (true nếu đang liên tục quét, false nếu đã chốt khung hình).
- * @param frameResult Kết quả phân tích Bounding Box và Confidence Score từ mô hình AI (YOLO).
- * @param imageBytesToSave Mảng byte của hình ảnh hiện tại, dùng để gửi lên API phân tích hoặc lưu trữ.
- * @param onBugClick Callback kích hoạt khi người dùng nhấn vào thẻ của một côn trùng để xem chi tiết.
- * @param isAnalyzingFallback Trạng thái chờ gọi API dự phòng, dùng để hiển thị hiệu ứng tải.
- * @param onFallbackClick Callback kích hoạt khi người dùng yêu cầu phân tích ảnh chuyên sâu qua mạng.
- * @param modifier Modifier tùy chỉnh vị trí và kích thước từ Component cha.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetectionPanel(
@@ -42,8 +28,9 @@ fun DetectionPanel(
     isScanningLive: Boolean,
     frameResult: FrameResult?,
     imageBytesToSave: ByteArray?,
-    onBugClick: (String, ByteArray?) -> Unit,
+    onBugClick: (className: String, displayName: String, confidence: Float, imageBytes: ByteArray?) -> Unit,
     isAnalyzingFallback: Boolean,
+    fallbackErrorMessage: String?,
     onFallbackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -61,38 +48,51 @@ fun DetectionPanel(
     val isYoloFailed = !isInitial && (detectionSummary.isEmpty() || highestScore < 0.4f) && !isLiveActive
 
     Surface(
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(32.dp),
-        shadowElevation = 8.dp
+        shape = RoundedCornerShape(24.dp),
+        shadowElevation = 5.dp
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Kết quả phát hiện",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Kết quả phát hiện",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (isLiveActive) "Đang quét trực tiếp" else "Khung hình hiện tại",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 if (detectionSummary.isNotEmpty()) {
-                    Spacer(Modifier.width(8.dp))
                     Badge(containerColor = MaterialTheme.colorScheme.primary) {
                         Text("$totalBugs", color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
             if (isInitial) {
-                EmptyState("Đang chờ hình ảnh... 🔍")
+                Text(
+                    text = "Đưa côn trùng vào khung camera hoặc chọn ảnh từ thư viện.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp, bottom = 28.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             } else if (isYoloFailed && imageBytesToSave != null) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Không nhận diện rõ côn trùng 🐛",
+                        text = "Không nhận diện rõ côn trùng",
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -113,6 +113,15 @@ fun DetectionPanel(
                             Text("Phân tích bằng AI chuyên sâu")
                         }
                     }
+                    if (!fallbackErrorMessage.isNullOrBlank()) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = fallbackErrorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             } else {
                 LazyColumn {
@@ -123,9 +132,9 @@ fun DetectionPanel(
                         val displayVietnameseName = YoloConstants.BUG_DICTIONARY[name] ?: name
 
                         Card(
-                            onClick = { onBugClick(name, imageBytesToSave) },
+                            onClick = { onBugClick(name, displayVietnameseName, maxScore, imageBytesToSave) },
                             modifier = Modifier.padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             ListItem(

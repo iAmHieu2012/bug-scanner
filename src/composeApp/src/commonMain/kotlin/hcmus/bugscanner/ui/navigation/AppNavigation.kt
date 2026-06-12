@@ -5,11 +5,15 @@ import androidx.compose.runtime.*
 import hcmus.bugscanner.ui.auth.AuthScreen
 import hcmus.bugscanner.ui.auth.AuthViewModel
 import hcmus.bugscanner.ui.auth.AuthState
+import hcmus.bugscanner.domain.repository.EncyclopediaRepository
+import hcmus.bugscanner.ui.home.AppTab
 import hcmus.bugscanner.ui.home.HomeScreen
+import hcmus.bugscanner.ui.layout.AdaptiveLayoutSize
 import hcmus.bugscanner.ui.splash.SplashScreen
 import hcmus.bugscanner.ui.scan.ScanScreen
 import hcmus.bugscanner.core.utils.rememberShareManager
 import hcmus.bugscanner.ui.theme.AppTheme
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -22,12 +26,20 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun AppNavigation(
     windowSizeClass: WindowSizeClass,
+    layoutSize: AdaptiveLayoutSize,
+    initialTab: AppTab = AppTab.SCAN,
+    onTabChanged: (AppTab) -> Unit = {},
     authViewModel: AuthViewModel = koinViewModel()
 ) {
     AppTheme {
         var showSplash by remember { mutableStateOf(true) }
         val authState by authViewModel.authState.collectAsState()
         val shareManager = rememberShareManager()
+        val encyclopediaRepository: EncyclopediaRepository = koinInject()
+
+        LaunchedEffect(Unit) {
+            encyclopediaRepository.prefetchDatabase()
+        }
 
         if (showSplash) {
             SplashScreen(onSplashFinished = {
@@ -37,7 +49,9 @@ fun AppNavigation(
             when (val state = authState) {
                 is AuthState.Success -> {
                     HomeScreen(
-                        windowSizeClass = windowSizeClass,
+                        layoutSize = layoutSize,
+                        initialTab = initialTab,
+                        onTabChanged = onTabChanged,
                         isLoggedIn = !state.isGuest,
                         onAuthAction = {
                             authViewModel.signOut()

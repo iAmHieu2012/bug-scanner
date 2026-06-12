@@ -4,15 +4,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.ui.chat.components.ChatBubble
 import hcmus.bugscanner.ui.chat.components.TypingIndicator
@@ -30,13 +34,32 @@ fun ChatScreen(
     initialPrompt: String? = null,
     viewModel: ChatViewModel = koinViewModel()
 ) {
-    var prompt by remember { mutableStateOf(initialPrompt ?: "") }
+    var prompt by remember { mutableStateOf("") }
+    var lastAutoSentPrompt by remember { mutableStateOf<String?>(null) }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
+    val listState = rememberLazyListState()
+
+    fun submitPrompt(text: String = prompt) {
+        val cleanPrompt = text.trim()
+        if (cleanPrompt.isNotEmpty() && !isTyping) {
+            viewModel.sendMessage(cleanPrompt)
+            prompt = ""
+        }
+    }
 
     LaunchedEffect(initialPrompt) {
-        if (!initialPrompt.isNullOrBlank()) {
-            prompt = initialPrompt
+        val cleanPrompt = initialPrompt?.trim()
+        if (!cleanPrompt.isNullOrEmpty() && cleanPrompt != lastAutoSentPrompt) {
+            lastAutoSentPrompt = cleanPrompt
+            submitPrompt(cleanPrompt)
+        }
+    }
+
+    LaunchedEffect(messages.size, isTyping) {
+        if (messages.isNotEmpty()) {
+            val targetIndex = if (isTyping) messages.size else messages.lastIndex
+            listState.animateScrollToItem(targetIndex)
         }
     }
 
@@ -49,16 +72,29 @@ fun ChatScreen(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .widthIn(max = 800.dp)
+                .widthIn(max = 900.dp)
         ) {
+            ChatHeader(
+                canClear = messages.size > 1 || isTyping,
+                onClearClick = { viewModel.clearConversation() }
+            )
+
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 items(messages) { msg ->
                     ChatBubble(message = msg)
+                }
+
+                if (messages.size <= 1 && !isTyping) {
+                    item {
+                        PromptSuggestions(onPromptClick = ::submitPrompt)
+                    }
                 }
 
                 if (isTyping) {
@@ -68,59 +104,149 @@ fun ChatScreen(
                 }
             }
 
-            Surface(
-                color = MaterialTheme.colorScheme.background
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    OutlinedTextField(
-                        value = prompt,
-                        onValueChange = { prompt = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = {
-                            Text("Hỏi BugScanner điều gì đó...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                        },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        ),
-                        maxLines = 4
+            ChatInput(
+                prompt = prompt,
+                isTyping = isTyping,
+                onPromptChange = { prompt = it },
+                onSubmit = ::submitPrompt
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChatHeader(
+    canClear: Boolean,
+    onClearClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 12.dp, top = 20.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.SmartToy,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Trợ lý BugScanner",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Hỏi về nhận diện, đặc điểm và cách xử lý côn trùng.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = onClearClick, enabled = canClear) {
+            Icon(
+                imageVector = Icons.Rounded.DeleteSweep,
+                contentDescription = "Xóa cuộc trò chuyện",
+                tint = if (canClear) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outlineVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PromptSuggestions(onPromptClick: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 12.dp)
+    ) {
+        Text(
+            text = "Gợi ý nhanh",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ChatPromptSuggestions.defaultPrompts.forEach { suggestion ->
+                SuggestionChip(
+                    onClick = { onPromptClick(suggestion) },
+                    label = { Text(suggestion) },
+                    shape = RoundedCornerShape(18.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatInput(
+    prompt: String,
+    isTyping: Boolean,
+    onPromptChange: (String) -> Unit,
+    onSubmit: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding()
+                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            OutlinedTextField(
+                value = prompt,
+                onValueChange = onPromptChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        "Hỏi BugScanner điều gì đó...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
+                },
+                shape = RoundedCornerShape(24.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                ),
+                maxLines = 4
+            )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-                    IconButton(
-                        onClick = {
-                            val cleanPrompt = prompt.trim()
-                            if (cleanPrompt.isNotEmpty()) {
-                                viewModel.sendMessage(cleanPrompt)
-                                prompt = ""
-                            }
-                        },
-                        modifier = Modifier
-                            .size(52.dp)
-                            .background(
-                                color = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                shape = CircleShape
-                            ),
-                        enabled = prompt.isNotBlank() && !isTyping
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Gửi tin nhắn",
-                            tint = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    }
-                }
+            IconButton(
+                onClick = onSubmit,
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(
+                        color = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        shape = CircleShape
+                    ),
+                enabled = prompt.isNotBlank() && !isTyping
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Gửi tin nhắn",
+                    tint = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
             }
         }
     }

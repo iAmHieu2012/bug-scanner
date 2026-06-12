@@ -20,8 +20,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.domain.model.ScanSource
+import hcmus.bugscanner.ui.chat.ChatPromptSuggestions
+import hcmus.bugscanner.ui.components.BugImage
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -38,6 +40,8 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun BugDetailScreen(
     bug: BugInfo,
+    confidence: Float = 0f,
+    source: ScanSource = ScanSource.UNKNOWN,
     viewModel: BugDetailViewModel = koinViewModel(),
     onBackClick: () -> Unit,
     onAskChatbotClick: (String) -> Unit,
@@ -66,9 +70,9 @@ fun BugDetailScreen(
                         .fillMaxHeight()
                         .background(Color.Black)
                 ) {
-                    AsyncImage(
-                        model = currentBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/1000?text=Hình+ảnh+côn+trùng",
-                        contentDescription = "Bug Image",
+                    BugImage(
+                        imageUrl = currentBug.imageUrl,
+                        contentDescription = "Ảnh côn trùng",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -98,16 +102,16 @@ fun BugDetailScreen(
                     ) {
                         BugDetailContent(currentBug, isLoading)
                     }
-                    BugDetailBottomBar(currentBug, onAskChatbotClick, onShareClick)
+                    BugDetailBottomBar(currentBug, confidence, source, onAskChatbotClick, onShareClick)
                 }
             }
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
-                AsyncImage(
-                    model = currentBug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/500?text=Hình+ảnh+côn+trùng",
-                    contentDescription = "Bug Image",
+                BugImage(
+                    imageUrl = currentBug.imageUrl,
+                    contentDescription = "Ảnh côn trùng",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().height(350.dp)
+                    modifier = Modifier.fillMaxWidth().height(320.dp)
                 )
 
                 IconButton(
@@ -123,8 +127,8 @@ fun BugDetailScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 300.dp)
-                        .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                        .padding(top = 272.dp)
+                        .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .background(MaterialTheme.colorScheme.background)
                         .verticalScroll(scrollState)
                         .padding(bottom = 100.dp)
@@ -135,7 +139,7 @@ fun BugDetailScreen(
                 }
 
                 Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                    BugDetailBottomBar(currentBug, onAskChatbotClick, onShareClick)
+                    BugDetailBottomBar(currentBug, confidence, source, onAskChatbotClick, onShareClick)
                 }
             }
         }
@@ -170,16 +174,16 @@ private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
         }
 
         Surface(
-            color = MaterialTheme.colorScheme.errorContainer,
-            shape = RoundedCornerShape(16.dp)
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            shape = RoundedCornerShape(14.dp)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Đã quét", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                Text("Đã nhận diện", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -220,6 +224,8 @@ private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
 @Composable
 private fun BugDetailBottomBar(
     detailedBug: BugInfo,
+    confidence: Float,
+    source: ScanSource,
     onAskChatbotClick: (String) -> Unit,
     onShareClick: (BugInfo) -> Unit
 ) {
@@ -245,7 +251,7 @@ private fun BugDetailBottomBar(
             }
 
             Button(
-                onClick = { onAskChatbotClick("Cung cấp cho tôi thông tin chi tiết và cách xử lý ${detailedBug.name}?") },
+                onClick = { onAskChatbotClick(ChatPromptSuggestions.detailPrompt(detailedBug, confidence, source)) },
                 modifier = Modifier.weight(1.5f).height(50.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)

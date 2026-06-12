@@ -24,7 +24,12 @@ import kotlinx.coroutines.launch
  */
 class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
 
-    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    private val greetingMessage = ChatMessage(
+        "Xin chào! Mình là BugScanner AI. Mình có thể giúp bạn đọc kết quả nhận diện, tìm hiểu côn trùng và gợi ý cách xử lý an toàn.",
+        isUser = false
+    )
+
+    private val _messages = MutableStateFlow(listOf(greetingMessage))
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
     private val _isTyping = MutableStateFlow(false)
@@ -32,10 +37,10 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
 
     private val chatHistory = mutableListOf<GeminiContent>()
 
-    init {
-        _messages.value = listOf(
-            ChatMessage("Xin chào! Mình là BugScanner AI. Mình có thể giúp gì cho bạn trong việc tìm hiểu về côn trùng?", isUser = false)
-        )
+    fun clearConversation() {
+        chatHistory.clear()
+        _messages.value = listOf(greetingMessage)
+        _isTyping.value = false
     }
 
     /**
@@ -47,10 +52,11 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
     fun sendMessage(text: String) {
         if (text.isBlank()) return
 
-        _messages.update { it + ChatMessage(text, isUser = true) }
+        val cleanText = text.trim()
+        _messages.update { it + ChatMessage(cleanText, isUser = true) }
         _isTyping.value = true
 
-        chatHistory.add(GeminiContent(role = "user", parts = listOf(GeminiPart(text = text))))
+        chatHistory.add(GeminiContent(role = "user", parts = listOf(GeminiPart(text = cleanText))))
 
         viewModelScope.launch {
             try {
@@ -60,13 +66,20 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
                 )
 
                 val response = geminiApi.generateContent(requestBody)
-                val replyText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Xin lỗi, mình không có phản hồi."
+                val replyText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                    ?: "Mình chưa nhận được phản hồi từ AI. Bạn thử hỏi lại ngắn gọn hơn nhé."
 
                 chatHistory.add(GeminiContent(role = "model", parts = listOf(GeminiPart(text = replyText))))
                 _messages.update { it + ChatMessage(replyText, isUser = false) }
 
             } catch (e: Exception) {
-                _messages.update { it + ChatMessage("Lỗi kết nối: ${e.message}", isUser = false, isError = true) }
+                _messages.update {
+                    it + ChatMessage(
+                        "Mình chưa kết nối được với AI. Vui lòng kiểm tra mạng hoặc API key rồi thử lại.",
+                        isUser = false,
+                        isError = true
+                    )
+                }
             } finally {
                 _isTyping.value = false
             }

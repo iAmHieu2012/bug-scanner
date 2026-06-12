@@ -19,7 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import bugscanner.composeapp.generated.resources.*
 import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.domain.model.DetectedBugSnapshot
 import hcmus.bugscanner.domain.model.FrameResult
+import hcmus.bugscanner.domain.model.ScanSource
+import hcmus.bugscanner.ui.layout.AdaptiveLayoutSize
+import hcmus.bugscanner.ui.layout.classifyAdaptiveWidth
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
 import hcmus.bugscanner.ui.scan.components.ScannerOverlay
 import org.jetbrains.compose.resources.stringResource
@@ -39,7 +43,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ScanScreen(
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
-    onDetectedBugClick: (BugInfo, ByteArray?) -> Unit,
+    onDetectedBugClick: (DetectedBugSnapshot) -> Unit,
     fallbackViewModel: ScanFallbackViewModel = koinViewModel()
 ) {
     val platformProvider = LocalPlatformScanProvider.current
@@ -51,8 +55,11 @@ fun ScanScreen(
 
     var isScanningLive by remember { mutableStateOf(true) }
     var captureTrigger by remember { mutableLongStateOf(0L) }
+    var cameraSessionKey by remember { mutableLongStateOf(0L) }
+    var runtimeStatus by remember { mutableStateOf<ScanRuntimeStatus>(ScanRuntimeStatus.Idle) }
 
     val isAnalyzingFallback by fallbackViewModel.isAnalyzing.collectAsState()
+    val fallbackErrorMessage by fallbackViewModel.errorMessage.collectAsState()
 
     val pickerHelper = platformProvider.rememberImagePickerHelper(
         onModeChange = {
@@ -65,12 +72,12 @@ fun ScanScreen(
     )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        if (maxWidth > 800.dp) {
+        if (classifyAdaptiveWidth(maxWidth.value) == AdaptiveLayoutSize.EXPANDED) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(modifier = Modifier.weight(0.7f).fillMaxHeight()) {
+                Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     ScanScreenHeader(isLoggedIn, onAuthAction)
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
@@ -88,13 +95,110 @@ fun ScanScreen(
                             isScanningLive = isScanningLive,
                             captureTrigger = captureTrigger,
                             platformProvider = platformProvider,
+                            runtimeStatus = runtimeStatus,
+                            cameraSessionKey = cameraSessionKey,
+                            onRuntimeStatus = { runtimeStatus = it },
+                            onRetry = { cameraSessionKey++ },
                             onResultUpdate = { frameResult = it },
                             onFrameCaptured = { bytes ->
                                 capturedImageBytes = bytes
                                 isScanningLive = false
                             }
-                        )
+                        ) {
+                            ScanControlButtons(
+                                currentMode = currentMode,
+                                isScanningLive = isScanningLive,
+                                onToggleLive = {
+                                    if (isScanningLive) captureTrigger++ else isScanningLive = true
+                                },
+                                pickerHelper = pickerHelper,
+                                onModeChange = { currentMode = it },
+                                onClearResult = {
+                                    frameResult = null
+                                    capturedImageBytes = null
+                                    captureTrigger = 0L
+                                },
+                                alignmentModifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
+                    }
+                }
 
+                Box(modifier = Modifier.widthIn(min = 320.dp, max = 440.dp).fillMaxHeight()) {
+                    DetectionPanel(
+                        currentMode = currentMode,
+                        isScanningLive = isScanningLive,
+                        frameResult = frameResult,
+                        imageBytesToSave = capturedImageBytes,
+                        isAnalyzingFallback = isAnalyzingFallback,
+                        fallbackErrorMessage = fallbackErrorMessage,
+                        onFallbackClick = {
+                            capturedImageBytes?.let { bytes ->
+                                fallbackViewModel.analyzeFallbackImage(bytes) { bugInfo ->
+                                    if (bugInfo != null) {
+                                        onDetectedBugClick(
+                                            DetectedBugSnapshot(
+                                                bug = bugInfo,
+                                                imageBytes = bytes,
+                                                confidence = 0f,
+                                                source = ScanSource.INATURALIST
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onBugClick = { className, displayName, confidence, bytes ->
+                            val bugInfo = BugInfo.empty().copy(
+                                id = className,
+                                name = displayName,
+                                scientificName = className,
+                                identification = "Nguồn nhận diện: YOLO offline\nĐộ tin cậy: ${(confidence * 100).toInt()}%"
+                            )
+                            onDetectedBugClick(
+                                DetectedBugSnapshot(
+                                    bug = bugInfo,
+                                    imageBytes = bytes,
+                                    confidence = confidence,
+                                    source = ScanSource.YOLO
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                ScanScreenHeader(isLoggedIn, onAuthAction)
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(32.dp))
+                        .border(2.dp, Color.White, RoundedCornerShape(32.dp))
+                        .background(Color.Black)
+                ) {
+                    ScanContent(
+                        currentMode = currentMode,
+                        currentImageId = currentImageId,
+                        capturedImageBytes = capturedImageBytes,
+                        frameResult = frameResult,
+                        isScanningLive = isScanningLive,
+                        captureTrigger = captureTrigger,
+                        platformProvider = platformProvider,
+                        runtimeStatus = runtimeStatus,
+                        cameraSessionKey = cameraSessionKey,
+                        onRuntimeStatus = { runtimeStatus = it },
+                        onRetry = { cameraSessionKey++ },
+                        onResultUpdate = { frameResult = it },
+                        onFrameCaptured = { bytes ->
+                            capturedImageBytes = bytes
+                            isScanningLive = false
+                        }
+                    ) {
                         ScanControlButtons(
                             currentMode = currentMode,
                             isScanningLive = isScanningLive,
@@ -113,103 +217,46 @@ fun ScanScreen(
                     }
                 }
 
-                Box(modifier = Modifier.weight(0.3f).fillMaxHeight()) {
-                    DetectionPanel(
-                        currentMode = currentMode,
-                        isScanningLive = isScanningLive,
-                        frameResult = frameResult,
-                        imageBytesToSave = capturedImageBytes,
-                        isAnalyzingFallback = isAnalyzingFallback,
-                        onFallbackClick = {
-                            capturedImageBytes?.let { bytes ->
-                                fallbackViewModel.analyzeFallbackImage(bytes) { bugInfo ->
-                                    if (bugInfo != null) {
-                                        onDetectedBugClick(bugInfo, bytes)
-                                    }
-                                }
-                            }
-                        },
-                        onBugClick = { name, bytes ->
-                            val bugInfo = BugInfo.empty().copy(
-                                id = name,
-                                name = name,
-                                scientificName = name
-                            )
-                            onDetectedBugClick(bugInfo, bytes)
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                ScanScreenHeader(isLoggedIn, onAuthAction)
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .clip(RoundedCornerShape(32.dp))
-                        .border(2.dp, Color.White, RoundedCornerShape(32.dp))
-                        .background(Color.Black)
-                ) {
-                    ScanContent(
-                        currentMode = currentMode,
-                        currentImageId = currentImageId,
-                        capturedImageBytes = capturedImageBytes,
-                        frameResult = frameResult,
-                        isScanningLive = isScanningLive,
-                        captureTrigger = captureTrigger,
-                        platformProvider = platformProvider,
-                        onResultUpdate = { frameResult = it },
-                        onFrameCaptured = { bytes ->
-                            capturedImageBytes = bytes
-                            isScanningLive = false
-                        }
-                    )
-
-                    ScanControlButtons(
-                        currentMode = currentMode,
-                        isScanningLive = isScanningLive,
-                        onToggleLive = {
-                            if (isScanningLive) captureTrigger++ else isScanningLive = true
-                        },
-                        pickerHelper = pickerHelper,
-                        onModeChange = { currentMode = it },
-                        onClearResult = {
-                            frameResult = null
-                            capturedImageBytes = null
-                            captureTrigger = 0L
-                        },
-                        alignmentModifier = Modifier.align(Alignment.BottomCenter)
-                    )
-                }
-
                 DetectionPanel(
                     currentMode = currentMode,
                     isScanningLive = isScanningLive,
                     frameResult = frameResult,
                     imageBytesToSave = capturedImageBytes,
                     isAnalyzingFallback = isAnalyzingFallback,
+                    fallbackErrorMessage = fallbackErrorMessage,
                     onFallbackClick = {
                         capturedImageBytes?.let { bytes ->
                             fallbackViewModel.analyzeFallbackImage(bytes) { bugInfo ->
                                 if (bugInfo != null) {
-                                    onDetectedBugClick(bugInfo, bytes)
+                                    onDetectedBugClick(
+                                        DetectedBugSnapshot(
+                                            bug = bugInfo,
+                                            imageBytes = bytes,
+                                            confidence = 0f,
+                                            source = ScanSource.INATURALIST
+                                        )
+                                    )
                                 }
                             }
                         }
                     },
-                    onBugClick = { name, bytes ->
+                    onBugClick = { className, displayName, confidence, bytes ->
                         val bugInfo = BugInfo.empty().copy(
-                            id = name,
-                            name = name,
-                            scientificName = name
+                            id = className,
+                            name = displayName,
+                            scientificName = className,
+                            identification = "Nguồn nhận diện: YOLO offline\nĐộ tin cậy: ${(confidence * 100).toInt()}%"
                         )
-                        onDetectedBugClick(bugInfo, bytes)
+                        onDetectedBugClick(
+                            DetectedBugSnapshot(
+                                bug = bugInfo,
+                                imageBytes = bytes,
+                                confidence = confidence,
+                                source = ScanSource.YOLO
+                            )
+                        )
                     },
-                    modifier = Modifier.fillMaxWidth().height(300.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 188.dp, max = 260.dp)
                 )
             }
         }
@@ -269,7 +316,7 @@ private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
  * @param onFrameCaptured Callback nhận dữ liệu hình ảnh sau khi Camera chụp ngầm thành công.
  */
 @Composable
-private fun ScanContent(
+private fun BoxScope.ScanContent(
     currentMode: ScanMode,
     currentImageId: String?,
     capturedImageBytes: ByteArray?,
@@ -277,8 +324,13 @@ private fun ScanContent(
     isScanningLive: Boolean,
     captureTrigger: Long,
     platformProvider: PlatformScanProvider,
+    runtimeStatus: ScanRuntimeStatus,
+    cameraSessionKey: Long,
+    onRuntimeStatus: (ScanRuntimeStatus) -> Unit,
+    onRetry: () -> Unit,
     onResultUpdate: (FrameResult) -> Unit,
-    onFrameCaptured: (ByteArray) -> Unit
+    onFrameCaptured: (ByteArray) -> Unit,
+    controls: @Composable BoxScope.() -> Unit
 ) {
     platformProvider.RequireCameraPermission(
         onGranted = {
@@ -290,7 +342,8 @@ private fun ScanContent(
                             imageId = null,
                             imageBytes = capturedImageBytes,
                             frameResult = frameResult,
-                            onResultUpdate = onResultUpdate
+                            onResultUpdate = onResultUpdate,
+                            onRuntimeStatus = onRuntimeStatus
                         )
                     } else {
                         Box(
@@ -300,19 +353,22 @@ private fun ScanContent(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Rounded.ImageNotSupported, null, modifier = Modifier.size(64.dp), tint = Color.White.copy(alpha = 0.6f))
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text("Chưa bắt kịp khung hình 🐛", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("Chưa bắt kịp khung hình", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("Hãy bấm Quét lại và đợi khung nhận diện hiện rõ", color = Color.White.copy(alpha = 0.7f))
                             }
                         }
                     }
                 } else {
-                    platformProvider.NativeCameraView(
-                        modifier = Modifier.fillMaxSize(),
-                        captureTrigger = captureTrigger,
-                        onResult = onResultUpdate,
-                        onFrameCaptured = onFrameCaptured
-                    )
+                    key(cameraSessionKey) {
+                        platformProvider.NativeCameraView(
+                            modifier = Modifier.fillMaxSize(),
+                            captureTrigger = captureTrigger,
+                            onResult = onResultUpdate,
+                            onFrameCaptured = onFrameCaptured,
+                            onRuntimeStatus = onRuntimeStatus
+                        )
+                    }
                     ScannerOverlay()
                 }
             } else {
@@ -321,14 +377,62 @@ private fun ScanContent(
                     imageId = currentImageId,
                     imageBytes = null,
                     frameResult = frameResult,
-                    onResultUpdate = onResultUpdate
+                    onResultUpdate = onResultUpdate,
+                    onRuntimeStatus = onRuntimeStatus
                 )
             }
+            ScanRuntimeNotice(
+                status = runtimeStatus,
+                onRetry = onRetry,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+            controls()
         },
         onDenied = { launchPermissionRequest ->
             CameraPermissionScreen(onRequestPermission = launchPermissionRequest)
         }
     )
+}
+
+@Composable
+private fun ScanRuntimeNotice(
+    status: ScanRuntimeStatus,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val message = when (status) {
+        ScanRuntimeStatus.Idle -> null
+        ScanRuntimeStatus.RequestingCamera -> "Đang yêu cầu quyền camera..."
+        is ScanRuntimeStatus.LoadingModel -> status.progressPercent?.let { "Đang tải mô hình AI: $it%" } ?: "Đang tải mô hình AI..."
+        is ScanRuntimeStatus.Ready -> if (status.liveDetectionSupported) null else "Backend ${status.backend.label}: hãy đóng băng khung hình hoặc chọn ảnh để nhận diện."
+        is ScanRuntimeStatus.PermissionDenied -> status.message
+        is ScanRuntimeStatus.Unsupported -> status.message
+        is ScanRuntimeStatus.Error -> status.message
+    } ?: return
+
+    val canRetry = status is ScanRuntimeStatus.PermissionDenied || status is ScanRuntimeStatus.Unsupported || status is ScanRuntimeStatus.Error
+    Surface(
+        modifier = modifier.padding(12.dp).widthIn(max = 520.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Black.copy(alpha = 0.72f),
+        contentColor = Color.White
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (status is ScanRuntimeStatus.LoadingModel || status == ScanRuntimeStatus.RequestingCamera) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+            } else {
+                Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(message, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+            if (canRetry) {
+                TextButton(onClick = onRetry) { Text("Thử lại", color = Color.White) }
+            }
+        }
+    }
 }
 
 /**
@@ -401,6 +505,17 @@ private fun ScanControlButtons(
             }
         }
 
-        Spacer(modifier = Modifier.size(56.dp))
+        IconButton(
+            onClick = {
+                onModeChange(ScanMode.LIVE)
+                onClearResult()
+            },
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.5f))
+        ) {
+            Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới", tint = Color.White)
+        }
     }
 }

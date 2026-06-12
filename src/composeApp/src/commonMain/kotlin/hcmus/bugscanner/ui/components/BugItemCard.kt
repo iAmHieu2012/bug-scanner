@@ -11,7 +11,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.BugInfo
-import coil3.compose.AsyncImage
 
 /**
  * Thẻ (Card) hiển thị thông tin tóm tắt và hình ảnh của một loài côn trùng.
@@ -43,9 +42,8 @@ fun BugItemCard(
     ) {
         Column {
             // Vùng hiển thị hình ảnh
-            AsyncImage(
-                // Xử lý fallback URL nếu ảnh rỗng để UI không bị gãy
-                model = bug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/400?text=Hình+ảnh+côn+trùng",
+            BugImage(
+                imageUrl = bug.imageUrl,
                 contentDescription = "Hình ảnh của ${bug.name}",
                 contentScale = ContentScale.Crop, // Cắt cúp ảnh để lấp đầy khung mà không méo tỷ lệ
                 modifier = Modifier

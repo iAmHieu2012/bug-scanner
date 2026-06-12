@@ -10,6 +10,37 @@ import hcmus.bugscanner.domain.model.FrameResult
  */
 enum class ScanMode { LIVE, IMAGE_UPLOAD, CAMERA_CAPTURE }
 
+enum class ScanRuntimeBackend(val label: String) {
+    ANDROID("Thiết bị"),
+    WEBGL("WebGL"),
+    WASM("WASM"),
+    NONE("Không khả dụng")
+}
+
+sealed interface ScanRuntimeStatus {
+    val supportsLiveDetection: Boolean
+        get() = (this as? Ready)?.liveDetectionSupported == true
+
+    val backendLabel: String
+        get() = (this as? Ready)?.backend?.label ?: ScanRuntimeBackend.NONE.label
+
+    data object Idle : ScanRuntimeStatus
+    data object RequestingCamera : ScanRuntimeStatus
+    data class LoadingModel(val progressPercent: Int? = null) : ScanRuntimeStatus
+    data class Ready(
+        val backend: ScanRuntimeBackend,
+        val liveDetectionSupported: Boolean = true
+    ) : ScanRuntimeStatus
+    data class PermissionDenied(
+        val message: String = "Trình duyệt chưa được cấp quyền camera."
+    ) : ScanRuntimeStatus
+    data class Unsupported(
+        val message: String = "Thiết bị này không hỗ trợ nhận diện trực tiếp."
+    ) : ScanRuntimeStatus
+    data class Error(val message: String) : ScanRuntimeStatus
+}
+
+
 /**
  * Interface hỗ trợ gọi các API mở thư viện ảnh hoặc camera chụp tĩnh của hệ thống.
  */
@@ -36,7 +67,8 @@ interface PlatformScanProvider {
         modifier: Modifier,
         captureTrigger: Long,
         onResult: (FrameResult) -> Unit,
-        onFrameCaptured: (ByteArray) -> Unit
+        onFrameCaptured: (ByteArray) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     )
 
     /**
@@ -54,7 +86,8 @@ interface PlatformScanProvider {
         imageId: String?,
         imageBytes: ByteArray?,
         frameResult: FrameResult?,
-        onResultUpdate: (FrameResult) -> Unit
+        onResultUpdate: (FrameResult) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     )
 
     /**

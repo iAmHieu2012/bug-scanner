@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,10 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.core.utils.formatTimestamp
+import hcmus.bugscanner.ui.components.BugImage
 import hcmus.bugscanner.ui.components.EmptyState
+import hcmus.bugscanner.ui.components.ScreenHeader
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -39,6 +41,8 @@ fun HistoryScreen(
     onItemClick: (ScanHistory) -> Unit = {}
 ) {
     val historyList by historyViewModel.historyList.collectAsState()
+    val isSavingHistory by historyViewModel.isSavingHistory.collectAsState()
+    val saveMessage by historyViewModel.saveMessage.collectAsState()
 
     LaunchedEffect(Unit) {
         historyViewModel.fetchHistory()
@@ -50,16 +54,43 @@ fun HistoryScreen(
             .background(MaterialTheme.colorScheme.background)
             .padding(top = 24.dp, start = 16.dp, end = 16.dp)
     ) {
-        Text(
-            text = "Lịch sử khám phá",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground
+        ScreenHeader(
+            title = "Lịch sử khám phá",
+            subtitle = "Những loài côn trùng bạn đã tìm thấy",
+            leadingIcon = Icons.Rounded.History
         )
-        Text(
-            text = "Những loài côn trùng bạn đã tìm thấy",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+
+        if (isSavingHistory || saveMessage != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = if (saveMessage?.startsWith("Chưa") == true) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isSavingHistory) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = if (isSavingHistory) "Đang lưu kết quả nhận diện..." else saveMessage.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (saveMessage?.startsWith("Chưa") == true) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        }
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -110,7 +141,7 @@ fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -120,8 +151,8 @@ fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = item.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/150?text=No+Image",
+            BugImage(
+                imageUrl = item.imageUrl,
                 contentDescription = "Ảnh chụp ${item.bugName}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

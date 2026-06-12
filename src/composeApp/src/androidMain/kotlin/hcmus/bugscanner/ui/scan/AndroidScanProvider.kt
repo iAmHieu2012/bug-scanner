@@ -71,7 +71,8 @@ object AndroidScanProvider : PlatformScanProvider {
         modifier: Modifier,
         captureTrigger: Long,
         onResult: (FrameResult) -> Unit,
-        onFrameCaptured: (ByteArray) -> Unit
+        onFrameCaptured: (ByteArray) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     ) {
         val context = LocalContext.current.applicationContext
 
@@ -88,6 +89,12 @@ object AndroidScanProvider : PlatformScanProvider {
         val frameResult by viewModel.frameResult.collectAsState()
 
         LaunchedEffect(frameResult) { onResult(frameResult) }
+        LaunchedEffect(isReady) {
+            onRuntimeStatus(
+                if (isReady) ScanRuntimeStatus.Ready(ScanRuntimeBackend.ANDROID)
+                else ScanRuntimeStatus.LoadingModel()
+            )
+        }
 
         if (!isReady) {
             Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -120,7 +127,8 @@ object AndroidScanProvider : PlatformScanProvider {
         imageId: String?,
         imageBytes: ByteArray?,
         frameResult: FrameResult?,
-        onResultUpdate: (FrameResult) -> Unit
+        onResultUpdate: (FrameResult) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     ) {
         val context = LocalContext.current
 
@@ -132,6 +140,10 @@ object AndroidScanProvider : PlatformScanProvider {
                 }
             }
         )
+
+        LaunchedEffect(Unit) {
+            onRuntimeStatus(ScanRuntimeStatus.Ready(ScanRuntimeBackend.ANDROID))
+        }
 
         val bitmap = remember(imageId, imageBytes) {
             if (imageBytes != null) {

@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import hcmus.bugscanner.core.di.appModule
+import hcmus.bugscanner.ui.home.AppTab
+import hcmus.bugscanner.ui.layout.classifyAdaptiveWidth
 import hcmus.bugscanner.ui.navigation.AppNavigation
 import org.koin.compose.KoinApplication
 import org.koin.dsl.koinConfiguration
@@ -19,7 +21,10 @@ import org.koin.dsl.koinConfiguration
  */
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-fun App() {
+fun App(
+    initialTab: AppTab = AppTab.SCAN,
+    onTabChanged: (AppTab) -> Unit = {}
+) {
     KoinApplication(
         configuration = koinConfiguration {
             modules(appModule)
@@ -27,7 +32,12 @@ fun App() {
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val windowSizeClass = WindowSizeClass.calculateFromSize(DpSize(maxWidth, maxHeight))
-            AppNavigation(windowSizeClass = windowSizeClass)
+            AppNavigation(
+                windowSizeClass = windowSizeClass,
+                layoutSize = classifyAdaptiveWidth(maxWidth.value),
+                initialTab = initialTab,
+                onTabChanged = onTabChanged
+            )
         }
     }
 }
