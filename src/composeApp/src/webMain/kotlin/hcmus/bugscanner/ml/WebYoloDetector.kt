@@ -118,6 +118,8 @@ object WebYoloDetector {
                 )
             }
             FrameResult(boxes = detectionBoxes, sourceWidth = sourceWidth, sourceHeight = sourceHeight)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             println("Lỗi WebYoloDetector: ${e.message}")
             FrameResult(emptyList(), sourceWidth, sourceHeight)

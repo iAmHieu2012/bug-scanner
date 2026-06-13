@@ -82,6 +82,7 @@ fun WebCameraScreen(
             style.objectFit = "cover"
             style.asDynamic().pointerEvents = "none"
             style.zIndex = "-1"
+            style.setProperty("border-radius", "32px")
         }
     }
 
@@ -90,7 +91,8 @@ fun WebCameraScreen(
     }
 
     DisposableEffect(Unit) {
-        document.body?.appendChild(videoElement)
+        val rootElement = document.getElementById("app") ?: document.body!!
+        rootElement.appendChild(videoElement)
         onRuntimeStatus(ScanRuntimeStatus.RequestingCamera)
 
         val htmlCanvas = document.createElement("canvas") as HTMLCanvasElement
@@ -172,11 +174,12 @@ fun WebCameraScreen(
 
     Box(
         modifier = modifier.fillMaxSize().onGloballyPositioned { coordinates ->
+            val density = window.devicePixelRatio
             val position = coordinates.positionInWindow()
-            videoElement.style.left = "${position.x}px"
-            videoElement.style.top = "${position.y}px"
-            videoElement.style.width = "${coordinates.size.width}px"
-            videoElement.style.height = "${coordinates.size.height}px"
+            videoElement.style.left = "${position.x / density}px"
+            videoElement.style.top = "${position.y / density}px"
+            videoElement.style.width = "${coordinates.size.width / density}px"
+            videoElement.style.height = "${coordinates.size.height / density}px"
         },
         contentAlignment = Alignment.Center
     ) {
@@ -188,6 +191,10 @@ fun WebCameraScreen(
             }
         } else {
             Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(
+                    color = Color.Transparent,
+                    blendMode = androidx.compose.ui.graphics.BlendMode.Clear
+                )
                 val scale = maxOf(size.width / videoWidth, size.height / videoHeight)
                 val drawWidth = videoWidth * scale
                 val drawHeight = videoHeight * scale
