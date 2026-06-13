@@ -65,13 +65,15 @@ object AndroidScanProvider : PlatformScanProvider {
      * @param captureTrigger Cờ tín hiệu kích hoạt lệnh trích xuất khung hình.
      * @param onResult Callback trả về [FrameResult] chứa tọa độ Bounding Box từ AI.
      * @param onFrameCaptured Callback trả về mảng byte (ByteArray) của ảnh vừa được chụp.
+     * @param onRuntimeStatus Callback đồng bộ trạng thái runtime của camera lên component cha.
      */
     @Composable
     override fun NativeCameraView(
         modifier: Modifier,
         captureTrigger: Long,
         onResult: (FrameResult) -> Unit,
-        onFrameCaptured: (ByteArray) -> Unit
+        onFrameCaptured: (ByteArray) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     ) {
         val context = LocalContext.current.applicationContext
 
@@ -88,6 +90,12 @@ object AndroidScanProvider : PlatformScanProvider {
         val frameResult by viewModel.frameResult.collectAsState()
 
         LaunchedEffect(frameResult) { onResult(frameResult) }
+        LaunchedEffect(isReady) {
+            onRuntimeStatus(
+                if (isReady) ScanRuntimeStatus.Ready(ScanRuntimeBackend.ANDROID)
+                else ScanRuntimeStatus.LoadingModel()
+            )
+        }
 
         if (!isReady) {
             Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -113,6 +121,7 @@ object AndroidScanProvider : PlatformScanProvider {
      * @param imageBytes Mảng byte của ảnh (được ưu tiên sử dụng để dựng hình ảnh tức thời).
      * @param frameResult Kết quả tọa độ phân tích từ AI (có thể null nếu đang chờ xử lý).
      * @param onResultUpdate Callback cập nhật kết quả sau khi thực hiện phân tích lại từ Bitmap.
+     * @param onRuntimeStatus Callback đồng bộ trạng thái runtime lên component cha.
      */
     @Composable
     override fun NativeStaticDetectionView(
@@ -120,7 +129,8 @@ object AndroidScanProvider : PlatformScanProvider {
         imageId: String?,
         imageBytes: ByteArray?,
         frameResult: FrameResult?,
-        onResultUpdate: (FrameResult) -> Unit
+        onResultUpdate: (FrameResult) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     ) {
         val context = LocalContext.current
 
@@ -132,6 +142,10 @@ object AndroidScanProvider : PlatformScanProvider {
                 }
             }
         )
+
+        LaunchedEffect(Unit) {
+            onRuntimeStatus(ScanRuntimeStatus.Ready(ScanRuntimeBackend.ANDROID))
+        }
 
         val bitmap = remember(imageId, imageBytes) {
             if (imageBytes != null) {

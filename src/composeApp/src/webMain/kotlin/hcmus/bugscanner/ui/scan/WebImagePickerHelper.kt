@@ -2,17 +2,19 @@ package hcmus.bugscanner.ui.scan
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import hcmus.bugscanner.domain.model.FrameResult
-import hcmus.bugscanner.ml.WebYoloDetector
 import kotlinx.browser.document
-import kotlinx.coroutines.launch
+import kotlinx.browser.window
 import org.khronos.webgl.Int8Array
-import org.w3c.dom.HTMLImageElement
 import org.w3c.dom.HTMLInputElement
-import org.w3c.files.FileReader
 import org.w3c.dom.url.URL
+import org.w3c.files.FileReader
+
+private const val MAX_WEB_IMAGE_BYTES = 10 * 1024 * 1024
 
 /**
  * Trình quản lý tương tác với hệ thống File Explorer và Native Camera của trình duyệt Web.
@@ -31,49 +33,38 @@ fun rememberWebImagePickerHelper(
     onImageIdCaptured: (String) -> Unit,
     onImageBytesCaptured: (ByteArray?) -> Unit
 ): ImagePickerHelper {
-
+    var activeObjectUrl by remember { mutableStateOf<String?>(null) }
     val fileInput = remember {
-        val input = document.createElement("input") as HTMLInputElement
-        input.apply {
+        (document.createElement("input") as HTMLInputElement).apply {
             type = "file"
-            accept = "image/*"
+            accept = "image/jpeg,image/png,image/webp"
         }
     }
 
-    val coroutineScope = rememberCoroutineScope()
-
     DisposableEffect(Unit) {
         fileInput.onchange = {
-            val files = fileInput.files
-            if (files != null && files.length > 0) {
-                val file = files.item(0)
-                if (file != null) {
-                    val imageUrl = URL.createObjectURL(file as org.w3c.files.Blob)
-                    onModeChange(ScanMode.IMAGE_UPLOAD)
-                    onImageIdCaptured(imageUrl)
+            val file = fileInput.files?.item(0)
+            if (file != null) {
+                val fileType = file.asDynamic().type as? String ?: ""
+                val fileSize = file.asDynamic().size as? Double ?: 0.0
+                when {
+                    !fileType.startsWith("image/") -> window.alert("Vui lòng chọn một tệp hình ảnh.")
+                    fileSize > MAX_WEB_IMAGE_BYTES -> window.alert("Ảnh vượt quá giới hạn 10 MB.")
+                    else -> {
+                        activeObjectUrl?.let(URL::revokeObjectURL)
+                        val imageUrl = URL.createObjectURL(file)
+                        activeObjectUrl = imageUrl
+                        onModeChange(ScanMode.IMAGE_UPLOAD)
+                        onImageIdCaptured(imageUrl)
 
-                    val reader = FileReader()
-                    reader.onload = {
-                        val buffer = reader.result as org.khronos.webgl.ArrayBuffer
-                        val byteArray = Int8Array(buffer).unsafeCast<ByteArray>()
-                        onImageBytesCaptured(byteArray)
-                        null
-                    }
-                    reader.readAsArrayBuffer(file as org.w3c.files.Blob)
-
-                    val imgElement = document.createElement("img") as HTMLImageElement
-                    imgElement.onload = {
-                        coroutineScope.launch {
-                            try {
-                                val result = WebYoloDetector.analyze(imgElement, imgElement.width, imgElement.height)
-                                onResult(result)
-                            } catch (e: Exception) {
-                                println("Lỗi xử lý ảnh tĩnh AI: ${e.message}")
-                            }
+                        val reader = FileReader()
+                        reader.onload = {
+                            val buffer = reader.result as org.khronos.webgl.ArrayBuffer
+                            onImageBytesCaptured(Int8Array(buffer).unsafeCast<ByteArray>())
+                            null
                         }
-                        null
+                        reader.readAsArrayBuffer(file)
                     }
-                    imgElement.src = imageUrl
                 }
             }
             null
@@ -81,17 +72,20 @@ fun rememberWebImagePickerHelper(
 
         onDispose {
             fileInput.onchange = null
+            activeObjectUrl?.let(URL::revokeObjectURL)
         }
     }
 
-    return remember {
+    return remember(fileInput) {
         object : ImagePickerHelper {
             override fun launchGallery() {
+                fileInput.value = ""
                 fileInput.removeAttribute("capture")
                 fileInput.click()
             }
 
             override fun launchCamera() {
+                fileInput.value = ""
                 fileInput.setAttribute("capture", "environment")
                 fileInput.click()
             }

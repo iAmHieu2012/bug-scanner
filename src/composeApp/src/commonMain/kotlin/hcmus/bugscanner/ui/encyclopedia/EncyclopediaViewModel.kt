@@ -132,7 +132,7 @@ class EncyclopediaViewModel(
                             description = shortDescription,
                             imageUrl = taxon.defaultPhoto?.mediumUrl
                                 ?: taxon.defaultPhoto?.squareUrl
-                                ?: "https://via.placeholder.com/300?text=No+Image",
+                                ?: "",
                             identification = bioStats,
                             danger = "",
                             treatment = "",

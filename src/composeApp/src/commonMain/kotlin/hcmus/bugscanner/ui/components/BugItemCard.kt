@@ -11,7 +11,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.BugInfo
-import coil3.compose.AsyncImage
 
 /**
  * Thẻ (Card) hiển thị thông tin tóm tắt và hình ảnh của một loài côn trùng.
@@ -31,9 +30,8 @@ fun BugItemCard(
 ) {
     Card(
         onClick = { onClick(bug) },
-        // Sử dụng Modifier truyền từ ngoài vào, kết hợp với các cài đặt mặc định
         modifier = modifier
-            .fillMaxWidth() // Chiếm toàn bộ không gian được Parent cấp cho
+            .fillMaxWidth()
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -42,31 +40,25 @@ fun BugItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // Vùng hiển thị hình ảnh
-            AsyncImage(
-                // Xử lý fallback URL nếu ảnh rỗng để UI không bị gãy
-                model = bug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/400?text=Hình+ảnh+côn+trùng",
+            BugImage(
+                imageUrl = bug.imageUrl,
                 contentDescription = "Hình ảnh của ${bug.name}",
-                contentScale = ContentScale.Crop, // Cắt cúp ảnh để lấp đầy khung mà không méo tỷ lệ
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    // Bo 2 góc trên của ảnh để ăn khớp với độ bo của Card
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             )
 
-            // Vùng nội dung chữ
             Column(modifier = Modifier.padding(16.dp)) {
-                // Tên phổ thông
                 Text(
                     text = bug.name,
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1, // Giới hạn 1 dòng, tránh tên quá dài làm xô lệch layout
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Tên khoa học
                 Text(
                     text = bug.scientificName.ifBlank { "Chưa cập nhật tên khoa học" },
                     style = MaterialTheme.typography.labelMedium,
@@ -74,12 +66,11 @@ fun BugItemCard(
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                 )
 
-                // Mô tả tóm tắt
                 Text(
                     text = bug.description.ifBlank { "Đang cập nhật thông tin mô tả chi tiết cho loài côn trùng này..." },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3, // Giới hạn mô tả tối đa 3 dòng để Card không bị quá dài
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4f
                 )

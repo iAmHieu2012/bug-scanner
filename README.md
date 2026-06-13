@@ -8,6 +8,15 @@
 
 BugScanner is a full-stack, multiplatform insect detection and classification ecosystem built with **Kotlin Multiplatform (KMP)** and **Compose Multiplatform**. It goes beyond a simple identification tool — it combines on-device edge AI inference, cloud-based fallback identification, an LLM-powered chatbot, and a self-expanding Firestore encyclopedia into a single, unified application for **Android** and **Web**.
 
+## 🔗 Access & Downloads
+
+* **Web app:** [https://bugscanner-2026.web.app](https://bugscanner-2026.web.app)
+* **Android APK release:** [BugScanner v0.1.0 Debug APK](https://github.com/iAmHieu2012/bug-scanner/releases/tag/v0.1.0-debug)
+* **Direct APK download:** [composeApp-debug.apk](https://github.com/iAmHieu2012/bug-scanner/releases/download/v0.1.0-debug/composeApp-debug.apk)
+
+The Android package above is a debug/testing APK distributed through GitHub Releases, not a Play Store build. Android may ask you to allow installation from GitHub or your browser before installing it.
+
+
 ## ⚙️ How It Works
 
 BugScanner uses a **Hybrid Detection Engine** with two tiers to ensure speed, offline capability, and high accuracy:

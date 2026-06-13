@@ -3,10 +3,15 @@ package hcmus.bugscanner.ui.auth
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -15,7 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.ui.theme.AppIcon
 import hcmus.bugscanner.ui.theme.IconBugscanner
@@ -38,9 +46,33 @@ fun AuthScreen(
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var validationMessage by remember { mutableStateOf<String?>(null) }
+    var isPasswordVisible by remember { mutableStateOf(false) }
 
     val authState by authViewModel.authState.collectAsState()
     val isWideScreen = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+
+    fun submitAuth() {
+        val validation = AuthValidation.validate(email, password)
+        if (validation != null) {
+            validationMessage = validation.message
+            return
+        }
+
+        validationMessage = null
+        if (isLoginMode) authViewModel.signInWithEmail(email.trim(), password)
+        else authViewModel.signUpWithEmail(email.trim(), password)
+    }
+
+    fun updateEmail(value: String) {
+        email = value
+        validationMessage = null
+    }
+
+    fun updatePassword(value: String) {
+        password = value
+        validationMessage = null
+    }
 
     if (isWideScreen) {
         Row(
@@ -53,7 +85,7 @@ fun AuthScreen(
                     .weight(1f)
                     .fillMaxHeight()
                     .padding(24.dp)
-                    .clip(RoundedCornerShape(32.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
@@ -85,13 +117,16 @@ fun AuthScreen(
                     email = email,
                     password = password,
                     authState = authState,
-                    onEmailChange = { email = it },
-                    onPasswordChange = { password = it },
-                    onToggleMode = { isLoginMode = !isLoginMode },
-                    onActionClick = {
-                        if (isLoginMode) authViewModel.signInWithEmail(email, password)
-                        else authViewModel.signUpWithEmail(email, password)
+                    validationMessage = validationMessage,
+                    isPasswordVisible = isPasswordVisible,
+                    onEmailChange = ::updateEmail,
+                    onPasswordChange = ::updatePassword,
+                    onPasswordVisibilityToggle = { isPasswordVisible = !isPasswordVisible },
+                    onToggleMode = {
+                        validationMessage = null
+                        isLoginMode = !isLoginMode
                     },
+                    onActionClick = ::submitAuth,
                     onGuestClick = { authViewModel.signInAnonymously() }
                 )
             }
@@ -101,22 +136,35 @@ fun AuthScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
-            AuthForm(
-                isLoginMode = isLoginMode,
-                email = email,
-                password = password,
-                authState = authState,
-                onEmailChange = { email = it },
-                onPasswordChange = { password = it },
-                onToggleMode = { isLoginMode = !isLoginMode },
-                onActionClick = {
-                    if (isLoginMode) authViewModel.signInWithEmail(email, password)
-                    else authViewModel.signUpWithEmail(email, password)
-                },
-                onGuestClick = { authViewModel.signInAnonymously() }
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(top = 24.dp, bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                AuthForm(
+                    isLoginMode = isLoginMode,
+                    email = email,
+                    password = password,
+                    authState = authState,
+                    validationMessage = validationMessage,
+                    isPasswordVisible = isPasswordVisible,
+                    onEmailChange = ::updateEmail,
+                    onPasswordChange = ::updatePassword,
+                    onPasswordVisibilityToggle = { isPasswordVisible = !isPasswordVisible },
+                    onToggleMode = {
+                        validationMessage = null
+                        isLoginMode = !isLoginMode
+                    },
+                    onActionClick = ::submitAuth,
+                    onGuestClick = { authViewModel.signInAnonymously() }
+                )
+            }
         }
     }
 }
@@ -128,9 +176,12 @@ fun AuthScreen(
  * @param isLoginMode Cờ xác định form đang ở chế độ Đăng nhập (true) hay Đăng ký (false).
  * @param email Giá trị text hiện tại của trường nhập Email.
  * @param password Giá trị text hiện tại của trường nhập Mật khẩu.
- * @param authState Trạng thái xử lý mạng hiện tại để hiển thị Loading hoặc Lỗi.
+ * @param authState Trạng thái xử lý mạng hiện tại để hiển thị Loading hoặc Lỗi từ Firebase.
+ * @param validationMessage Thông báo lỗi kiểm tra định dạng tại local.
+ * @param isPasswordVisible Trạng thái ẩn/hiện mật khẩu.
  * @param onEmailChange Callback khi người dùng gõ vào trường Email.
  * @param onPasswordChange Callback khi người dùng gõ vào trường Mật khẩu.
+ * @param onPasswordVisibilityToggle Callback khi thay đổi ẩn/hiện mật khẩu.
  * @param onToggleMode Callback chuyển đổi qua lại giữa chế độ Đăng nhập và Đăng ký.
  * @param onActionClick Callback kích hoạt hành động gọi API đăng nhập/đăng ký.
  * @param onGuestClick Callback kích hoạt hành động đăng nhập dưới quyền Khách (Ẩn danh).
@@ -141,23 +192,28 @@ private fun AuthForm(
     email: String,
     password: String,
     authState: AuthState,
+    validationMessage: String?,
+    isPasswordVisible: Boolean,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
+    onPasswordVisibilityToggle: () -> Unit,
     onToggleMode: () -> Unit,
     onActionClick: () -> Unit,
     onGuestClick: () -> Unit
 ) {
+    val errorMessage = validationMessage ?: (authState as? AuthState.Error)?.message
+
     Column(
         modifier = Modifier
-            .padding(32.dp)
+            .padding(28.dp)
             .widthIn(max = 400.dp)
             .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(22.dp),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
+            shadowElevation = 6.dp
         ) {
             Image(
                 imageVector = AppIcon.IconBugscanner,
@@ -166,10 +222,10 @@ private fun AuthForm(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(22.dp))
 
         Text(
-            text = if (isLoginMode) "Chào mừng trở lại!" else "Tạo tài khoản BugScanner",
+            text = if (isLoginMode) "Chào mừng trở lại" else "Tạo tài khoản BugScanner",
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -179,39 +235,59 @@ private fun AuthForm(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        if (authState is AuthState.Error) {
-            Text(
-                text = authState.message,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+        if (errorMessage != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+            }
         }
 
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
             label = { Text("Email") },
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            isError = validationMessage?.contains("Email") == true || validationMessage?.contains("email") == true
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         OutlinedTextField(
             value = password,
             onValueChange = onPasswordChange,
             label = { Text("Mật khẩu") },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            visualTransformation = PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = onPasswordVisibilityToggle) {
+                    Icon(
+                        imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (isPasswordVisible) "Ẩn mật khẩu" else "Hiện mật khẩu"
+                    )
+                }
+            },
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            isError = validationMessage?.contains("Mật khẩu") == true
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         Button(
             onClick = onActionClick,
@@ -234,7 +310,7 @@ private fun AuthForm(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         TextButton(onClick = onToggleMode) {
             Text(

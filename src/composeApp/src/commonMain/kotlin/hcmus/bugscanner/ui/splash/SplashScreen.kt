@@ -13,12 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 import hcmus.bugscanner.ui.theme.AppIcon
 import hcmus.bugscanner.ui.theme.IconBugscanner
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -31,18 +28,7 @@ import kotlin.time.Duration.Companion.milliseconds
 fun SplashScreen(onSplashFinished: () -> Unit) {
     val scale = remember { Animatable(0.5f) }
 
-    val encyclopediaRepository: EncyclopediaRepository = koinInject()
-
     LaunchedEffect(key1 = true) {
-        launch {
-            try {
-                encyclopediaRepository.prefetchDatabase()
-                println("Đã tải xong Database lúc Splash Screen!")
-            } catch (e: Exception) {
-                println("Lỗi tải data Offline ở Splash: ${e.message}")
-            }
-        }
-
         scale.animateTo(
             targetValue = 1.2f,
             animationSpec = tween(durationMillis = 800)

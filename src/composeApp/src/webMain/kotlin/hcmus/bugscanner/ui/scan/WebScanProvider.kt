@@ -4,12 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.CircularProgressIndicator
 import hcmus.bugscanner.domain.model.FrameResult
+import hcmus.bugscanner.ml.WebYoloDetector
 import kotlinx.coroutines.launch
+import org.w3c.dom.HTMLImageElement
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -18,7 +17,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * Đóng vai trò là cầu nối giữa cây giao diện Compose Multiplatform và các API đặc thù của Trình duyệt Web.
  */
 object WebScanProvider : PlatformScanProvider {
-
     /**
      * Hàm xin quyền truy cập Camera trên nền tảng Web.
      * Trình duyệt xử lý quyền tự động khi gọi Video API, nên hàm này gọi thẳng vào block xử lý thành công.
@@ -30,9 +28,7 @@ object WebScanProvider : PlatformScanProvider {
     override fun RequireCameraPermission(
         onGranted: @Composable () -> Unit,
         onDenied: @Composable (onRequestPermission: () -> Unit) -> Unit
-    ) {
-        onGranted()
-    }
+    ) = onGranted()
 
     /**
      * Màn hình hiển thị luồng trực tiếp từ Camera trên nền tảng Web thông qua thẻ <video> HTML.
@@ -41,20 +37,17 @@ object WebScanProvider : PlatformScanProvider {
      * @param captureTrigger Trạng thái kích hoạt lệnh chụp ảnh ngầm từ màn hình chính.
      * @param onResult Callback trả về kết quả tọa độ Bounding Box của mô hình AI.
      * @param onFrameCaptured Callback xuất dữ liệu ảnh (ByteArray) chất lượng cao khi có lệnh chụp.
+     * @param onRuntimeStatus Callback đồng bộ trạng thái runtime lên component cha.
      */
     @Composable
     override fun NativeCameraView(
         modifier: Modifier,
         captureTrigger: Long,
         onResult: (FrameResult) -> Unit,
-        onFrameCaptured: (ByteArray) -> Unit
+        onFrameCaptured: (ByteArray) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     ) {
-        WebCameraScreen(
-            modifier = modifier,
-            captureTrigger = captureTrigger,
-            onResult = onResult,
-            onFrameCaptured = onFrameCaptured
-        )
+        WebCameraScreen(modifier, captureTrigger, onResult, onFrameCaptured, onRuntimeStatus)
     }
 
     /**
@@ -66,6 +59,7 @@ object WebScanProvider : PlatformScanProvider {
      * @param imageBytes Mảng byte của ảnh.
      * @param frameResult Kết quả tọa độ phân tích từ AI.
      * @param onResultUpdate Callback cập nhật kết quả phân tích AI sau khi Model chạy xong.
+     * @param onRuntimeStatus Callback đồng bộ trạng thái runtime lên component cha.
      */
     @OptIn(ExperimentalEncodingApi::class)
     @Composable
@@ -74,46 +68,32 @@ object WebScanProvider : PlatformScanProvider {
         imageId: String?,
         imageBytes: ByteArray?,
         frameResult: FrameResult?,
-        onResultUpdate: (FrameResult) -> Unit
+        onResultUpdate: (FrameResult) -> Unit,
+        onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     ) {
         val displayId = remember(imageId, imageBytes) {
-            if (imageBytes != null) {
-                "data:image/jpeg;base64,${Base64.encode(imageBytes)}"
-            } else {
-                imageId
-            }
+            imageBytes?.let { "data:image/jpeg;base64,${Base64.encode(it)}" } ?: imageId
         }
-
-        val coroutineScope = rememberCoroutineScope()
+        val scope = rememberCoroutineScope()
 
         LaunchedEffect(displayId) {
-            if (displayId != null && imageBytes != null) {
-                val img = kotlinx.browser.document.createElement("img") as org.w3c.dom.HTMLImageElement
-                img.src = displayId
-                img.onload = { _ ->
-                    coroutineScope.launch {
-                        try {
-                            val result = hcmus.bugscanner.ml.WebYoloDetector.analyze(img, img.width, img.height)
-                            onResultUpdate(result)
-                        } catch (e: Exception) {
-                            println("Lỗi Re-detect Web: $e")
-                        }
-                    }
+            if (displayId == null) return@LaunchedEffect
+            onRuntimeStatus(ScanRuntimeStatus.LoadingModel())
+            val runtime = WebYoloDetector.initialize()
+            onRuntimeStatus(runtime.toRuntimeStatus())
+            if (!runtime.ready) return@LaunchedEffect
+
+            val image = kotlinx.browser.document.createElement("img") as HTMLImageElement
+            image.onload = {
+                scope.launch {
+                    onResultUpdate(WebYoloDetector.analyze(image, image.width, image.height))
                 }
+                null
             }
+            image.src = displayId
         }
 
-        if (frameResult != null) {
-            WebStaticDetectionScreen(
-                modifier = modifier,
-                imageId = displayId,
-                frameResult = frameResult
-            )
-        } else if (displayId != null) {
-            Box(modifier = modifier, contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
+        WebStaticDetectionScreen(modifier = modifier, imageId = displayId, frameResult = frameResult)
     }
 
     /**
@@ -131,12 +111,10 @@ object WebScanProvider : PlatformScanProvider {
         onResult: (FrameResult) -> Unit,
         onImageIdCaptured: (String) -> Unit,
         onImageBytesCaptured: (ByteArray?) -> Unit
-    ): ImagePickerHelper {
-        return rememberWebImagePickerHelper(
-            onModeChange = onModeChange,
-            onResult = onResult,
-            onImageIdCaptured = onImageIdCaptured,
-            onImageBytesCaptured = onImageBytesCaptured
-        )
-    }
+    ): ImagePickerHelper = rememberWebImagePickerHelper(
+        onModeChange,
+        onResult,
+        onImageIdCaptured,
+        onImageBytesCaptured
+    )
 }

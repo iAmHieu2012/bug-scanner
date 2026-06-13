@@ -5,7 +5,11 @@ import androidx.lifecycle.viewModelScope
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import hcmus.bugscanner.core.utils.TimeUtils.getCurrentTimeMillis
+import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.domain.model.DetectedBugSnapshot
 import hcmus.bugscanner.domain.model.ScanHistory
+import hcmus.bugscanner.domain.model.ScanSource
+import hcmus.bugscanner.domain.model.toHistory
 import hcmus.bugscanner.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +21,7 @@ import kotlinx.coroutines.launch
  * Quản lý luồng dữ liệu hai chiều: Kéo danh sách về (Fetch) và Đẩy dữ liệu + hình ảnh lên (Save/Upload).
  * Người dùng dưới quyền Khách (Anonymous) sẽ bị từ chối quyền lưu trữ.
  *
- * @param repository Đối tượng quản lý các thao tác lưu trữ và truy xuất lịch sử.
+ * @param repository Repository chịu trách nhiệm thao tác dữ liệu lịch sử (lưu trữ và tải hình ảnh).
  */
 class HistoryViewModel(
     private val repository: HistoryRepository
@@ -31,42 +35,97 @@ class HistoryViewModel(
      */
     val historyList: StateFlow<List<ScanHistory>> = _historyList.asStateFlow()
 
+    private val _isSavingHistory = MutableStateFlow(false)
+
     /**
-     * Lưu một kết quả nhận diện mới vào lịch sử người dùng.
-     * Tự động xử lý tuần tự: Upload ảnh lên Storage (nếu có) -> Lấy URL ảnh -> Tạo Entity -> Lưu Firestore.
-     *
-     * @param bugName Tên của loài côn trùng được mô hình AI phân loại thành công.
-     * @param imageBytes Dữ liệu thô của bức ảnh. Mặc định là `null` nếu quá trình quét không sinh ra ảnh.
+     * Trạng thái cho biết đang trong quá trình tải ảnh và lưu lịch sử lên server hay không.
      */
-    fun addHistory(bugName: String, imageBytes: ByteArray? = null) {
+    val isSavingHistory: StateFlow<Boolean> = _isSavingHistory.asStateFlow()
+
+    private val _saveMessage = MutableStateFlow<String?>(null)
+
+    /**
+     * Thông điệp kết quả của việc lưu lịch sử (thành công hoặc thông báo lỗi).
+     */
+    val saveMessage: StateFlow<String?> = _saveMessage.asStateFlow()
+
+    /**
+     * Thêm bản ghi nhận diện mới vào lịch sử.
+     * Thực hiện tải hình ảnh lên Firebase Storage trước khi lưu thông tin vào Firestore.
+     *
+     * @param snapshot Đối tượng snapshot chứa thông tin côn trùng và mảng byte hình ảnh.
+     */
+    fun addHistory(snapshot: DetectedBugSnapshot) {
         val currentUser = Firebase.auth.currentUser
 
-        if (currentUser != null && !currentUser.isAnonymous) {
-            viewModelScope.launch {
-                var uploadedUrl = ""
+        if (currentUser == null || currentUser.isAnonymous) {
+            _saveMessage.value = null
+            return
+        }
 
-                if (imageBytes != null) {
-                    val url = repository.uploadImage(currentUser.uid, imageBytes)
+        viewModelScope.launch {
+            _isSavingHistory.value = true
+            var uploadedUrl = snapshot.bug.imageUrl
+            var uploadFailed = false
+
+            try {
+                if (snapshot.imageBytes != null) {
+                    val url = repository.uploadImage(currentUser.uid, snapshot.imageBytes)
                     if (url != null) {
                         uploadedUrl = url
+                    } else {
+                        uploadFailed = true
                     }
                 }
 
-                val newHistory = ScanHistory(
+                val newHistory = snapshot.toHistory(
                     userId = currentUser.uid,
-                    bugName = bugName,
                     timestamp = getCurrentTimeMillis(),
-                    imageUrl = uploadedUrl
+                    uploadedImageUrl = uploadedUrl
                 )
 
-                repository.saveHistory(newHistory)
+                val saved = repository.saveHistory(newHistory)
+                if (saved) {
+                    _historyList.value = listOf(newHistory) + _historyList.value
+                    _saveMessage.value = if (uploadFailed) {
+                        "Đã lưu lịch sử nhưng chưa tải được ảnh."
+                    } else {
+                        "Đã lưu kết quả vào lịch sử."
+                    }
+                } else {
+                    _saveMessage.value = "Chưa lưu được lịch sử. Vui lòng thử lại."
+                }
+            } catch (e: Exception) {
+                _saveMessage.value = "Chưa lưu được lịch sử. Vui lòng kiểm tra kết nối."
+            } finally {
+                _isSavingHistory.value = false
             }
         }
     }
 
     /**
-     * Truy xuất toàn bộ lịch sử quét của người dùng đang đăng nhập từ Firestore.
-     * Tự động bỏ qua yêu cầu nếu phát hiện người dùng đang dùng phiên khách (Guest Mode).
+     * Thêm bản ghi nhận diện mới (dạng legacy/thủ công chỉ có tên và hình ảnh) vào lịch sử.
+     *
+     * @param bugName Tên côn trùng được nhận diện.
+     * @param imageBytes Dữ liệu mảng byte của hình ảnh.
+     */
+    fun addHistory(bugName: String, imageBytes: ByteArray? = null) {
+        val legacyBug = BugInfo.empty().copy(
+            id = bugName,
+            name = bugName,
+            scientificName = bugName
+        )
+        addHistory(
+            DetectedBugSnapshot(
+                bug = legacyBug,
+                imageBytes = imageBytes,
+                source = ScanSource.UNKNOWN
+            )
+        )
+    }
+
+    /**
+     * Tải toàn bộ danh sách lịch sử nhận diện của người dùng hiện tại từ cơ sở dữ liệu.
      */
     fun fetchHistory() {
         val currentUser = Firebase.auth.currentUser

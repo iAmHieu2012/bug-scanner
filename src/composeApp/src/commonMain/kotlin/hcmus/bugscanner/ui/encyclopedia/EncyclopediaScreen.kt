@@ -17,9 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.ui.components.BugItemCard
+import hcmus.bugscanner.ui.components.BugImage
+import hcmus.bugscanner.ui.components.EmptyState
+import hcmus.bugscanner.ui.components.ScreenHeader
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -40,6 +42,13 @@ fun EncyclopediaScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        ScreenHeader(
+            title = "Bách khoa côn trùng",
+            subtitle = "Dữ liệu nhận diện và thông tin sinh học tham khảo.",
+            leadingIcon = Icons.Rounded.GridView,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp)
+        )
+
         PrimaryTabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -99,7 +108,8 @@ fun ExploreTab(
                 .padding(16.dp),
             placeholder = { Text("Tìm côn trùng trong dữ liệu ứng dụng...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp)
         )
 
         if (isLoading) {
@@ -107,27 +117,25 @@ fun ExploreTab(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else if (exploreList.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Không tìm thấy kết quả nào", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            EmptyState("Không tìm thấy kết quả nào")
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 150.dp),
+                columns = GridCells.Adaptive(minSize = 220.dp),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(exploreList) { bug ->
                     Card(
                         onClick = { onBugSelected(bug) },
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column {
-                            AsyncImage(
-                                model = bug.imageUrl.takeIf { it.isNotBlank() } ?: "https://via.placeholder.com/300?text=No+Image",
+                            BugImage(
+                                imageUrl = bug.imageUrl,
                                 contentDescription = bug.name,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -174,7 +182,8 @@ fun SearchTab(
                 .padding(16.dp),
             placeholder = { Text("Nhập tên côn trùng để tra cứu iNaturalist...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp)
         )
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {

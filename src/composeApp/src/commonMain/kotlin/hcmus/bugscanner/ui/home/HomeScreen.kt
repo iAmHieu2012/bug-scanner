@@ -7,8 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,12 +15,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.domain.model.DetectedBugSnapshot
+import hcmus.bugscanner.domain.model.ScanSource
+import hcmus.bugscanner.domain.model.toBugInfo
+import hcmus.bugscanner.ui.chat.ChatScreen
+import hcmus.bugscanner.ui.components.RequireAuthScreen
 import hcmus.bugscanner.ui.detail.BugDetailScreen
+import hcmus.bugscanner.ui.encyclopedia.EncyclopediaScreen
 import hcmus.bugscanner.ui.history.HistoryScreen
 import hcmus.bugscanner.ui.history.HistoryViewModel
-import hcmus.bugscanner.ui.components.RequireAuthScreen
-import hcmus.bugscanner.ui.chat.ChatScreen
-import hcmus.bugscanner.ui.encyclopedia.EncyclopediaScreen
+import hcmus.bugscanner.ui.layout.AdaptiveLayoutSize
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -31,34 +33,36 @@ import org.koin.compose.viewmodel.koinViewModel
 enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT }
 
 /**
- * Màn hình chính đóng vai trò là bộ định tuyến nội bộ (Internal Router) cho các tính năng cốt lõi.
- * Sử dụng `WindowSizeClass` để hỗ trợ hiển thị linh hoạt (Adaptive Layout).
+ * Màn hình chính (Home Screen) của ứng dụng.
+ * Đóng vai trò là Navigation Host cấp Tab và quản lý sự thay đổi bố cục thích ứng (Adaptive Layout).
+ * Tích hợp thanh điều hướng bên (NavigationRail) trên màn hình lớn và thanh điều hướng dưới (NavigationBar) trên màn hình nhỏ.
  *
- * @param windowSizeClass Kích thước màn hình hiện tại để thiết lập Layout Responsive.
- * @param isLoggedIn Trạng thái xác thực hiện tại của người dùng.
- * @param onAuthAction Callback yêu cầu đăng nhập/đăng xuất.
- * @param onShareClick Callback xử lý sự kiện chia sẻ thông tin côn trùng.
- * @param scanTabContent Component giao diện Tab Quét được tiêm (inject) từ bên ngoài.
- * @param historyViewModel ViewModel quản lý thao tác với Database lịch sử.
+ * @param layoutSize Kích thước thích ứng của màn hình (AdaptiveLayoutSize) dùng để xác định loại thanh điều hướng.
+ * @param initialTab Tab ban đầu khi mở màn hình, mặc định là tab quét (AppTab.SCAN).
+ * @param onTabChanged Callback kích hoạt khi người dùng chuyển tab.
+ * @param isLoggedIn Trạng thái đăng nhập của người dùng.
+ * @param onAuthAction Callback xử lý hành động xác thực (Đăng nhập/Đăng xuất).
+ * @param onShareClick Callback xử lý chia sẻ thông tin côn trùng.
+ * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
+ * @param historyViewModel ViewModel quản lý lịch sử nhận diện côn trùng.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    windowSizeClass: WindowSizeClass,
+    layoutSize: AdaptiveLayoutSize,
+    initialTab: AppTab = AppTab.SCAN,
+    onTabChanged: (AppTab) -> Unit = {},
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo, ByteArray?) -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (BugInfo, ByteArray?) -> Unit) -> Unit,
+    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel = koinViewModel()
 ) {
-    var currentTab by remember { mutableStateOf(AppTab.SCAN) }
-    var selectedBug by remember { mutableStateOf<BugInfo?>(null) }
-    var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var currentTab by remember { mutableStateOf(initialTab) }
+    var selectedSnapshot by remember { mutableStateOf<DetectedBugSnapshot?>(null) }
     var initialChatPrompt by remember { mutableStateOf<String?>(null) }
     var initialChatImage by remember { mutableStateOf<ByteArray?>(null) }
     var initialChatImageUrl by remember { mutableStateOf<String?>(null) }
-
-    val bugToShow = selectedBug
 
     val navItems: List<Triple<AppTab, String, ImageVector>> = listOf(
         Triple(AppTab.SCAN, "Nhận diện", Icons.Rounded.CenterFocusWeak),
@@ -67,25 +71,34 @@ fun HomeScreen(
         Triple(AppTab.CHATBOT, "Trợ lý", Icons.Rounded.SmartToy)
     )
 
-    val isWideScreen = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+    LaunchedEffect(initialTab) {
+        if (selectedSnapshot == null) currentTab = initialTab
+    }
 
-    if (bugToShow != null) {
+    fun selectTab(tab: AppTab) {
+        if (tab == AppTab.CHATBOT) initialChatPrompt = null
+        selectedSnapshot = null
+        currentTab = tab
+        onTabChanged(tab)
+    }
+
+    val isWideScreen = layoutSize == AdaptiveLayoutSize.EXPANDED
+    val snapshotToShow = selectedSnapshot
+
+    if (snapshotToShow != null) {
         BugDetailScreen(
-            bug = bugToShow,
-            onBackClick = {
-                selectedBug = null
-                selectedImageBytes = null
-            },
+            bug = snapshotToShow.bug,
+            confidence = snapshotToShow.confidence,
+            source = snapshotToShow.source,
+            onBackClick = { selectedSnapshot = null },
             onAskChatbotClick = { prompt ->
                 initialChatPrompt = prompt
-                initialChatImage = selectedImageBytes
-                initialChatImageUrl = bugToShow.imageUrl
-                selectedBug = null
-                selectedImageBytes = null
+                selectedSnapshot = null
                 currentTab = AppTab.CHATBOT
+                onTabChanged(AppTab.CHATBOT)
             },
             onShareClick = { bug ->
-                onShareClick(bug, selectedImageBytes)
+                onShareClick(bug, snapshotToShow.imageBytes)
             }
         )
     } else {
@@ -108,14 +121,7 @@ fun HomeScreen(
                             icon = { Icon(icon, contentDescription = null) },
                             label = { Text(label, fontSize = 12.sp) },
                             selected = currentTab == tab,
-                            onClick = {
-                                if (tab == AppTab.CHATBOT) {
-                                    initialChatPrompt = null
-                                    initialChatImage = null
-                                    initialChatImageUrl = null
-                                }
-                                currentTab = tab
-                            },
+                            onClick = { selectTab(tab) },
                             colors = NavigationRailItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -138,10 +144,7 @@ fun HomeScreen(
                         onAuthAction = onAuthAction,
                         scanTabContent = scanTabContent,
                         historyViewModel = historyViewModel,
-                        onBugSelected = { bug, bytes ->
-                            selectedBug = bug
-                            selectedImageBytes = bytes
-                        },
+                        onSnapshotSelected = { selectedSnapshot = it },
                         initialChatPrompt = initialChatPrompt,
                         initialChatImage = initialChatImage,
                         initialChatImageUrl = initialChatImageUrl,
@@ -159,28 +162,21 @@ fun HomeScreen(
                     Surface(
                         modifier = Modifier
                             .navigationBarsPadding()
-                            .padding(16.dp)
-                            .clip(RoundedCornerShape(24.dp)),
-                        tonalElevation = 8.dp,
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .clip(RoundedCornerShape(20.dp)),
+                        tonalElevation = 5.dp,
                         color = MaterialTheme.colorScheme.surface
                     ) {
                         NavigationBar(
                             containerColor = Color.Transparent,
-                            modifier = Modifier.height(70.dp)
+                            modifier = Modifier.height(64.dp)
                         ) {
                             navItems.forEach { (tab, label, icon) ->
                                 NavigationBarItem(
                                     icon = { Icon(icon, contentDescription = null) },
                                     label = { Text(label, fontSize = 10.sp) },
                                     selected = currentTab == tab,
-                                    onClick = {
-                                        if (tab == AppTab.CHATBOT) {
-                                            initialChatPrompt = null
-                                            initialChatImage = null
-                                            initialChatImageUrl = null
-                                        }
-                                        currentTab = tab
-                                    },
+                                onClick = { selectTab(tab) },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = MaterialTheme.colorScheme.primary,
                                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -204,10 +200,7 @@ fun HomeScreen(
                         onAuthAction = onAuthAction,
                         scanTabContent = scanTabContent,
                         historyViewModel = historyViewModel,
-                        onBugSelected = { bug, bytes ->
-                            selectedBug = bug
-                            selectedImageBytes = bytes
-                        },
+                        onSnapshotSelected = { selectedSnapshot = it },
                         initialChatPrompt = initialChatPrompt,
                         initialChatImage = initialChatImage,
                         initialChatImageUrl = initialChatImageUrl,
@@ -224,49 +217,48 @@ fun HomeScreen(
 }
 
 /**
- * Component hiển thị nội dung của từng Tab tương ứng, được tách hàm để tái sử dụng cho cấu trúc Adaptive Layout.
+ * Component điều phối nội dung chi tiết tương ứng với Tab đang được chọn.
  *
- * @param currentTab Tab đang được chọn hiện tại.
- * @param isLoggedIn Trạng thái xác thực.
- * @param onAuthAction Callback xử lý xác thực.
- * @param scanTabContent Nội dung giao diện Tab Quét.
+ * @param currentTab Tab hiện tại đang hiển thị.
+ * @param isLoggedIn Trạng thái đăng nhập của người dùng.
+ * @param onAuthAction Callback xử lý hành động xác thực.
+ * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
  * @param historyViewModel ViewModel quản lý dữ liệu lịch sử.
- * @param onBugSelected Callback truyền dữ liệu côn trùng khi một bản ghi được nhấn.
- * @param initialChatPrompt Nội dung prompt mặc định cần truyền vào Chatbot.
- * @param initialChatImage Hình ảnh đính kèm dạng byte mặc định.
- * @param initialChatImageUrl Hình ảnh đính kèm dạng URL mặc định.
- * @param onClearChatPrompt Callback làm sạch nội dung prompt và ảnh.
+ * @param onSnapshotSelected Callback khi một snapshot côn trùng được lựa chọn (ví dụ: sau khi quét hoặc từ lịch sử).
+ * @param initialChatPrompt Nội dung prompt khởi tạo truyền sang màn hình Trợ lý.
+ * @param initialChatImage Dữ liệu ảnh dạng mảng byte khởi tạo truyền sang màn hình Trợ lý.
+ * @param initialChatImageUrl URL ảnh khởi tạo truyền sang màn hình Trợ lý.
+ * @param onClearChatPrompt Callback để xoá sạch các thông tin khởi tạo của chatbot.
  */
 @Composable
 private fun HomeContent(
     currentTab: AppTab,
     isLoggedIn: Boolean,
     onAuthAction: () -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (BugInfo, ByteArray?) -> Unit) -> Unit,
+    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
-    onBugSelected: (BugInfo, ByteArray?) -> Unit,
+    onSnapshotSelected: (DetectedBugSnapshot) -> Unit,
     initialChatPrompt: String?,
     initialChatImage: ByteArray?,
     initialChatImageUrl: String?,
     onClearChatPrompt: () -> Unit
 ) {
     when (currentTab) {
-        AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { detectedBug, imageBytes ->
-            historyViewModel.addHistory(detectedBug.name, imageBytes)
-            onBugSelected(detectedBug, imageBytes)
+        AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { snapshot ->
+            historyViewModel.addHistory(snapshot)
+            onSnapshotSelected(snapshot)
         }
         AppTab.HISTORY -> {
             if (isLoggedIn) {
                 HistoryScreen(
                     onItemClick = { historyItem ->
-                        onBugSelected(
-                            BugInfo.empty().copy(
-                                id = historyItem.bugName,
-                                name = historyItem.bugName,
-                                scientificName = historyItem.bugName,
-                                imageUrl = historyItem.imageUrl
-                            ),
-                            null
+                        onSnapshotSelected(
+                            DetectedBugSnapshot(
+                                bug = historyItem.toBugInfo(),
+                                imageBytes = null,
+                                confidence = historyItem.confidence,
+                                source = ScanSource.fromValue(historyItem.source)
+                            )
                         )
                     }
                 )
@@ -274,7 +266,11 @@ private fun HomeContent(
                 RequireAuthScreen(onAuthAction = onAuthAction)
             }
         }
-        AppTab.WIKI -> EncyclopediaScreen(onBugSelected = { onBugSelected(it, null) })
+        AppTab.WIKI -> EncyclopediaScreen(
+            onBugSelected = {
+                onSnapshotSelected(DetectedBugSnapshot(bug = it, source = ScanSource.UNKNOWN))
+            }
+        )
         AppTab.CHATBOT -> {
             ChatScreen(
                 initialPrompt = initialChatPrompt,
