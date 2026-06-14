@@ -49,7 +49,7 @@ val appModule = module {
     // 3. Tầng API Services: Koin tự động tìm HttpClient ở trên (qua hàm get()) để tiêm vào
     single { GeminiApiService(client = get()) }
     single { GroqApiService(client = get()) }
-    single { INaturalistApiService(client = get()) }
+    single { INaturalistApiService(client = get(), db = get()) }
     single { WikiApiService(client = get()) }
 
     // 4. Tầng Repositories: Tự động tiêm Firebase db và HttpClient vào phần Impl

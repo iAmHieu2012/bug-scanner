@@ -1,6 +1,6 @@
 package hcmus.bugscanner.data.remote
 
-import hcmus.bugscanner.BuildConfig
+import dev.gitlive.firebase.firestore.FirebaseFirestore
 import hcmus.bugscanner.domain.model.INaturalistResponse
 import hcmus.bugscanner.domain.model.INaturalistTaxon
 import io.ktor.client.*
@@ -9,6 +9,14 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
+
+/**
+ * Cấu trúc dữ liệu cấu hình iNaturalist Token lấy từ Firestore.
+ */
+@Serializable
+data class INatConfig(
+    val api_token: String = ""
+)
 
 /**
  * Lớp bao bọc (Wrapper) danh sách kết quả trả về từ API Computer Vision của iNaturalist.
@@ -36,8 +44,29 @@ data class INaturalistCVResult(
  * Cung cấp các phương thức để tra cứu thông tin sinh học bằng văn bản và nhận diện bằng hình ảnh.
  *
  * @property client Đối tượng [HttpClient] được cung cấp bởi hệ thống Dependency Injection (Koin).
+ * @property db Đối tượng [FirebaseFirestore] dùng để tải động cấu hình token tại runtime.
  */
-class INaturalistApiService(private val client: HttpClient) {
+class INaturalistApiService(
+    private val client: HttpClient,
+    private val db: FirebaseFirestore
+) {
+
+    /**
+     * Lấy token iNaturalist đã được lưu động trên Firestore.
+     */
+    private suspend fun fetchTokenFromFirestore(): String {
+        return try {
+            val document = db.collection("configs").document("inaturalist").get()
+            if (document.exists) {
+                document.data<INatConfig>().api_token
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            println("Lỗi khi lấy iNaturalist token từ Firestore: ${e.message}")
+            ""
+        }
+    }
 
     /**
      * Tìm kiếm một loài côn trùng trên hệ thống cơ sở dữ liệu của iNaturalist bằng từ khóa.
@@ -71,6 +100,7 @@ class INaturalistApiService(private val client: HttpClient) {
      * @throws Exception Nếu hình ảnh không hợp lệ, dung lượng quá lớn, hoặc máy chủ từ chối yêu cầu.
      */
     suspend fun identifyImageByVision(imageBytes: ByteArray): INaturalistResponse {
+        val myToken = fetchTokenFromFirestore()
         val cvResponse: INaturalistCVResponse = client.submitFormWithBinaryData(
             url = "https://api.inaturalist.org/v1/computervision/score_image",
             formData = formData {
@@ -83,7 +113,6 @@ class INaturalistApiService(private val client: HttpClient) {
         ) {
             headers {
                 append("User-Agent", "BugScannerApp/1.0 (hcmus.bugscanner)")
-                val myToken = BuildConfig.INATURALIST_API_TOKEN
                 if (myToken.isNotEmpty()) {
                     append(HttpHeaders.Authorization, "Bearer $myToken")
                 }

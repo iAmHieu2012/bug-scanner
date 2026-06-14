@@ -54,6 +54,27 @@ if __name__ == "__main__":
     try:
         new_token = get_token_via_scraping()
         
+        # Đẩy token lên Firestore
+        service_account_str = os.getenv('FIREBASE_SERVICE_ACCOUNT_KEY')
+        if service_account_str:
+            import json
+            import firebase_admin
+            from firebase_admin import credentials, firestore
+
+            print("5. Đăng nhập và cập nhật token lên Firestore...")
+            cred_dict = json.loads(service_account_str)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+
+            db = firestore.client()
+            db.collection('configs').document('inaturalist').set({
+                'api_token': new_token,
+                'updated_at': firestore.SERVER_TIMESTAMP
+            })
+            print("Cập nhật Firestore thành công!")
+        else:
+            print("Không tìm thấy biến FIREBASE_SERVICE_ACCOUNT_KEY, bỏ qua cập nhật Firestore.")
+
         # Đẩy token này vào biến môi trường tạm của GitHub Actions
         env_file = os.getenv('GITHUB_ENV')
         if env_file:
