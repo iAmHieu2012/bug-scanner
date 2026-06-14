@@ -39,7 +39,7 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
     private var lastRotation = -1
     private val tensorImage = TensorImage(DataType.FLOAT32)
 
-    private val outputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, 106, 16464), DataType.FLOAT32)
+    private lateinit var outputBuffer: TensorBuffer
 
     init {
         val options = Interpreter.Options()
@@ -50,6 +50,9 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
             options.setNumThreads(4)
         }
         interpreter = Interpreter(loadModelFile(context, modelPath), options)
+        
+        val outputShape = interpreter!!.getOutputTensor(0).shape()
+        outputBuffer = TensorBuffer.createFixedSize(outputShape, DataType.FLOAT32)
     }
 
     /**
@@ -110,8 +113,8 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
 
     /**
      * Giải mã ma trận đầu ra phẳng của mô hình YOLOv8 thành danh sách các Bounding Box thô.
-     * Ma trận đầu ra có kích thước hàng nhân cột là (106 x 16464) chuyển thành mảng 1 chiều.
-     * Trong đó: 4 hàng đầu là tọa độ (cx, cy, w, h), 102 hàng sau là điểm số (score) của các nhãn sâu bệnh.
+     * Ma trận đầu ra có kích thước hàng nhân cột là (numRows x 16464) chuyển thành mảng 1 chiều.
+     * Trong đó: 4 hàng đầu là tọa độ (cx, cy, w, h), các hàng còn lại là điểm số (score) của các nhãn sâu bệnh tương ứng.
      *
      * @param array Mảng phẳng chứa dữ liệu đầu ra từ mô hình TensorFlow Lite.
      * @return Danh sách các kết quả nhận diện [DetectionResult] thô được trích xuất.
@@ -119,7 +122,7 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
     private fun parseYoloOutput(array: FloatArray): List<DetectionResult> {
         val boxes = mutableListOf<DetectionResult>()
         val numColumns = 16464
-        val numRows = 106
+        val numRows = outputBuffer.shape[1]
 
         val maxScores = FloatArray(numColumns)
         val classIds = IntArray(numColumns) { -1 }

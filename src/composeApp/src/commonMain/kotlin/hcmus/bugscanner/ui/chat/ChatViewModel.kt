@@ -28,9 +28,13 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * @property messages Trạng thái danh sách tin nhắn hiện tại hiển thị trên UI.
  * @property isTyping Trạng thái chờ phản hồi từ AI (dùng để hiển thị Typing Indicator).
  * @param geminiApi Dịch vụ gọi mạng hỗ trợ giao tiếp với Google Gemini được cung cấp bởi DI (Koin).
+ * @param httpClient Ktor Client được inject từ Koin để tải dữ liệu hình ảnh.
  */
 @OptIn(ExperimentalEncodingApi::class)
-class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
+class ChatViewModel(
+    private val geminiApi: GeminiApiService,
+    private val httpClient: HttpClient
+) : ViewModel() {
 
     private val greetingMessage = ChatMessage(
         "Xin chào! Mình là BugScanner AI. Mình có thể giúp bạn đọc kết quả nhận diện, tìm hiểu côn trùng và gợi ý cách xử lý an toàn.",
@@ -75,9 +79,7 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
                 var finalBytes = imageBytes
 
                 if (finalBytes == null && !imageUrl.isNullOrBlank()) {
-                    val client = HttpClient()
-                    finalBytes = client.get(imageUrl).readRawBytes()
-                    client.close()
+                    finalBytes = httpClient.get(imageUrl).readRawBytes()
                     _messages.update { list ->
                         list.map { msg ->
                             if (msg === initialMessage) {

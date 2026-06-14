@@ -132,7 +132,7 @@ object AndroidScanProvider : PlatformScanProvider {
         onResultUpdate: (FrameResult) -> Unit,
         onRuntimeStatus: (ScanRuntimeStatus) -> Unit
     ) {
-        val context = LocalContext.current
+        val context = LocalContext.current.applicationContext
 
         val viewModel: ScanViewModel = viewModel(
             factory = object : androidx.lifecycle.ViewModelProvider.Factory {
