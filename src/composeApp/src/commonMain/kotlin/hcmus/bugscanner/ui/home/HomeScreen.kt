@@ -76,7 +76,11 @@ fun HomeScreen(
     }
 
     fun selectTab(tab: AppTab) {
-        if (tab == AppTab.CHATBOT) initialChatPrompt = null
+        if (tab == AppTab.CHATBOT) {
+            initialChatPrompt = null
+            initialChatImage = null
+            initialChatImageUrl = null
+        }
         selectedSnapshot = null
         currentTab = tab
         onTabChanged(tab)
@@ -93,6 +97,8 @@ fun HomeScreen(
             onBackClick = { selectedSnapshot = null },
             onAskChatbotClick = { prompt ->
                 initialChatPrompt = prompt
+                initialChatImage = snapshotToShow.imageBytes
+                initialChatImageUrl = snapshotToShow.bug.imageUrl
                 selectedSnapshot = null
                 currentTab = AppTab.CHATBOT
                 onTabChanged(AppTab.CHATBOT)

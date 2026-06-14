@@ -10,7 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,10 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import hcmus.bugscanner.ui.chat.components.ChatBubble
 import hcmus.bugscanner.ui.chat.components.TypingIndicator
+import hcmus.bugscanner.ui.scan.LocalPlatformScanProvider
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -42,16 +47,33 @@ fun ChatScreen(
     viewModel: ChatViewModel = koinViewModel()
 ) {
     var prompt by remember { mutableStateOf("") }
+    var imageToSend by remember { mutableStateOf<ByteArray?>(null) }
+    var urlToSend by remember { mutableStateOf<String?>(null) }
     var lastAutoSentPrompt by remember { mutableStateOf<String?>(null) }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
     val listState = rememberLazyListState()
 
+    val scanProvider = LocalPlatformScanProvider.current
+    val imagePicker = scanProvider.rememberImagePickerHelper(
+        onModeChange = {},
+        onResult = {},
+        onImageIdCaptured = {},
+        onImageBytesCaptured = { bytes ->
+            if (bytes != null) {
+                imageToSend = bytes
+                urlToSend = null
+            }
+        }
+    )
+
     fun submitPrompt(text: String = prompt) {
         val cleanPrompt = text.trim()
-        if (cleanPrompt.isNotEmpty() && !isTyping) {
-            viewModel.sendMessage(cleanPrompt)
+        if ((cleanPrompt.isNotEmpty() || imageToSend != null || urlToSend != null) && !isTyping) {
+            viewModel.sendMessage(cleanPrompt, imageToSend, urlToSend)
             prompt = ""
+            imageToSend = null
+            urlToSend = null
         }
     }
 
@@ -114,7 +136,14 @@ fun ChatScreen(
             ChatInput(
                 prompt = prompt,
                 isTyping = isTyping,
+                imageBytes = imageToSend,
+                imageUrl = urlToSend,
                 onPromptChange = { prompt = it },
+                onPickImageClick = { imagePicker.launchGallery() },
+                onRemoveImageClick = {
+                    imageToSend = null
+                    urlToSend = null
+                },
                 onSubmit = ::submitPrompt
             )
         }
@@ -213,66 +242,126 @@ private fun PromptSuggestions(onPromptClick: (String) -> Unit) {
  *
  * @param prompt Nội dung văn bản hiện tại trong ô nhập liệu.
  * @param isTyping Trạng thái AI đang phản hồi (để vô hiệu hóa nút gửi).
+ * @param imageBytes Hình ảnh dạng mảng bytes đang được đính kèm.
+ * @param imageUrl Link ảnh dạng URL đang được đính kèm.
  * @param onPromptChange Callback khi nội dung trong ô nhập liệu thay đổi.
+ * @param onPickImageClick Callback khi người dùng nhấn chọn hình ảnh từ thư viện.
+ * @param onRemoveImageClick Callback khi người dùng xóa hình ảnh đã chọn.
  * @param onSubmit Callback khi gửi tin nhắn đi.
  */
 @Composable
 private fun ChatInput(
     prompt: String,
     isTyping: Boolean,
+    imageBytes: ByteArray?,
+    imageUrl: String?,
     onPromptChange: (String) -> Unit,
+    onPickImageClick: () -> Unit,
+    onRemoveImageClick: () -> Unit,
     onSubmit: () -> Unit
 ) {
     Surface(
         color = MaterialTheme.colorScheme.background,
         shadowElevation = 8.dp
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .imePadding()
-                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.Bottom
+                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp)
         ) {
-            OutlinedTextField(
-                value = prompt,
-                onValueChange = onPromptChange,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        "Hỏi BugScanner điều gì đó...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            if (imageBytes != null || imageUrl != null) {
+                Box(
+                    modifier = Modifier.padding(top = 4.dp, end = 12.dp, bottom = 8.dp, start = 8.dp)
+                ) {
+                    AsyncImage(
+                        model = imageBytes ?: imageUrl,
+                        contentDescription = "Ảnh chuẩn bị gửi",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .sizeIn(maxWidth = 120.dp, maxHeight = 120.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                     )
-                },
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                ),
-                maxLines = 4
-            )
 
-            Spacer(modifier = Modifier.width(12.dp))
+                    IconButton(
+                        onClick = onRemoveImageClick,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = (-6).dp)
+                            .size(20.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Xóa ảnh",
+                            tint = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+            }
 
-            IconButton(
-                onClick = onSubmit,
-                modifier = Modifier
-                    .size(52.dp)
-                    .background(
-                        color = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                        shape = CircleShape
-                    ),
-                enabled = prompt.isNotBlank() && !isTyping
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Gửi tin nhắn",
-                    tint = if (prompt.isNotBlank() && !isTyping) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                IconButton(
+                    onClick = onPickImageClick,
+                    modifier = Modifier
+                        .padding(end = 8.dp, bottom = 4.dp)
+                        .size(48.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Image,
+                        contentDescription = "Chọn ảnh từ thư viện",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                OutlinedTextField(
+                    value = prompt,
+                    onValueChange = onPromptChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            "Hỏi BugScanner điều gì đó...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                    ),
+                    maxLines = 4
                 )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                val canSend = (prompt.isNotBlank() || imageBytes != null || imageUrl != null) && !isTyping
+
+                IconButton(
+                    onClick = onSubmit,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(
+                            color = if (canSend) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            shape = CircleShape
+                        ),
+                    enabled = canSend
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Gửi tin nhắn",
+                        tint = if (canSend) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
     }

@@ -66,27 +66,33 @@ class ChatViewModel(private val geminiApi: GeminiApiService) : ViewModel() {
         if (text.isBlank() && imageBytes == null && imageUrl == null) return
 
         val cleanText = text.trim()
-        _messages.update { it + ChatMessage(cleanText, isUser = true) }
+        val initialMessage = ChatMessage(cleanText, isUser = true, imageBytes = imageBytes)
+        _messages.update { it + initialMessage }
         _isTyping.value = true
-
-        chatHistory.add(GeminiContent(role = "user", parts = listOf(GeminiPart(text = cleanText))))
 
         viewModelScope.launch {
             try {
                 var finalBytes = imageBytes
 
-                if (finalBytes == null && imageUrl != null) {
+                if (finalBytes == null && !imageUrl.isNullOrBlank()) {
                     val client = HttpClient()
                     finalBytes = client.get(imageUrl).readRawBytes()
                     client.close()
+                    _messages.update { list ->
+                        list.map { msg ->
+                            if (msg === initialMessage) {
+                                msg.copy(imageBytes = finalBytes)
+                            } else {
+                                msg
+                            }
+                        }
+                    }
                 }
-
-                _messages.update { it + ChatMessage(text = text, isUser = true, imageBytes = finalBytes) }
 
                 val userParts = mutableListOf<GeminiPart>()
 
-                if (text.isNotBlank()) {
-                    userParts.add(GeminiPart(text = text))
+                if (cleanText.isNotBlank()) {
+                    userParts.add(GeminiPart(text = cleanText))
                 }
 
                 if (finalBytes != null) {

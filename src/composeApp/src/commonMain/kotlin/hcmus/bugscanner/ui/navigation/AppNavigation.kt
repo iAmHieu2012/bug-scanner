@@ -40,8 +40,10 @@ fun AppNavigation(
         val shareManager = rememberShareManager()
         val encyclopediaRepository: EncyclopediaRepository = koinInject()
 
-        LaunchedEffect(Unit) {
-            encyclopediaRepository.prefetchDatabase()
+        LaunchedEffect(authState) {
+            if (authState is AuthState.Success) {
+                encyclopediaRepository.prefetchDatabase()
+            }
         }
 
         if (showSplash) {
