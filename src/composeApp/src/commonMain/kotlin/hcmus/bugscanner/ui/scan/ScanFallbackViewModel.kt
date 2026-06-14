@@ -4,50 +4,79 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import hcmus.bugscanner.data.remote.INaturalistApiService
 import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.domain.model.DetectedBugSnapshot
+import hcmus.bugscanner.domain.model.ScanSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel dùng chung (commonMain) hỗ trợ luồng dự phòng (Fallback) cho chức năng Quét.
- * Đảm nhận trách nhiệm gọi API iNaturalist để phân tích hình ảnh chuyên sâu khi mô hình AI Offline (YOLO) không thể nhận diện được.
- * Tách biệt hoàn toàn với logic Native (CameraX/TFLite) để đảm bảo kiến trúc đa nền tảng (KMP) không bị phá vỡ.
+ * ViewModel dùng chung (commonMain) hỗ trợ luồng dự phòng (Fallback) và điều phối kết quả Quét.
+ * Tách biệt hoàn toàn logic ra khỏi giao diện (MVVM).
  *
- * @param apiService Dịch vụ mạng iNaturalist được tiêm tự động thông qua Dependency Injection (Koin).
+ * @property apiService Dịch vụ gọi API iNaturalist để phân tích ảnh dự phòng.
  */
 class ScanFallbackViewModel(
     private val apiService: INaturalistApiService
 ) : ViewModel() {
 
     /**
-     * Trạng thái cho biết quá trình phân tích ảnh qua mạng đang diễn ra hay không.
-     * Giao diện (UI) sử dụng trạng thái này để hiển thị hiệu ứng tải (Loading/Spinner) và khóa nút bấm.
+     * Trạng thái cho biết quá trình gọi mạng API có đang diễn ra hay không.
      */
     private val _isAnalyzing = MutableStateFlow(false)
     val isAnalyzing: StateFlow<Boolean> = _isAnalyzing.asStateFlow()
 
     /**
-     * Trạng thái lưu trữ thông báo lỗi mới nhất nếu cuộc gọi API gặp sự cố.
+     * Thông báo lỗi hiển thị nếu xảy ra sự cố mạng hoặc API.
      */
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     /**
-     * Xóa thông báo lỗi hiện tại.
+     * Trạng thái sự kiện mang dữ liệu sinh học [DetectedBugSnapshot] để kích hoạt chuyển hướng màn hình sau khi quét.
      */
+    private val _scanEvent = MutableStateFlow<DetectedBugSnapshot?>(null)
+    val scanEvent: StateFlow<DetectedBugSnapshot?> = _scanEvent.asStateFlow()
+
     fun clearError() {
         _errorMessage.value = null
     }
 
+    fun clearScanEvent() {
+        _scanEvent.value = null
+    }
+
     /**
-     * Gửi dữ liệu hình ảnh lên máy chủ iNaturalist để định danh loài côn trùng.
-     * Tự động trích xuất và đóng gói kết quả sơ bộ thành đối tượng [BugInfo].
+     * Xử lý kết quả nhận diện từ mô hình AI Offline (YOLO) và đóng gói thành đối tượng [DetectedBugSnapshot].
      *
-     * @param imageBytes Mảng byte (ByteArray) của bức ảnh cần phân tích.
-     * @param onResult Callback trả về đối tượng [BugInfo] chứa thông tin sinh vật nếu nhận diện thành công, trả về null nếu thất bại hoặc có lỗi mạng.
+     * @param className Tên lớp côn trùng từ mô hình YOLO.
+     * @param displayName Tên hiển thị bằng tiếng Việt.
+     * @param confidence Độ tin cậy (từ 0.0 đến 1.0) của kết quả nhận diện.
+     * @param imageBytes Dữ liệu hình ảnh đính kèm.
      */
-    fun analyzeFallbackImage(imageBytes: ByteArray, onResult: (BugInfo?) -> Unit) {
+    fun handleYoloDetection(className: String, displayName: String, confidence: Float, imageBytes: ByteArray?) {
+        val bugInfo = BugInfo.empty().copy(
+            id = className,
+            name = displayName,
+            scientificName = className,
+            identification = "Nguồn nhận diện: YOLO offline\nĐộ tin cậy: ${(confidence * 100).toInt()}%"
+        )
+        _scanEvent.value = DetectedBugSnapshot(
+            bug = bugInfo,
+            imageBytes = imageBytes,
+            confidence = confidence,
+            source = ScanSource.YOLO
+        )
+    }
+
+    /**
+     * Gửi dữ liệu hình ảnh lên máy chủ iNaturalist để định danh chuyên sâu bằng AI mạng.
+     * Tự động khởi tạo Snapshot [ScanSource.INATURALIST] nếu thành công.
+     *
+     * @param imageBytes Mảng byte hình ảnh cần phân tích.
+     */
+    fun analyzeFallbackImage(imageBytes: ByteArray) {
         viewModelScope.launch {
             _isAnalyzing.value = true
             _errorMessage.value = null
@@ -87,14 +116,18 @@ class ScanFallbackViewModel(
                         treatment = "",
                         wikiUrl = taxon.wikipediaUrl ?: ""
                     )
-                    onResult(bugInfo)
+                    
+                    _scanEvent.value = DetectedBugSnapshot(
+                        bug = bugInfo,
+                        imageBytes = imageBytes,
+                        confidence = 0f,
+                        source = ScanSource.INATURALIST
+                    )
                 } else {
                     _errorMessage.value = "iNaturalist chưa tìm thấy loài phù hợp cho ảnh này."
-                    onResult(null)
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Không kết nối được iNaturalist. Vui lòng kiểm tra mạng hoặc API token."
-                onResult(null)
             } finally {
                 _isAnalyzing.value = false
             }

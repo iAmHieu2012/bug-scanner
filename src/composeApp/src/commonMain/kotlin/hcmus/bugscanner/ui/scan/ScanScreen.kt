@@ -60,6 +60,14 @@ fun ScanScreen(
 
     val isAnalyzingFallback by fallbackViewModel.isAnalyzing.collectAsState()
     val fallbackErrorMessage by fallbackViewModel.errorMessage.collectAsState()
+    val scanEvent by fallbackViewModel.scanEvent.collectAsState()
+
+    LaunchedEffect(scanEvent) {
+        scanEvent?.let {
+            onDetectedBugClick(it)
+            fallbackViewModel.clearScanEvent()
+        }
+    }
 
     val pickerHelper = platformProvider.rememberImagePickerHelper(
         onModeChange = {
@@ -134,35 +142,11 @@ fun ScanScreen(
                         fallbackErrorMessage = fallbackErrorMessage,
                         onFallbackClick = {
                             capturedImageBytes?.let { bytes ->
-                                fallbackViewModel.analyzeFallbackImage(bytes) { bugInfo ->
-                                    if (bugInfo != null) {
-                                        onDetectedBugClick(
-                                            DetectedBugSnapshot(
-                                                bug = bugInfo,
-                                                imageBytes = bytes,
-                                                confidence = 0f,
-                                                source = ScanSource.INATURALIST
-                                            )
-                                        )
-                                    }
-                                }
+                                fallbackViewModel.analyzeFallbackImage(bytes)
                             }
                         },
                         onBugClick = { className, displayName, confidence, bytes ->
-                            val bugInfo = BugInfo.empty().copy(
-                                id = className,
-                                name = displayName,
-                                scientificName = className,
-                                identification = "Nguồn nhận diện: YOLO offline\nĐộ tin cậy: ${(confidence * 100).toInt()}%"
-                            )
-                            onDetectedBugClick(
-                                DetectedBugSnapshot(
-                                    bug = bugInfo,
-                                    imageBytes = bytes,
-                                    confidence = confidence,
-                                    source = ScanSource.YOLO
-                                )
-                            )
+                            fallbackViewModel.handleYoloDetection(className, displayName, confidence, bytes)
                         },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -226,35 +210,11 @@ fun ScanScreen(
                     fallbackErrorMessage = fallbackErrorMessage,
                     onFallbackClick = {
                         capturedImageBytes?.let { bytes ->
-                            fallbackViewModel.analyzeFallbackImage(bytes) { bugInfo ->
-                                if (bugInfo != null) {
-                                    onDetectedBugClick(
-                                        DetectedBugSnapshot(
-                                            bug = bugInfo,
-                                            imageBytes = bytes,
-                                            confidence = 0f,
-                                            source = ScanSource.INATURALIST
-                                        )
-                                    )
-                                }
-                            }
+                            fallbackViewModel.analyzeFallbackImage(bytes)
                         }
                     },
                     onBugClick = { className, displayName, confidence, bytes ->
-                        val bugInfo = BugInfo.empty().copy(
-                            id = className,
-                            name = displayName,
-                            scientificName = className,
-                            identification = "Nguồn nhận diện: YOLO offline\nĐộ tin cậy: ${(confidence * 100).toInt()}%"
-                        )
-                        onDetectedBugClick(
-                            DetectedBugSnapshot(
-                                bug = bugInfo,
-                                imageBytes = bytes,
-                                confidence = confidence,
-                                source = ScanSource.YOLO
-                            )
-                        )
+                        fallbackViewModel.handleYoloDetection(className, displayName, confidence, bytes)
                     },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 188.dp, max = 260.dp)
                 )

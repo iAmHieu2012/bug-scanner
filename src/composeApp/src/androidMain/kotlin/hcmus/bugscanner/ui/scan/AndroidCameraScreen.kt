@@ -54,7 +54,7 @@ fun AndroidCameraScreen(
     val cameraExecutor = viewModel.cameraExecutor
 
     var currentTrigger by remember { mutableLongStateOf(0L) }
-    var lastCapturedTrigger by remember { mutableLongStateOf(0L) }
+    val lastCapturedTrigger = remember { java.util.concurrent.atomic.AtomicLong(0L) }
 
     LaunchedEffect(captureTrigger) {
         currentTrigger = captureTrigger
@@ -102,8 +102,8 @@ fun AndroidCameraScreen(
                                 val bitmap = imageProxy.toBitmap()
                                 val rotation = imageProxy.imageInfo.rotationDegrees
 
-                                if (currentTrigger > lastCapturedTrigger) {
-                                    lastCapturedTrigger = currentTrigger
+                                if (currentTrigger > lastCapturedTrigger.get()) {
+                                    lastCapturedTrigger.set(currentTrigger)
 
                                     val finalBitmap = if (rotation != 0) {
                                         val matrix = android.graphics.Matrix()
@@ -124,7 +124,6 @@ fun AndroidCameraScreen(
 
                                 viewModel.analyzeImage(bitmap, rotation)
 
-                                bitmap.recycle()
                                 imageProxy.close()
                             }
                         }

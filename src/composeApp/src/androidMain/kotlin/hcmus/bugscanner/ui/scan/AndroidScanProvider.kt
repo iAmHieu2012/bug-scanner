@@ -158,7 +158,7 @@ object AndroidScanProvider : PlatformScanProvider {
         }
 
         LaunchedEffect(bitmap) {
-            if (bitmap != null && imageBytes != null) {
+            if (bitmap != null) {
                 viewModel.analyzeImage(bitmap, 0)
                 onResultUpdate(viewModel.frameResult.value)
             }

@@ -9,7 +9,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
 import hcmus.bugscanner.core.utils.uriToBitmap
 import hcmus.bugscanner.domain.model.FrameResult
-import hcmus.bugscanner.ml.YoloDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,13 +19,13 @@ import java.util.*
 
 /**
  * Helper cung cấp các API để truy cập Thư viện ảnh (Gallery) hoặc Camera chụp ảnh tĩnh trên nền tảng Android.
- * Xử lý luồng chọn ảnh, gọi mô hình AI phân tích và trả kết quả về UI.
+ * Xử lý luồng chọn ảnh và bóc tách dữ liệu gốc của ảnh (ByteArray) để trả về UI mà không gây chặn luồng chính.
  *
- * @param onModeChange Chuyển chế độ quét trên UI.
- * @param onResult Trả về kết quả bounding box từ mô hình AI.
- * @param onImageIdCaptured Trả về định danh URI nội bộ của tấm ảnh.
- * @param onImageBytesCaptured Trả về dữ liệu gốc của ảnh để phục vụ tính năng tải lên Server.
- * @return [ImagePickerHelper] Đối tượng chứa các hàm kích hoạt Gallery/Camera.
+ * @param onModeChange Callback chuyển đổi chế độ giao diện sang tĩnh/camera.
+ * @param onResult Callback (chủ yếu được giữ lại để tuân thủ interface) trả kết quả nhận diện.
+ * @param onImageIdCaptured Callback trả về chuỗi định danh URI nội bộ của tấm ảnh được chọn.
+ * @param onImageBytesCaptured Callback trả về mảng byte dữ liệu gốc của ảnh để sử dụng cho tính năng Fallback.
+ * @return [ImagePickerHelper] Giao diện chứa hàm khởi chạy Intent Thư viện và Camera.
  */
 @Composable
 fun rememberAndroidImagePickerHelper(
@@ -37,35 +36,21 @@ fun rememberAndroidImagePickerHelper(
 ): ImagePickerHelper {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    var yoloDetector by remember { mutableStateOf<YoloDetector?>(null) }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            yoloDetector?.close()
-        }
-    }
 
     /**
-     * Chạy phân tích AI trên bức ảnh vừa được chọn/chụp.
+     * Đọc và nén dữ liệu từ một [Uri] của Android thành mảng byte thô (ByteArray).
+     * Quá trình giải mã và nén Bitmap tốn thời gian nên được đẩy xuống luồng nền ([Dispatchers.IO]).
      *
-     * @param uri Đường dẫn URI của tệp tin hình ảnh cần xử lý suy luận AI.
+     * @param uri Đường dẫn URI của hình ảnh được chọn từ thiết bị.
      */
-    fun analyze(uri: Uri) {
+    fun extractBytes(uri: Uri) {
         coroutineScope.launch(Dispatchers.IO) {
-            if (yoloDetector == null) {
-                yoloDetector = YoloDetector(context)
-            }
             val bmp = uriToBitmap(context, uri)
             bmp?.let {
                 val stream = ByteArrayOutputStream()
                 it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, stream)
                 val imageBytes = stream.toByteArray()
-
-                yoloDetector!!.clearResult()
-                yoloDetector!!.analyze(it, 0)
-
                 withContext(Dispatchers.Main) {
-                    onResult(yoloDetector!!.frameResult.value)
                     onImageBytesCaptured(imageBytes)
                 }
             }
@@ -76,7 +61,7 @@ fun rememberAndroidImagePickerHelper(
         uri?.let {
             onModeChange(ScanMode.IMAGE_UPLOAD)
             onImageIdCaptured(it.toString())
-            analyze(it)
+            extractBytes(it)
         }
     }
 
@@ -86,7 +71,7 @@ fun rememberAndroidImagePickerHelper(
             capturedImageUri?.let { uri ->
                 onModeChange(ScanMode.CAMERA_CAPTURE)
                 onImageIdCaptured(uri.toString())
-                analyze(uri)
+                extractBytes(uri)
             }
         }
     }

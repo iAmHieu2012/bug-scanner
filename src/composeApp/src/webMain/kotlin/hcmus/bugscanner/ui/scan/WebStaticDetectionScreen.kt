@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +51,14 @@ fun WebStaticDetectionScreen(
     frameResult: FrameResult?
 ) {
     val textMeasurer = rememberTextMeasurer()
+    var skiaImage by remember { mutableStateOf<Image?>(null) }
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            skiaImage?.close()
+        }
+    }
 
     LaunchedEffect(imageId) {
         if (imageId != null) {
@@ -58,11 +66,17 @@ fun WebStaticDetectionScreen(
                 val response = window.fetch(imageId, js("{}")).await()
                 val arrayBuffer = response.arrayBuffer().await()
                 val byteArray = Int8Array(arrayBuffer).unsafeCast<ByteArray>()
-                imageBitmap = Image.makeFromEncoded(byteArray).toComposeImageBitmap()
+                
+                skiaImage?.close() // Xóa ảnh cũ khỏi RAM
+                val newImage = Image.makeFromEncoded(byteArray)
+                skiaImage = newImage
+                imageBitmap = newImage.toComposeImageBitmap()
             } catch (e: Exception) {
                 println("Lỗi load ảnh hiển thị: ${e.message}")
             }
         } else {
+            skiaImage?.close()
+            skiaImage = null
             imageBitmap = null
         }
     }

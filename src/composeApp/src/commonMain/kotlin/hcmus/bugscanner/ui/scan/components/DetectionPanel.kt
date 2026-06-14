@@ -9,6 +9,7 @@ import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,11 +49,13 @@ fun DetectionPanel(
     onFallbackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val detectionSummary = frameResult?.boxes?.groupBy { it.className }?.mapValues { entry ->
-        val count = entry.value.size
-        val maxScore = entry.value.maxOf { it.score }
-        Pair(count, maxScore)
-    } ?: emptyMap()
+    val detectionSummary = remember(frameResult) {
+        frameResult?.boxes?.groupBy { it.className }?.mapValues { entry ->
+            val count = entry.value.size
+            val maxScore = entry.value.maxOf { it.score }
+            Pair(count, maxScore)
+        } ?: emptyMap()
+    }
 
     val totalBugs = detectionSummary.values.sumOf { it.first }
     val isInitial = frameResult == null || frameResult.sourceWidth == 0
