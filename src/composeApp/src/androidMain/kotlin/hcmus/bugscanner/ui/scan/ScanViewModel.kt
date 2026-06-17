@@ -62,6 +62,14 @@ class ScanViewModel(private val context: Context) : ViewModel() {
     }
 
     /**
+     * Xóa kết quả nhận diện hiện tại để tránh hiện tượng rò rỉ trạng thái sang khung hình/ảnh khác.
+     */
+    fun clearResult() {
+        yoloDetector?.clearResult()
+        _frameResult.value = FrameResult(emptyList(), 0, 0)
+    }
+
+    /**
      * Hàm vòng đời được gọi khi ViewModel bị hủy.
      * Có nhiệm vụ dọn dẹp bộ nhớ của mô hình AI và tắt các luồng chạy nền để tránh rò rỉ bộ nhớ (Memory Leak).
      */

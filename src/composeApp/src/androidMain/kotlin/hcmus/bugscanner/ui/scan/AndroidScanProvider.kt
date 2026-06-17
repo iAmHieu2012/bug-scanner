@@ -157,10 +157,15 @@ object AndroidScanProvider : PlatformScanProvider {
             }
         }
 
+        val currentFrameResult by viewModel.frameResult.collectAsState()
+        LaunchedEffect(currentFrameResult) {
+            onResultUpdate(currentFrameResult)
+        }
+
         LaunchedEffect(bitmap) {
             if (bitmap != null) {
+                viewModel.clearResult()
                 viewModel.analyzeImage(bitmap, 0)
-                onResultUpdate(viewModel.frameResult.value)
             }
         }
 
