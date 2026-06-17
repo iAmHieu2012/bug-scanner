@@ -13,7 +13,12 @@ import hcmus.bugscanner.ui.scan.LocalPlatformScanProvider
  * Khởi tạo giao diện Compose và tiêm (inject) các thành phần đặc thù của Android vào cây giao diện chung.
  */
 class MainActivity : ComponentActivity() {
+    companion object {
+        lateinit var appContext: android.content.Context
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        appContext = this.applicationContext
         // Kích hoạt chế độ tràn viền màn hình (Edge-to-Edge), loại bỏ viền đen ở thanh trạng thái (Status Bar)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)

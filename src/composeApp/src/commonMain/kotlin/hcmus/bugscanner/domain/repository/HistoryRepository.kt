@@ -30,4 +30,14 @@ interface HistoryRepository {
      * @return Đường dẫn URL tĩnh của ảnh sau khi tải lên thành công, hoặc `null` nếu thất bại.
      */
     suspend fun uploadImage(userId: String, imageBytes: ByteArray): String?
+
+    /**
+     * Lưu lịch sử quét nội bộ khi thiết bị ngoại tuyến.
+     */
+    suspend fun saveOfflineHistory(userId: String, history: ScanHistory, imageBytes: ByteArray)
+
+    /**
+     * Đồng bộ các bản ghi ngoại tuyến lên đám mây khi có kết nối mạng.
+     */
+    suspend fun syncOfflineHistory()
 }

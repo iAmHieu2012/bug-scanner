@@ -14,6 +14,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import hcmus.bugscanner.data.local.LocalStorage
+import hcmus.bugscanner.domain.model.OfflineScanHistory
+import kotlinx.serialization.encodeToString
 
 /**
  * Lớp thực thi (Implementation) quản lý luồng dữ liệu lịch sử quét của người dùng.
@@ -25,6 +28,7 @@ class HistoryRepositoryImpl(
     private val httpClient: HttpClient
 ) : HistoryRepository {
     private val historyCollection = db.collection("scan_history")
+    private val localStorage = LocalStorage()
 
     /**
      * Ghi một bản ghi lịch sử mới vào Firestore.
@@ -76,11 +80,8 @@ class HistoryRepositoryImpl(
     override suspend fun uploadImage(userId: String, imageBytes: ByteArray): String? {
         return try {
             val imgbbApiKey = hcmus.bugscanner.BuildConfig.IMGBB_API_KEY
-
-            // Encode mảng byte thành Base64 để truyền qua HTTP Form
             val base64Image = Base64.encode(imageBytes)
 
-            // Bắn Request POST lên API của ImgBB
             val response = httpClient.submitForm(
                 url = "https://api.imgbb.com/1/upload",
                 formParameters = Parameters.build {
@@ -89,14 +90,13 @@ class HistoryRepositoryImpl(
                 }
             )
 
-            // Bóc tách JSON response để lấy URL của tấm ảnh
             if (response.status.isSuccess()) {
                 val responseBody = response.bodyAsText()
                 val json = Json.parseToJsonElement(responseBody).jsonObject
                 val data = json["data"]?.jsonObject
                 val url = data?.get("url")?.jsonPrimitive?.content
 
-                url // Trả về link ảnh (.jpg/.png)
+                url
             } else {
                 println("Lỗi từ chối từ ImgBB. HTTP Status: ${response.status}")
                 null
@@ -104,6 +104,55 @@ class HistoryRepositoryImpl(
         } catch (e: Exception) {
             println("Lỗi upload ảnh lên ImgBB: ${e.message}")
             null
+        }
+    }
+
+    /**
+     * Lưu lịch sử ngoại tuyến khi không có mạng.
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    override suspend fun saveOfflineHistory(userId: String, history: ScanHistory, imageBytes: ByteArray) {
+        try {
+            val base64Image = Base64.encode(imageBytes)
+            val offlineId = "offline_${hcmus.bugscanner.core.utils.TimeUtils.getCurrentTimeMillis()}"
+            val offlineData = OfflineScanHistory(
+                id = offlineId,
+                userId = userId,
+                history = history,
+                imageBase64 = base64Image
+            )
+            val jsonString = Json.encodeToString(offlineData)
+            localStorage.saveString(offlineId, jsonString)
+            println("Đã lưu lịch sử ngoại tuyến: $offlineId")
+        } catch (e: Exception) {
+            println("Lỗi lưu lịch sử ngoại tuyến: ${e.message}")
+        }
+    }
+
+    /**
+     * Đồng bộ lịch sử ngoại tuyến lên Firebase khi có mạng.
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    override suspend fun syncOfflineHistory() {
+        val keys = localStorage.getAllKeys().filter { it.startsWith("offline_") }
+        for (key in keys) {
+            try {
+                val jsonString = localStorage.getString(key) ?: continue
+                val offlineData = Json.decodeFromString<OfflineScanHistory>(jsonString)
+                val imageBytes = Base64.decode(offlineData.imageBase64)
+                
+                val url = uploadImage(offlineData.userId, imageBytes)
+                if (url != null) {
+                    val updatedHistory = offlineData.history.copy(imageUrl = url)
+                    val success = saveHistory(updatedHistory)
+                    if (success) {
+                        localStorage.remove(key)
+                        println("Đã đồng bộ thành công: $key")
+                    }
+                }
+            } catch (e: Exception) {
+                println("Lỗi đồng bộ lịch sử $key: ${e.message}")
+            }
         }
     }
 }
