@@ -70,4 +70,41 @@ class GroqApiService(private val client: HttpClient) {
             AiBugData(nameVi = scientificName, description = "Lỗi trích xuất dữ liệu từ AI.")
         }
     }
+
+    /**
+     * Dịch tên côn trùng từ Tiếng Việt sang Tên Khoa Học (Scientific binomial name) sử dụng model Llama 3.1 8B Instant.
+     * Cực kỳ nhanh, độ trễ thấp, phục vụ cho tra cứu thời gian thực.
+     */
+    suspend fun translateToScientificName(vietnameseName: String): String {
+        val prompt = """
+            Dịch tên côn trùng/sâu bệnh "$vietnameseName" sang Tên Khoa Học (Scientific binomial name).
+            CHỈ TRẢ VỀ ĐÚNG TÊN KHOA HỌC, không kèm dấu ngoặc kép, không kèm mô tả. Nếu không biết thì trả về chuỗi rỗng.
+        """.trimIndent()
+
+        val payload = GroqRequest(
+            model = "llama-3.1-8b-instant",
+            messages = listOf(
+                GroqMessage(role = "system", content = "You are a specialized biology translator. Only output the scientific binomial name."),
+                GroqMessage(role = "user", content = prompt)
+            ),
+            responseFormat = null,
+            temperature = 0.1
+        )
+
+        return try {
+            val response: GroqResponse = client.post("https://api.groq.com/openai/v1/chat/completions") {
+                headers {
+                    append(HttpHeaders.Authorization, "Bearer ${BuildConfig.GROQ_API_KEY}")
+                    append(HttpHeaders.ContentType, "application/json")
+                }
+                setBody(payload)
+            }.body()
+
+            val result = response.choices.firstOrNull()?.message?.content?.trim()?.removeSurrounding("\"") ?: ""
+            if (result.contains("không biết", ignoreCase = true) || result.contains("sorry", ignoreCase = true)) "" else result
+        } catch (e: Exception) {
+            println("Lỗi dịch tên khoa học bằng Groq: ${e.message}")
+            ""
+        }
+    }
 }

@@ -2,6 +2,7 @@ package hcmus.bugscanner.ui.encyclopedia
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import hcmus.bugscanner.data.remote.GroqApiService
 import hcmus.bugscanner.data.remote.INaturalistApiService
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.repository.EncyclopediaRepository
@@ -18,10 +19,12 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * @param repository Đối tượng quản lý giao tiếp với cơ sở dữ liệu Firebase (Bách khoa toàn thư).
  * @param iNaturalistApi Dịch vụ gọi API mạng để tra cứu iNaturalist.
+ * @param groqApi Dịch vụ gọi API Groq để dịch thuật ngôn ngữ tự nhiên.
  */
 class EncyclopediaViewModel(
     private val repository: EncyclopediaRepository,
-    private val iNaturalistApi: INaturalistApiService
+    private val iNaturalistApi: INaturalistApiService,
+    private val groqApi: GroqApiService
 ) : ViewModel() {
 
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
@@ -78,9 +81,12 @@ class EncyclopediaViewModel(
 
     /**
      * Gửi truy vấn tìm kiếm sinh vật học đến API iNaturalist.
+     * Tự động tra cứu tên khoa học thông qua dữ liệu nội bộ (Firebase cache)
+     * hoặc dịch thuật thông minh qua Groq API (nếu tìm bằng tiếng Việt)
+     * trước khi gửi yêu cầu lên iNaturalist.
      * Tự động format, dịch thuật cấp bậc phân loại và bóc tách dữ liệu JSON để trả về danh sách [BugInfo] chuẩn hóa.
      *
-     * @param query Từ khóa tìm kiếm trên API.
+     * @param query Từ khóa tìm kiếm do người dùng nhập.
      */
     fun searchInsects(query: String) {
         _searchQuery.value = query
@@ -97,7 +103,17 @@ class EncyclopediaViewModel(
             delay(500.milliseconds)
             _isLoading.value = true
             try {
-                val response = iNaturalistApi.searchInsects(query = trimmedQuery)
+                val cachedBugs = repository.getExploreInsects(searchQuery = trimmedQuery, limit = 1)
+                val matchedScientificName = cachedBugs.firstOrNull()?.scientificName
+                
+                val queryToSearch = if (matchedScientificName != null) {
+                    matchedScientificName
+                } else {
+                    val translated = groqApi.translateToScientificName(trimmedQuery)
+                    if (translated.isNotEmpty()) translated else trimmedQuery
+                }
+
+                val response = iNaturalistApi.searchInsects(query = queryToSearch)
                 val results = response.results
 
                 if (results.isNotEmpty()) {

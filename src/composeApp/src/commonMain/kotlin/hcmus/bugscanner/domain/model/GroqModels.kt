@@ -16,7 +16,7 @@ data class GroqRequest(
     val model: String,
     val messages: List<GroqMessage>,
     @SerialName("response_format")
-    val responseFormat: GroqResponseFormat,
+    val responseFormat: GroqResponseFormat? = null,
     val temperature: Double
 )
 
