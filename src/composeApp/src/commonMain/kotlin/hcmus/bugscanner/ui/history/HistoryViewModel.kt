@@ -84,16 +84,23 @@ class HistoryViewModel(
                     uploadedImageUrl = uploadedUrl
                 )
 
-                val saved = repository.saveHistory(newHistory)
-                if (saved) {
-                    _historyList.value = listOf(newHistory) + _historyList.value
-                    _saveMessage.value = if (uploadFailed) {
-                        "Đã lưu lịch sử nhưng chưa tải được ảnh."
-                    } else {
-                        "Đã lưu kết quả vào lịch sử."
-                    }
+                if (uploadFailed && snapshot.imageBytes != null) {
+                    repository.saveOfflineHistory(currentUser.uid, newHistory, snapshot.imageBytes)
+                    _historyList.value = listOf(newHistory.copy(imageUrl = "offline")) + _historyList.value
+                    _saveMessage.value = "Đã lưu ngoại tuyến (Chờ có mạng để đồng bộ)."
                 } else {
-                    _saveMessage.value = "Chưa lưu được lịch sử. Vui lòng thử lại."
+                    val saved = repository.saveHistory(newHistory)
+                    if (saved) {
+                        _historyList.value = listOf(newHistory) + _historyList.value
+                        _saveMessage.value = "Đã lưu kết quả vào lịch sử."
+                    } else {
+                        if (snapshot.imageBytes != null) {
+                            repository.saveOfflineHistory(currentUser.uid, newHistory, snapshot.imageBytes)
+                            _saveMessage.value = "Lưu Firestore lỗi. Đã lưu ngoại tuyến."
+                        } else {
+                            _saveMessage.value = "Chưa lưu được lịch sử. Vui lòng thử lại."
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 _saveMessage.value = "Chưa lưu được lịch sử. Vui lòng kiểm tra kết nối."
@@ -131,6 +138,21 @@ class HistoryViewModel(
         val currentUser = Firebase.auth.currentUser
         if (currentUser != null && !currentUser.isAnonymous) {
             viewModelScope.launch {
+                val offlineCount = repository.getOfflineHistoryCount()
+                if (offlineCount > 0) {
+                    _saveMessage.value = "Phát hiện $offlineCount bản ghi chưa đồng bộ. Đang tiến hành tải lên đám mây..."
+                    _isSavingHistory.value = true
+                    
+                    val syncedCount = repository.syncOfflineHistory()
+                    
+                    _isSavingHistory.value = false
+                    if (syncedCount > 0) {
+                        _saveMessage.value = "Tuyệt vời! Đã đồng bộ thành công $syncedCount bản ghi."
+                    } else {
+                        _saveMessage.value = "Đồng bộ thất bại do mạng yếu. Sẽ thử lại sau."
+                    }
+                }
+                
                 _historyList.value = repository.getUserHistory(currentUser.uid)
             }
         }
