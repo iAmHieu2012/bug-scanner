@@ -37,7 +37,13 @@ interface HistoryRepository {
     suspend fun saveOfflineHistory(userId: String, history: ScanHistory, imageBytes: ByteArray)
 
     /**
-     * Đồng bộ các bản ghi ngoại tuyến lên đám mây khi có kết nối mạng.
+     * Kiểm tra xem có bản ghi ngoại tuyến nào đang chờ đồng bộ không.
      */
-    suspend fun syncOfflineHistory()
+    fun getOfflineHistoryCount(): Int
+
+    /**
+     * Đồng bộ các bản ghi ngoại tuyến lên đám mây khi có kết nối mạng.
+     * @return Số lượng bản ghi đã đồng bộ thành công.
+     */
+    suspend fun syncOfflineHistory(): Int
 }

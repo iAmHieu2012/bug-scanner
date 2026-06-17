@@ -130,11 +130,20 @@ class HistoryRepositoryImpl(
     }
 
     /**
+     * Kiểm tra số lượng bản ghi đang kẹt offline.
+     */
+    override fun getOfflineHistoryCount(): Int {
+        return localStorage.getAllKeys().count { it.startsWith("offline_") }
+    }
+
+    /**
      * Đồng bộ lịch sử ngoại tuyến lên Firebase khi có mạng.
+     * @return Số lượng bản ghi đồng bộ thành công
      */
     @OptIn(ExperimentalEncodingApi::class)
-    override suspend fun syncOfflineHistory() {
+    override suspend fun syncOfflineHistory(): Int {
         val keys = localStorage.getAllKeys().filter { it.startsWith("offline_") }
+        var successCount = 0
         for (key in keys) {
             try {
                 val jsonString = localStorage.getString(key) ?: continue
@@ -147,6 +156,7 @@ class HistoryRepositoryImpl(
                     val success = saveHistory(updatedHistory)
                     if (success) {
                         localStorage.remove(key)
+                        successCount++
                         println("Đã đồng bộ thành công: $key")
                     }
                 }
@@ -154,5 +164,6 @@ class HistoryRepositoryImpl(
                 println("Lỗi đồng bộ lịch sử $key: ${e.message}")
             }
         }
+        return successCount
     }
 }

@@ -138,7 +138,21 @@ class HistoryViewModel(
         val currentUser = Firebase.auth.currentUser
         if (currentUser != null && !currentUser.isAnonymous) {
             viewModelScope.launch {
-                repository.syncOfflineHistory()
+                val offlineCount = repository.getOfflineHistoryCount()
+                if (offlineCount > 0) {
+                    _saveMessage.value = "Phát hiện $offlineCount bản ghi chưa đồng bộ. Đang tiến hành tải lên đám mây..."
+                    _isSavingHistory.value = true
+                    
+                    val syncedCount = repository.syncOfflineHistory()
+                    
+                    _isSavingHistory.value = false
+                    if (syncedCount > 0) {
+                        _saveMessage.value = "Tuyệt vời! Đã đồng bộ thành công $syncedCount bản ghi."
+                    } else {
+                        _saveMessage.value = "Đồng bộ thất bại do mạng yếu. Sẽ thử lại sau."
+                    }
+                }
+                
                 _historyList.value = repository.getUserHistory(currentUser.uid)
             }
         }
