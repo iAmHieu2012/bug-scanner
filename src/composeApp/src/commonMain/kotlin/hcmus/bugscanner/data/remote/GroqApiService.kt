@@ -72,20 +72,19 @@ class GroqApiService(private val client: HttpClient) {
     }
 
     /**
-     * Dịch tên côn trùng từ Tiếng Việt sang Tên Khoa Học (Scientific binomial name) sử dụng model Llama 3.1 8B Instant.
-     * Cực kỳ nhanh, độ trễ thấp, phục vụ cho tra cứu thời gian thực.
+     * Dịch tên côn trùng từ Tiếng Việt sang Tên Tiếng Anh thông dụng (English common name) sử dụng model Llama 3.1 8B Instant.
+     * Tránh việc AI trả về tên khoa học quá chi tiết làm hẹp phạm vi tìm kiếm.
      */
-    suspend fun translateToScientificName(vietnameseName: String): String {
-        val prompt = """
-            Dịch tên côn trùng/sâu bệnh "$vietnameseName" sang Tên Khoa Học (Scientific binomial name).
-            CHỈ TRẢ VỀ ĐÚNG TÊN KHOA HỌC, không kèm dấu ngoặc kép, không kèm mô tả. Nếu không biết thì trả về chuỗi rỗng.
-        """.trimIndent()
-
+    suspend fun translateToEnglishName(vietnameseName: String): String {
         val payload = GroqRequest(
-            model = "llama-3.1-8b-instant",
+            model = "llama-3.3-70b-versatile",
             messages = listOf(
-                GroqMessage(role = "system", content = "You are a specialized biology translator. Only output the scientific binomial name."),
-                GroqMessage(role = "user", content = prompt)
+                GroqMessage(role = "system", content = "You are a specialized biology translator. You translate Vietnamese insect/animal names to their English common name. ONLY output the English name. No explanation, no quotes, no original text."),
+                GroqMessage(role = "user", content = "Ong bắp cày"),
+                GroqMessage(role = "assistant", content = "Hornet"),
+                GroqMessage(role = "user", content = "Bọ xít"),
+                GroqMessage(role = "assistant", content = "Stink bug"),
+                GroqMessage(role = "user", content = vietnameseName)
             ),
             responseFormat = null,
             temperature = 0.1

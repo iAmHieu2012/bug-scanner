@@ -82,8 +82,8 @@ class EncyclopediaViewModel(
     /**
      * Gửi truy vấn tìm kiếm sinh vật học đến API iNaturalist.
      * Tự động tra cứu tên khoa học thông qua dữ liệu nội bộ (Firebase cache)
-     * hoặc dịch thuật thông minh qua Groq API (nếu tìm bằng tiếng Việt)
-     * trước khi gửi yêu cầu lên iNaturalist.
+     * hoặc dịch sang Tên Tiếng Anh thông qua Groq API (nếu tìm bằng tiếng Việt)
+     * trước khi gửi yêu cầu lên iNaturalist để mở rộng phạm vi tìm kiếm.
      * Tự động format, dịch thuật cấp bậc phân loại và bóc tách dữ liệu JSON để trả về danh sách [BugInfo] chuẩn hóa.
      *
      * @param query Từ khóa tìm kiếm do người dùng nhập.
@@ -109,7 +109,7 @@ class EncyclopediaViewModel(
                 val queryToSearch = if (matchedScientificName != null) {
                     matchedScientificName
                 } else {
-                    val translated = groqApi.translateToScientificName(trimmedQuery)
+                    val translated = groqApi.translateToEnglishName(trimmedQuery)
                     if (translated.isNotEmpty()) translated else trimmedQuery
                 }
 
