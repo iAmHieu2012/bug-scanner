@@ -46,22 +46,17 @@ class AuthViewModel : ViewModel() {
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
-        checkCurrentUser()
-    }
-
-    /**
-     * Kiểm tra xem thiết bị đã có người dùng nào đăng nhập từ trước chưa.
-     * Chuyển trạng thái sang Success nếu đã có phiên bản lưu trữ cục bộ.
-     */
-    private fun checkCurrentUser() {
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            _authState.value = AuthState.Success(
-                uid = currentUser.uid,
-                isGuest = currentUser.isAnonymous
-            )
-        } else {
-            _authState.value = AuthState.Idle
+        viewModelScope.launch {
+            auth.authStateChanged.collect { firebaseUser ->
+                if (firebaseUser != null) {
+                    _authState.value = AuthState.Success(
+                        uid = firebaseUser.uid,
+                        isGuest = firebaseUser.isAnonymous
+                    )
+                } else {
+                    _authState.value = AuthState.Idle
+                }
+            }
         }
     }
 
