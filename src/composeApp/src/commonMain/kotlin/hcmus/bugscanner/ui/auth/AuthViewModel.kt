@@ -14,8 +14,11 @@ import kotlinx.coroutines.launch
  * Được sử dụng để cập nhật giao diện (UI) tương ứng với từng giai đoạn xử lý.
  */
 sealed class AuthState {
-    /** Trạng thái tĩnh (chờ), chưa có hành động nào diễn ra. */
-    object Idle : AuthState()
+    /** Đang tải trạng thái hệ thống ban đầu. */
+    object Initializing : AuthState()
+
+    /** Trạng thái chưa đăng nhập (hoặc đã đăng xuất). */
+    object Unauthenticated : AuthState()
 
     /** Đang thực hiện gọi API mạng, UI nên hiển thị vòng xoay (Loading). */
     object Loading : AuthState()
@@ -42,19 +45,20 @@ class AuthViewModel : ViewModel() {
 
     private val auth = Firebase.auth
 
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Initializing)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
         viewModelScope.launch {
             auth.authStateChanged.collect { firebaseUser ->
                 if (firebaseUser != null) {
+                    _authState.value = AuthState.Loading
                     _authState.value = AuthState.Success(
                         uid = firebaseUser.uid,
                         isGuest = firebaseUser.isAnonymous
                     )
                 } else {
-                    _authState.value = AuthState.Idle
+                    _authState.value = AuthState.Unauthenticated
                 }
             }
         }
@@ -123,13 +127,13 @@ class AuthViewModel : ViewModel() {
     }
 
     /**
-     * Chấm dứt phiên đăng nhập hiện tại, xóa Token và đẩy trạng thái UI về `Idle`.
+     * Chấm dứt phiên đăng nhập hiện tại, xóa Token và đẩy trạng thái UI về `Unauthenticated`.
      */
     fun signOut() {
         viewModelScope.launch {
             try {
                 auth.signOut()
-                _authState.value = AuthState.Idle
+                _authState.value = AuthState.Unauthenticated
             } catch (e: Exception) {
                 println("Lỗi đăng xuất: ${e.message}")
             }

@@ -36,6 +36,7 @@ fun AppNavigation(
 ) {
     AppTheme {
         var showSplash by remember { mutableStateOf(true) }
+        var isStartup by remember { mutableStateOf(true) }
         val authState by authViewModel.authState.collectAsState()
         val shareManager = rememberShareManager()
         val encyclopediaRepository: EncyclopediaRepository = koinInject()
@@ -44,9 +45,12 @@ fun AppNavigation(
             if (authState is AuthState.Success) {
                 encyclopediaRepository.prefetchDatabase()
             }
+            if (authState is AuthState.Success || authState is AuthState.Unauthenticated || authState is AuthState.Error) {
+                isStartup = false
+            }
         }
 
-        if (showSplash) {
+        if (showSplash || (isStartup && authState !is AuthState.Error)) {
             SplashScreen(onSplashFinished = {
                 showSplash = false
             })
