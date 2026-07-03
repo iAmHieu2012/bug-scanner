@@ -10,20 +10,20 @@ import androidx.compose.ui.graphics.Color
 /**
  * Bảng màu giao diện sáng (Light Theme Colors).
  */
-val md_theme_light_primary = Color(0xFF006C5B)
+val md_theme_light_primary = Color(0xFF2E7D32)
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)
-val md_theme_light_primaryContainer = Color(0xFF9FF2D9)
-val md_theme_light_onPrimaryContainer = Color(0xFF00201A)
+val md_theme_light_primaryContainer = Color(0xFFC8E6C9)
+val md_theme_light_onPrimaryContainer = Color(0xFF002106)
 
-val md_theme_light_secondary = Color(0xFF675A40)
+val md_theme_light_secondary = Color(0xFF52634F)
 val md_theme_light_onSecondary = Color(0xFFFFFFFF)
-val md_theme_light_secondaryContainer = Color(0xFFEBDDAD)
-val md_theme_light_onSecondaryContainer = Color(0xFF211A04)
+val md_theme_light_secondaryContainer = Color(0xFFD5E8CF)
+val md_theme_light_onSecondaryContainer = Color(0xFF101F10)
 
-val md_theme_light_tertiary = Color(0xFF4A5F8F)
+val md_theme_light_tertiary = Color(0xFF38656A)
 val md_theme_light_onTertiary = Color(0xFFFFFFFF)
-val md_theme_light_tertiaryContainer = Color(0xFFD9E2FF)
-val md_theme_light_onTertiaryContainer = Color(0xFF001A42)
+val md_theme_light_tertiaryContainer = Color(0xFFBCEBEF)
+val md_theme_light_onTertiaryContainer = Color(0xFF002022)
 
 val md_theme_light_error = Color(0xFFBA1A1A)
 val md_theme_light_onError = Color(0xFFFFFFFF)
@@ -43,20 +43,20 @@ val md_theme_light_outlineVariant = Color(0xFFC2C9BD)
 /**
  * Bảng màu giao diện tối (Dark Theme Colors).
  */
-val md_theme_dark_primary = Color(0xFF80D5BF)
-val md_theme_dark_onPrimary = Color(0xFF00382F)
-val md_theme_dark_primaryContainer = Color(0xFF005143)
-val md_theme_dark_onPrimaryContainer = Color(0xFF9FF2D9)
+val md_theme_dark_primary = Color(0xFF8CD588)
+val md_theme_dark_onPrimary = Color(0xFF003912)
+val md_theme_dark_primaryContainer = Color(0xFF0F3B12)
+val md_theme_dark_onPrimaryContainer = Color(0xFFA8F2AB)
 
-val md_theme_dark_secondary = Color(0xFFCEC198)
-val md_theme_dark_onSecondary = Color(0xFF382F15)
-val md_theme_dark_secondaryContainer = Color(0xFF4F462A)
-val md_theme_dark_onSecondaryContainer = Color(0xFFEBDDAD)
+val md_theme_dark_secondary = Color(0xFFB9CCB4)
+val md_theme_dark_onSecondary = Color(0xFF253423)
+val md_theme_dark_secondaryContainer = Color(0xFF3B4B38)
+val md_theme_dark_onSecondaryContainer = Color(0xFFD5E8CF)
 
-val md_theme_dark_tertiary = Color(0xFFB3C7F9)
-val md_theme_dark_onTertiary = Color(0xFF1C315F)
-val md_theme_dark_tertiaryContainer = Color(0xFF334778)
-val md_theme_dark_onTertiaryContainer = Color(0xFFD9E2FF)
+val md_theme_dark_tertiary = Color(0xFFA0CFD3)
+val md_theme_dark_onTertiary = Color(0xFF00363B)
+val md_theme_dark_tertiaryContainer = Color(0xFF1E4D52)
+val md_theme_dark_onTertiaryContainer = Color(0xFFBCEBEF)
 
 val md_theme_dark_error = Color(0xFFFFB4AB)
 val md_theme_dark_onError = Color(0xFF690005)
