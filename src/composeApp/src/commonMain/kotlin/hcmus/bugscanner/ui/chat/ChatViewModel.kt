@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+import hcmus.bugscanner.core.config.AppConfigProvider
+
 /**
  * ViewModel quản lý logic luồng tin nhắn và giao tiếp trực tiếp với API Google Gemini.
  * Chịu trách nhiệm duy trì ngữ cảnh trò chuyện (Context History) để AI có thể hiểu các câu hỏi nối tiếp.
@@ -29,11 +31,13 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * @property isTyping Trạng thái chờ phản hồi từ AI (dùng để hiển thị Typing Indicator).
  * @param geminiApi Dịch vụ gọi mạng hỗ trợ giao tiếp với Google Gemini được cung cấp bởi DI (Koin).
  * @param httpClient Ktor Client được inject từ Koin để tải dữ liệu hình ảnh.
+ * @param appConfigProvider Cung cấp cấu hình prompt động từ Firestore.
  */
 @OptIn(ExperimentalEncodingApi::class)
 class ChatViewModel(
     private val geminiApi: GeminiApiService,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    private val appConfigProvider: AppConfigProvider
 ) : ViewModel() {
 
     private val greetingMessage = ChatMessage(
@@ -107,8 +111,10 @@ class ChatViewModel(
 
                 chatHistory.add(GeminiContent(role = "user", parts = userParts))
 
+                val config = appConfigProvider.getConfig()
+
                 val requestBody = GeminiRequest(
-                    systemInstruction = Instruction(parts = GeminiPart(text = "Bạn là BugScanner AI, một trợ lý ảo chuyên nghiệp về sinh học và côn trùng học. Hãy trả lời ngắn gọn, thân thiện và chính xác các câu hỏi về thiên nhiên, côn trùng, thực vật. Khi nhận được ảnh, hãy phân tích kỹ các đặc điểm sinh học trên ảnh để tư vấn. Yêu cầu định dạng: Tuyệt đối không sử dụng định dạng Markdown (như in đậm **, tiêu đề #). Nếu cần liệt kê hoặc chia ý, chỉ sử dụng một dấu gạch ngang (-) ở đầu dòng.")),
+                    systemInstruction = Instruction(parts = GeminiPart(text = config.geminiSystemPrompt)),
                     contents = chatHistory
                 )
 

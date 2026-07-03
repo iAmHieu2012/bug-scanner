@@ -18,6 +18,7 @@ import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.model.DetectedBugSnapshot
 import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.domain.model.toBugInfo
+import hcmus.bugscanner.ui.admin.AdminDashboardScreen
 import hcmus.bugscanner.ui.chat.ChatScreen
 import hcmus.bugscanner.ui.components.RequireAuthScreen
 import hcmus.bugscanner.ui.detail.BugDetailScreen
@@ -30,7 +31,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * Danh sách liệt kê các Tab chức năng chính trong ứng dụng.
  */
-enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT }
+enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT, ADMIN }
 
 /**
  * Màn hình chính (Home Screen) của ứng dụng.
@@ -53,6 +54,7 @@ fun HomeScreen(
     initialTab: AppTab = AppTab.SCAN,
     onTabChanged: (AppTab) -> Unit = {},
     isLoggedIn: Boolean,
+    isAdmin: Boolean = false,
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo, ByteArray?) -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
@@ -64,12 +66,15 @@ fun HomeScreen(
     var initialChatImage by remember { mutableStateOf<ByteArray?>(null) }
     var initialChatImageUrl by remember { mutableStateOf<String?>(null) }
 
-    val navItems: List<Triple<AppTab, String, ImageVector>> = listOf(
-        Triple(AppTab.SCAN, "Nhận diện", Icons.Rounded.CenterFocusWeak),
-        Triple(AppTab.HISTORY, "Lịch sử", Icons.Rounded.History),
-        Triple(AppTab.WIKI, "Bách khoa", Icons.AutoMirrored.Rounded.MenuBook),
-        Triple(AppTab.CHATBOT, "Trợ lý", Icons.Rounded.SmartToy)
-    )
+    val navItems: List<Triple<AppTab, String, ImageVector>> = buildList {
+        add(Triple(AppTab.SCAN, "Nhận diện", Icons.Rounded.CenterFocusWeak))
+        add(Triple(AppTab.HISTORY, "Lịch sử", Icons.Rounded.History))
+        add(Triple(AppTab.WIKI, "Bách khoa", Icons.AutoMirrored.Rounded.MenuBook))
+        add(Triple(AppTab.CHATBOT, "Trợ lý", Icons.Rounded.SmartToy))
+        if (isAdmin) {
+            add(Triple(AppTab.ADMIN, "Quản trị", Icons.Rounded.AdminPanelSettings))
+        }
+    }
 
     LaunchedEffect(initialTab) {
         if (selectedSnapshot == null) currentTab = initialTab
@@ -289,5 +294,6 @@ private fun HomeContent(
                 }
             }
         }
+        AppTab.ADMIN -> AdminDashboardScreen()
     }
 }

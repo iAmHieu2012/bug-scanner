@@ -1,6 +1,7 @@
 package hcmus.bugscanner.data.remote
 
 import hcmus.bugscanner.BuildConfig
+import hcmus.bugscanner.core.config.AppConfigProvider
 import hcmus.bugscanner.domain.model.AiBugData
 import hcmus.bugscanner.domain.model.GroqRequest
 import hcmus.bugscanner.domain.model.GroqMessage
@@ -13,12 +14,17 @@ import io.ktor.http.*
 import kotlinx.serialization.json.Json
 
 /**
- * Dịch vụ giao tiếp với hệ thống Groq AI (Llama 3).
+ * Dịch vụ giao tiếp với hệ thống Groq AI (Llama).
  * Đảm nhận nhiệm vụ dịch thuật tự nhiên và phát sinh dữ liệu chuyên ngành nông nghiệp.
+ * Tên mô hình và lệnh hệ thống (System Prompt) được đọc động từ cấu hình Firestore `app_config`.
  *
  * @property client HTTP Client cấu hình sẵn của Ktor.
+ * @property appConfigProvider Bộ cung cấp cấu hình ứng dụng để đọc tên mô hình và prompt.
  */
-class GroqApiService(private val client: HttpClient) {
+class GroqApiService(
+    private val client: HttpClient,
+    private val appConfigProvider: AppConfigProvider
+) {
 
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
@@ -31,6 +37,8 @@ class GroqApiService(private val client: HttpClient) {
      * @return [AiBugData] Dữ liệu JSON đã được giải mã.
      */
     suspend fun generateBugInfo(scientificName: String, englishName: String): AiBugData {
+        val config = appConfigProvider.getConfig()
+
         val prompt = """
             Cung cấp thông tin sinh học và nông nghiệp bằng tiếng Việt cho loài côn trùng có tên khoa học là "$scientificName" (Tên tiếng Anh: "$englishName").
             
@@ -45,9 +53,9 @@ class GroqApiService(private val client: HttpClient) {
         """.trimIndent()
 
         val payload = GroqRequest(
-            model = "llama-3.3-70b-versatile",
+            model = config.groqModel,
             messages = listOf(
-                GroqMessage(role = "system", content = "You are a professional agricultural assistant. You must output ONLY valid JSON without Markdown."),
+                GroqMessage(role = "system", content = config.groqSystemPrompt),
                 GroqMessage(role = "user", content = prompt)
             ),
             responseFormat = GroqResponseFormat(type = "json_object"),
@@ -72,12 +80,14 @@ class GroqApiService(private val client: HttpClient) {
     }
 
     /**
-     * Dịch tên côn trùng từ Tiếng Việt sang Tên Tiếng Anh thông dụng (English common name) sử dụng model Llama 3.1 8B Instant.
+     * Dịch tên côn trùng từ Tiếng Việt sang Tên Tiếng Anh thông dụng (English common name) sử dụng Groq AI.
      * Tránh việc AI trả về tên khoa học quá chi tiết làm hẹp phạm vi tìm kiếm.
      */
     suspend fun translateToEnglishName(vietnameseName: String): String {
+        val config = appConfigProvider.getConfig()
+
         val payload = GroqRequest(
-            model = "llama-3.3-70b-versatile",
+            model = config.groqModel,
             messages = listOf(
                 GroqMessage(role = "system", content = "You are a specialized biology translator. You translate Vietnamese insect/animal names to their English common name. ONLY output the English name. No explanation, no quotes, no original text."),
                 GroqMessage(role = "user", content = "Ong bắp cày"),

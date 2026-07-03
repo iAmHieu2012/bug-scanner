@@ -62,6 +62,7 @@ fun AppNavigation(
                         initialTab = initialTab,
                         onTabChanged = onTabChanged,
                         isLoggedIn = !state.isGuest,
+                        isAdmin = state.isAdmin,
                         onAuthAction = {
                             authViewModel.signOut()
                         },

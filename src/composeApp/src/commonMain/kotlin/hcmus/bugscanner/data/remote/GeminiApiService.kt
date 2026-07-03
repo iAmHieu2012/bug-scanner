@@ -1,6 +1,7 @@
 package hcmus.bugscanner.data.remote
 
 import hcmus.bugscanner.BuildConfig
+import hcmus.bugscanner.core.config.AppConfigProvider
 import hcmus.bugscanner.domain.model.GeminiRequest
 import hcmus.bugscanner.domain.model.GeminiResponse
 import io.ktor.client.*
@@ -10,15 +11,18 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
 /**
- * Service chuyên biệt để giao tiếp với Google Gemini AI (Mô hình Gemini 2.5 Flash).
+ * Service chuyên biệt để giao tiếp với Google Gemini AI.
  * Đóng vai trò là cầu nối mạng để gửi câu hỏi và nhận câu trả lời từ AI.
- * Có thể được tái sử dụng ở bất kỳ ViewModel hoặc tính năng AI nào khác trong ứng dụng.
+ * Tên mô hình được đọc động từ cấu hình hệ thống (Firestore `app_config`) thay vì cố định trong mã nguồn.
  *
  * @property client Đối tượng [HttpClient] được cung cấp bởi hệ thống Dependency Injection (Koin).
+ * @property appConfigProvider Bộ cung cấp cấu hình ứng dụng để đọc tên mô hình AI.
  */
-class GeminiApiService(private val client: HttpClient) {
+class GeminiApiService(
+    private val client: HttpClient,
+    private val appConfigProvider: AppConfigProvider
+) {
 
-    // Lấy API Key từ biến môi trường/file properties để bảo mật
     private val apiKey = BuildConfig.GEMINI_API_KEY
 
     /**
@@ -28,7 +32,8 @@ class GeminiApiService(private val client: HttpClient) {
      * @return Đối tượng [GeminiResponse] chứa câu trả lời từ AI đã được parse tự động từ JSON.
      */
     suspend fun generateContent(request: GeminiRequest): GeminiResponse {
-        return client.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent") {
+        val config = appConfigProvider.getConfig()
+        return client.post("https://generativelanguage.googleapis.com/v1beta/models/${config.geminiModel}:generateContent") {
             url { parameters.append("key", apiKey) }
             contentType(ContentType.Application.Json)
             setBody(request)

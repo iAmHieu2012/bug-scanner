@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
+import hcmus.bugscanner.core.utils.TimeUtils
+import hcmus.bugscanner.domain.model.UserProfile
+import hcmus.bugscanner.domain.repository.AdminRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,8 +30,9 @@ sealed class AuthState {
      * Xác thực thành công.
      * @property uid Mã định danh người dùng do Firebase cấp.
      * @property isGuest Đánh dấu `true` nếu là phiên đăng nhập ẩn danh (không email).
+     * @property isAdmin Đánh dấu `true` nếu UID tồn tại trong Firestore collection `admins`.
      */
-    data class Success(val uid: String, val isGuest: Boolean) : AuthState()
+    data class Success(val uid: String, val isGuest: Boolean, val isAdmin: Boolean = false) : AuthState()
 
     /**
      * Xảy ra lỗi trong quá trình xác thực.
@@ -40,8 +44,13 @@ sealed class AuthState {
 /**
  * ViewModel chịu trách nhiệm quản lý toàn bộ nghiệp vụ (Business Logic) Đăng nhập/Đăng ký.
  * Giao tiếp trực tiếp với Firebase Authentication thông qua thư viện hỗ trợ KMP (GitLive).
+ * Tự động kiểm tra quyền Admin và lưu hồ sơ người dùng lên Firestore sau mỗi lần xác thực thành công.
+ *
+ * @param adminRepository Repository cung cấp thao tác kiểm tra quyền Admin và lưu hồ sơ người dùng.
  */
-class AuthViewModel : ViewModel() {
+class AuthViewModel(
+    private val adminRepository: AdminRepository
+) : ViewModel() {
 
     private val auth = Firebase.auth
 
@@ -53,9 +62,29 @@ class AuthViewModel : ViewModel() {
             auth.authStateChanged.collect { firebaseUser ->
                 if (firebaseUser != null) {
                     _authState.value = AuthState.Loading
+                    val isBanned = try { adminRepository.isBanned(firebaseUser.uid) } catch (_: Exception) { false }
+                    if (isBanned) {
+                        try { auth.signOut() } catch (_: Exception) { }
+                        _authState.value = AuthState.Error("Tài khoản của bạn đã bị khóa vi phạm chính sách.")
+                        return@collect
+                    }
+
+                    val isAdmin = try { adminRepository.isAdmin(firebaseUser.uid) } catch (_: Exception) { false }
+                    try {
+                        adminRepository.saveUserProfile(
+                            UserProfile(
+                                uid = firebaseUser.uid,
+                                email = firebaseUser.email ?: "",
+                                isAnonymous = firebaseUser.isAnonymous,
+                                lastLoginAt = TimeUtils.getCurrentTimeMillis(),
+                                isBanned = false
+                            )
+                        )
+                    } catch (_: Exception) { }
                     _authState.value = AuthState.Success(
                         uid = firebaseUser.uid,
-                        isGuest = firebaseUser.isAnonymous
+                        isGuest = firebaseUser.isAnonymous,
+                        isAdmin = isAdmin
                     )
                 } else {
                     _authState.value = AuthState.Unauthenticated
@@ -78,9 +107,7 @@ class AuthViewModel : ViewModel() {
         _authState.value = AuthState.Loading
         viewModelScope.launch {
             try {
-                val result = auth.createUserWithEmailAndPassword(email, pass)
-                val user = result.user
-                _authState.value = AuthState.Success(user?.uid ?: "", isGuest = false)
+                auth.createUserWithEmailAndPassword(email, pass)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Lỗi đăng ký")
             }
@@ -101,9 +128,7 @@ class AuthViewModel : ViewModel() {
         _authState.value = AuthState.Loading
         viewModelScope.launch {
             try {
-                val result = auth.signInWithEmailAndPassword(email, pass)
-                val user = result.user
-                _authState.value = AuthState.Success(user?.uid ?: "", isGuest = false)
+                auth.signInWithEmailAndPassword(email, pass)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Sai email hoặc mật khẩu. Vui lòng thử lại.")
             }
@@ -117,9 +142,7 @@ class AuthViewModel : ViewModel() {
         _authState.value = AuthState.Loading
         viewModelScope.launch {
             try {
-                val result = auth.signInAnonymously()
-                val user = result.user
-                _authState.value = AuthState.Success(user?.uid ?: "", isGuest = true)
+                auth.signInAnonymously()
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Lỗi đăng nhập ẩn danh: ${e.message}")
             }
