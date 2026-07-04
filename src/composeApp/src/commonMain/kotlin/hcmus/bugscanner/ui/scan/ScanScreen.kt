@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Login
-import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +20,7 @@ import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.model.DetectedBugSnapshot
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.domain.model.ScanSource
+import hcmus.bugscanner.ui.components.ScreenHeader
 import hcmus.bugscanner.ui.layout.AdaptiveLayoutSize
 import hcmus.bugscanner.ui.layout.classifyAdaptiveWidth
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
@@ -34,16 +33,14 @@ import org.koin.compose.viewmodel.koinViewModel
  * Quản lý vòng đời của Camera, điều phối dữ liệu giữa UI, mô hình YOLO Offline và API iNaturalist.
  * Hỗ trợ tự động điều chỉnh bố cục (Adaptive Layout) thông qua [BoxWithConstraints].
  *
- * @param isLoggedIn Trạng thái xác thực hiện tại để hiển thị nút đăng nhập/đăng xuất.
- * @param onAuthAction Callback xử lý khi người dùng nhấn nút xác thực.
  * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhận diện thành công (kèm dữ liệu sinh học và mảng byte hình ảnh).
+ * @param onNavigateToHistory Callback chuyển hướng sang màn hình lịch sử.
  * @param fallbackViewModel ViewModel quản lý luồng gọi mạng dự phòng để phân tích AI chuyên sâu.
  */
 @Composable
 fun ScanScreen(
-    isLoggedIn: Boolean,
-    onAuthAction: () -> Unit,
     onDetectedBugClick: (DetectedBugSnapshot) -> Unit,
+    onNavigateToHistory: () -> Unit,
     fallbackViewModel: ScanFallbackViewModel = koinViewModel()
 ) {
     val platformProvider = LocalPlatformScanProvider.current
@@ -86,7 +83,7 @@ fun ScanScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    ScanScreenHeader(isLoggedIn, onAuthAction)
+                    ScanScreenHeader()
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
                         modifier = Modifier
@@ -154,7 +151,7 @@ fun ScanScreen(
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                ScanScreenHeader(isLoggedIn, onAuthAction)
+                ScanScreenHeader()
 
                 Box(
                     modifier = Modifier
@@ -224,41 +221,15 @@ fun ScanScreen(
 }
 
 /**
- * Component hiển thị tiêu đề, lời chào và nút điều hướng tài khoản ở phần trên cùng của màn hình.
- *
- * @param isLoggedIn Trạng thái đăng nhập để cấu hình biểu tượng và chức năng của nút bấm.
- * @param onAuthAction Callback xử lý sự kiện đăng nhập / đăng xuất.
+ * Component hiển thị tiêu đề, lời chào ở phần trên cùng của màn hình.
  */
 @Composable
-private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            Text(
-                text = stringResource(Res.string.scan_greeting_msg),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = stringResource(Res.string.scan_what_to_find),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
-        IconButton(
-            onClick = onAuthAction,
-            modifier = Modifier.background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
-        ) {
-            Icon(
-                imageVector = if (isLoggedIn) Icons.AutoMirrored.Rounded.Logout else Icons.AutoMirrored.Rounded.Login,
-                contentDescription = if (isLoggedIn) stringResource(Res.string.action_logout) else stringResource(Res.string.action_login),
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-    }
+private fun ScanScreenHeader() {
+    ScreenHeader(
+        title = stringResource(Res.string.scan_what_to_find),
+        subtitle = stringResource(Res.string.scan_greeting_msg),
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
+    )
 }
 
 /**

@@ -31,8 +31,9 @@ sealed class AuthState {
      * @property uid Mã định danh người dùng do Firebase cấp.
      * @property isGuest Đánh dấu `true` nếu là phiên đăng nhập ẩn danh (không email).
      * @property isAdmin Đánh dấu `true` nếu UID tồn tại trong Firestore collection `admins`.
+     * @property displayName Tên hiển thị của người dùng sau khi xác thực.
      */
-    data class Success(val uid: String, val isGuest: Boolean, val isAdmin: Boolean = false) : AuthState()
+    data class Success(val uid: String, val isGuest: Boolean, val isAdmin: Boolean = false, val displayName: String? = null) : AuthState()
 
     /**
      * Xảy ra lỗi trong quá trình xác thực.
@@ -70,6 +71,8 @@ class AuthViewModel(
                     }
 
                     val isAdmin = try { adminRepository.isAdmin(firebaseUser.uid) } catch (_: Exception) { false }
+                    val profileDoc = try { adminRepository.getUserProfile(firebaseUser.uid) } catch (_: Exception) { null }
+                    
                     try {
                         adminRepository.saveUserProfile(
                             UserProfile(
@@ -77,14 +80,16 @@ class AuthViewModel(
                                 email = firebaseUser.email ?: "",
                                 isAnonymous = firebaseUser.isAnonymous,
                                 lastLoginAt = TimeUtils.getCurrentTimeMillis(),
-                                isBanned = false
+                                isBanned = false,
+                                displayName = profileDoc?.displayName ?: firebaseUser.displayName ?: ""
                             )
                         )
                     } catch (_: Exception) { }
                     _authState.value = AuthState.Success(
                         uid = firebaseUser.uid,
                         isGuest = firebaseUser.isAnonymous,
-                        isAdmin = isAdmin
+                        isAdmin = isAdmin,
+                        displayName = profileDoc?.displayName?.takeIf { it.isNotBlank() } ?: firebaseUser.displayName
                     )
                 } else {
                     _authState.value = AuthState.Unauthenticated
@@ -94,13 +99,14 @@ class AuthViewModel(
     }
 
     /**
-     * Đăng ký một tài khoản mới bằng Email và Mật khẩu.
+     * Đăng ký một tài khoản mới bằng Email, Mật khẩu và Tên hiển thị.
      *
      * @param email Địa chỉ email người dùng nhập.
      * @param pass Mật khẩu người dùng nhập.
+     * @param displayName Tên hiển thị của người dùng.
      */
-    fun signUpWithEmail(email: String, pass: String) {
-        if (email.isBlank() || pass.isBlank()) {
+    fun signUpWithEmail(email: String, pass: String, displayName: String) {
+        if (email.isBlank() || pass.isBlank() || displayName.isBlank()) {
             _authState.value = AuthState.Error("Vui lòng điền đầy đủ thông tin")
             return
         }
@@ -108,6 +114,24 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 auth.createUserWithEmailAndPassword(email, pass)
+                
+                val firebaseUser = auth.currentUser
+                if (firebaseUser != null) {
+                    try {
+                        adminRepository.saveUserProfile(
+                            UserProfile(
+                                uid = firebaseUser.uid,
+                                email = firebaseUser.email ?: "",
+                                isAnonymous = firebaseUser.isAnonymous,
+                                lastLoginAt = TimeUtils.getCurrentTimeMillis(),
+                                isBanned = false,
+                                displayName = displayName
+                            )
+                        )
+                    } catch (e: Exception) {
+                        println("Lỗi lưu profile ban đầu: ${e.message}")
+                    }
+                }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Lỗi đăng ký")
             }

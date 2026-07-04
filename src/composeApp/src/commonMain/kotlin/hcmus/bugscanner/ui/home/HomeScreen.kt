@@ -31,7 +31,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * Danh sách liệt kê các Tab chức năng chính trong ứng dụng.
  */
-enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT, ADMIN }
+enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT, PROFILE, ADMIN }
 
 /**
  * Màn hình chính (Home Screen) của ứng dụng.
@@ -58,7 +58,7 @@ fun HomeScreen(
     isAdmin: Boolean = false,
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo, ByteArray?) -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
+    scanTabContent: @Composable (onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel = koinViewModel()
 ) {
     var currentTab by remember { mutableStateOf(initialTab) }
@@ -72,9 +72,7 @@ fun HomeScreen(
         add(Triple(AppTab.HISTORY, "Lịch sử", Icons.Rounded.History))
         add(Triple(AppTab.WIKI, "Bách khoa", Icons.AutoMirrored.Rounded.MenuBook))
         add(Triple(AppTab.CHATBOT, "Trợ lý", Icons.Rounded.SmartToy))
-        if (isAdmin) {
-            add(Triple(AppTab.ADMIN, "Quản trị", Icons.Rounded.AdminPanelSettings))
-        }
+        add(Triple(AppTab.PROFILE, "Tài khoản", Icons.Rounded.Person))
     }
 
     LaunchedEffect(initialTab) {
@@ -128,7 +126,7 @@ fun HomeScreen(
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ) {
                     Spacer(modifier = Modifier.weight(1f))
-                    navItems.forEach { (tab, label, icon) ->
+                    navItems.forEachIndexed { index, (tab, label, icon) ->
                         NavigationRailItem(
                             icon = { Icon(icon, contentDescription = null) },
                             label = { Text(label, fontSize = 12.sp) },
@@ -140,6 +138,9 @@ fun HomeScreen(
                                 indicatorColor = MaterialTheme.colorScheme.secondaryContainer
                             )
                         )
+                        if (index < navItems.lastIndex) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -165,7 +166,8 @@ fun HomeScreen(
                             initialChatPrompt = null
                             initialChatImage = null
                             initialChatImageUrl = null
-                        }
+                        },
+                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) }
                     )
                 }
             }
@@ -222,7 +224,8 @@ fun HomeScreen(
                             initialChatPrompt = null
                             initialChatImage = null
                             initialChatImageUrl = null
-                        }
+                        },
+                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) }
                     )
                 }
             }
@@ -244,6 +247,7 @@ fun HomeScreen(
  * @param initialChatImage Dữ liệu ảnh dạng mảng byte khởi tạo truyền sang màn hình Trợ lý.
  * @param initialChatImageUrl URL ảnh khởi tạo truyền sang màn hình Trợ lý.
  * @param onClearChatPrompt Callback để xoá sạch các thông tin khởi tạo của chatbot.
+ * @param onNavigateToAdmin Callback chuyển hướng sang màn hình Quản trị hệ thống.
  */
 @Composable
 private fun HomeContent(
@@ -251,16 +255,17 @@ private fun HomeContent(
     isLoggedIn: Boolean,
     isAdmin: Boolean,
     onAuthAction: () -> Unit,
-    scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
+    scanTabContent: @Composable (onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
     onSnapshotSelected: (DetectedBugSnapshot) -> Unit,
     initialChatPrompt: String?,
     initialChatImage: ByteArray?,
     initialChatImageUrl: String?,
-    onClearChatPrompt: () -> Unit
+    onClearChatPrompt: () -> Unit,
+    onNavigateToAdmin: () -> Unit
 ) {
     when (currentTab) {
-        AppTab.SCAN -> scanTabContent(isLoggedIn, onAuthAction) { snapshot ->
+        AppTab.SCAN -> scanTabContent { snapshot ->
             historyViewModel.addHistory(snapshot)
             onSnapshotSelected(snapshot)
         }
@@ -299,6 +304,12 @@ private fun HomeContent(
                     onClearChatPrompt()
                 }
             }
+        }
+        AppTab.PROFILE -> {
+            hcmus.bugscanner.ui.profile.ProfileScreen(
+                onNavigateToAdmin = onNavigateToAdmin,
+                onAuthAction = onAuthAction
+            )
         }
         AppTab.ADMIN -> AdminDashboardScreen()
     }

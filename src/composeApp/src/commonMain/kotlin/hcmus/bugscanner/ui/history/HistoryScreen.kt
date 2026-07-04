@@ -53,15 +53,18 @@ fun HistoryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(top = 24.dp, start = 16.dp, end = 16.dp)
     ) {
         ScreenHeader(
             title = "Lịch sử khám phá",
             subtitle = "Những loài côn trùng bạn đã tìm thấy",
-            leadingIcon = Icons.Rounded.History
+            leadingIcon = Icons.Rounded.History,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
         )
 
-        if (isSavingHistory || saveMessage != null) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            if (isSavingHistory || saveMessage != null) {
             Spacer(modifier = Modifier.height(12.dp))
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -104,22 +107,23 @@ fun HistoryScreen(
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 if (maxWidth > 600.dp) {
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 300.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(historyList) { item: ScanHistory ->
-                            HistoryItemCard(item, onClick = { onItemClick(item) })
+                            columns = GridCells.Adaptive(minSize = 300.dp),
+                            contentPadding = PaddingValues(bottom = 100.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(historyList) { item: ScanHistory ->
+                                HistoryItemCard(item, onClick = { onItemClick(item) })
+                            }
                         }
-                    }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = 100.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(historyList) { item: ScanHistory ->
-                            HistoryItemCard(item, onClick = { onItemClick(item) })
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(bottom = 100.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(historyList) { item: ScanHistory ->
+                                HistoryItemCard(item, onClick = { onItemClick(item) })
+                            }
                         }
                     }
                 }

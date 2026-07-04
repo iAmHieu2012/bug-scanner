@@ -27,6 +27,14 @@ interface AdminRepository {
     suspend fun isBanned(uid: String): Boolean
 
     /**
+     * Lấy hồ sơ của một người dùng cụ thể từ Firestore.
+     *
+     * @param uid Mã định danh Firebase Auth UID của người dùng.
+     * @return Đối tượng [UserProfile] nếu tìm thấy, ngược lại trả về null.
+     */
+    suspend fun getUserProfile(uid: String): UserProfile?
+
+    /**
      * Lưu hoặc cập nhật hồ sơ người dùng vào Firestore collection `users`.
      *
      * @param profile Đối tượng [UserProfile] chứa thông tin cần lưu.

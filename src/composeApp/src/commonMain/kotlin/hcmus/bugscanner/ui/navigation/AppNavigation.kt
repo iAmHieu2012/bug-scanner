@@ -69,11 +69,10 @@ fun AppNavigation(
                         onShareClick = { bug, imageBytes ->
                             shareManager.shareBugInfo(bug.name, bug.scientificName, imageBytes)
                         },
-                        scanTabContent = { isLog, onAuth, onDetected ->
+                        scanTabContent = { onDetected ->
                             ScanScreen(
-                                isLoggedIn = isLog,
-                                onAuthAction = onAuth,
-                                onDetectedBugClick = onDetected
+                                onDetectedBugClick = onDetected,
+                                onNavigateToHistory = { onTabChanged(hcmus.bugscanner.ui.home.AppTab.HISTORY) }
                             )
                         }
                     )

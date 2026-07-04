@@ -59,6 +59,7 @@ fun main() {
                         AppTab.HISTORY -> "Lịch sử - BugScanner"
                         AppTab.WIKI -> "Bách khoa - BugScanner"
                         AppTab.CHATBOT -> "Trợ lý - BugScanner"
+                        AppTab.PROFILE -> "Tài khoản - BugScanner"
                         AppTab.ADMIN -> "Quản trị - BugScanner"
                     }
                 }

@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
  * @property isAnonymous Đánh dấu người dùng ẩn danh (đăng nhập không cần tài khoản).
  * @property lastLoginAt Thời điểm đăng nhập gần nhất (Unix timestamp dạng milliseconds).
  * @property isBanned Đánh dấu tài khoản người dùng đã bị khóa bởi Admin (Soft Ban).
+ * @property displayName Tên hiển thị của người dùng.
  */
 @Serializable
 data class UserProfile(
@@ -18,5 +19,6 @@ data class UserProfile(
     val email: String = "",
     val isAnonymous: Boolean = false,
     val lastLoginAt: Double = 0.0,
-    val isBanned: Boolean = false
+    val isBanned: Boolean = false,
+    val displayName: String = ""
 )

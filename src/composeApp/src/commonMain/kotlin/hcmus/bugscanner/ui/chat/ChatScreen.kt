@@ -23,7 +23,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import hcmus.bugscanner.domain.model.AppConfig
+import hcmus.bugscanner.ui.components.ScreenHeader
+import kotlinx.coroutines.launch
 import hcmus.bugscanner.ui.chat.components.ChatBubble
 import hcmus.bugscanner.ui.chat.components.TypingIndicator
 import hcmus.bugscanner.ui.scan.LocalPlatformScanProvider
@@ -92,27 +96,45 @@ fun ChatScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.TopCenter
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .widthIn(max = 900.dp)
-        ) {
-            ChatHeader(
-                canClear = messages.size > 1 || isTyping,
-                onClearClick = { viewModel.clearConversation() }
-            )
+        ScreenHeader(
+                title = "Trợ lý BugScanner",
+                subtitle = "Hỏi về nhận diện, đặc điểm và cách xử lý côn trùng.",
+                leadingIcon = Icons.Rounded.SmartToy,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
+            ) {
+                IconButton(
+                    onClick = { viewModel.clearConversation() },
+                    enabled = messages.isNotEmpty()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteSweep,
+                        contentDescription = "Xóa cuộc trò chuyện",
+                        tint = if (messages.isNotEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
+            }
 
-            LazyColumn(
-                state = listState,
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
+                    .fillMaxHeight()
+                    .widthIn(max = 900.dp)
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -149,58 +171,9 @@ fun ChatScreen(
         }
     }
 }
-
-/**
- * Component hiển thị phần đầu (header) của màn hình Chat.
- *
- * @param canClear Trạng thái cho biết cuộc trò chuyện có thể xóa được hay không.
- * @param onClearClick Callback kích hoạt khi người dùng nhấn nút xóa cuộc trò chuyện.
- */
-@Composable
-private fun ChatHeader(
-    canClear: Boolean,
-    onClearClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 12.dp, top = 20.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.SmartToy,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-        Spacer(modifier = Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Trợ lý BugScanner",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Hỏi về nhận diện, đặc điểm và cách xử lý côn trùng.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        IconButton(onClick = onClearClick, enabled = canClear) {
-            Icon(
-                imageVector = Icons.Rounded.DeleteSweep,
-                contentDescription = "Xóa cuộc trò chuyện",
-                tint = if (canClear) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outlineVariant
-            )
-        }
-    }
 }
+
+
 
 /**
  * Hiển thị danh sách các gợi ý câu hỏi nhanh dưới dạng chip để người dùng lựa chọn.

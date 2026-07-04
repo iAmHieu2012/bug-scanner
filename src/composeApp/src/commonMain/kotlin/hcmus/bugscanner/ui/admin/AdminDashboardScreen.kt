@@ -28,6 +28,7 @@ import hcmus.bugscanner.domain.model.AppConfig
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.domain.model.UserProfile
+import hcmus.bugscanner.ui.components.ScreenHeader
 import hcmus.bugscanner.core.utils.TimeUtils
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -71,24 +72,12 @@ fun AdminDashboardScreen(
                 .padding(padding)
                 .statusBarsPadding()
         ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.AdminPanelSettings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Bảng Quản trị",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            ScreenHeader(
+                title = "Bảng Quản trị",
+                subtitle = "Quản lý hệ thống toàn diện",
+                leadingIcon = Icons.Rounded.AdminPanelSettings,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
+            )
 
             PrimaryScrollableTabRow(
                 selectedTabIndex = currentSection,

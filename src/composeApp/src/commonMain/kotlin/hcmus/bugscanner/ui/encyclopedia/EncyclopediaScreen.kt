@@ -80,7 +80,7 @@ fun EncyclopediaScreen(
                 title = "Bách khoa côn trùng",
                 subtitle = "Dữ liệu nhận diện và thông tin sinh học tham khảo.",
                 leadingIcon = Icons.Rounded.GridView,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp)
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
             )
 
             PrimaryTabRow(
@@ -189,7 +189,7 @@ fun ExploreTab(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 220.dp),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp), // Thêm padding bottom để không bị che bởi FAB
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxSize()

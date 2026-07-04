@@ -17,3 +17,9 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 .codegraph/
+
+# Bỏ qua các file markdown rác do AI sinh ra, giữ lại file readme
+*.md
+!*readme*.md
+!*README*.md
+!*Readme*.md

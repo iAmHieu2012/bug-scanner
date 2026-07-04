@@ -60,6 +60,22 @@ class AdminRepositoryImpl(
     }
 
     /**
+     * Lấy hồ sơ của một người dùng cụ thể từ Firestore.
+     *
+     * @param uid Mã định danh Firebase Auth UID của người dùng.
+     * @return Đối tượng [UserProfile] nếu tìm thấy, ngược lại trả về null.
+     */
+    override suspend fun getUserProfile(uid: String): UserProfile? {
+        return try {
+            val doc = usersCollection.document(uid).get()
+            if (doc.exists) doc.data<UserProfile>() else null
+        } catch (e: Exception) {
+            println("Lỗi lấy thông tin user profile: ${e.message}")
+            null
+        }
+    }
+
+    /**
      * Lưu hoặc cập nhật hồ sơ người dùng lên Firestore.
      * Sử dụng UID làm Document ID để đảm bảo tính duy nhất.
      *
@@ -67,14 +83,17 @@ class AdminRepositoryImpl(
      */
     override suspend fun saveUserProfile(profile: UserProfile) {
         try {
-            val data = mapOf(
+            val data = mutableMapOf<String, Any>(
                 "uid" to profile.uid,
                 "email" to profile.email,
                 "isAnonymous" to profile.isAnonymous,
                 "lastLoginAt" to profile.lastLoginAt,
                 "isBanned" to profile.isBanned
             )
-            usersCollection.document(profile.uid).set(data)
+            if (profile.displayName.isNotBlank()) {
+                data["displayName"] = profile.displayName
+            }
+            usersCollection.document(profile.uid).set(data, merge = true)
         } catch (e: Exception) {
             println("Lỗi lưu hồ sơ người dùng: ${e.message}")
         }
