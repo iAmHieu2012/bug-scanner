@@ -122,7 +122,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .padding(vertical = 16.dp, horizontal = 8.dp)
                         .clip(RoundedCornerShape(24.dp)),
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ) {
                     Spacer(modifier = Modifier.weight(1f))
@@ -133,9 +133,11 @@ fun HomeScreen(
                             selected = currentTab == tab,
                             onClick = { selectTab(tab) },
                             colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primary
                             )
                         )
                         if (index < navItems.lastIndex) {
@@ -180,7 +182,7 @@ fun HomeScreen(
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                             .clip(RoundedCornerShape(20.dp)),
                         tonalElevation = 5.dp,
-                        color = MaterialTheme.colorScheme.surface
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         NavigationBar(
                             containerColor = Color.Transparent,
@@ -193,9 +195,11 @@ fun HomeScreen(
                                     selected = currentTab == tab,
                                 onClick = { selectTab(tab) },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
                                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        indicatorColor = MaterialTheme.colorScheme.primary
                                     )
                                 )
                             }

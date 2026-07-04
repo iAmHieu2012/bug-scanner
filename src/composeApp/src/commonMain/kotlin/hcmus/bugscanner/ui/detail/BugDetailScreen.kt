@@ -97,12 +97,19 @@ fun BugDetailScreen(
                         .background(MaterialTheme.colorScheme.background)
                 ) {
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(scrollState)
-                            .padding(24.dp)
+                        modifier = Modifier.weight(1f)
                     ) {
-                        BugDetailContent(currentBug, isLoading)
+                        Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp)) {
+                            BugDetailHeader(currentBug, source)
+                        }
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(scrollState)
+                                .padding(horizontal = 24.dp)
+                        ) {
+                            BugDetailSections(currentBug, isLoading)
+                        }
                     }
                     BugDetailBottomBar(currentBug, confidence, source, onAskChatbotClick, onShareClick)
                 }
@@ -132,11 +139,18 @@ fun BugDetailScreen(
                         .padding(top = 272.dp)
                         .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .background(MaterialTheme.colorScheme.background)
-                        .verticalScroll(scrollState)
-                        .padding(bottom = 100.dp)
                 ) {
-                    Column(modifier = Modifier.padding(24.dp)) {
-                        BugDetailContent(currentBug, isLoading)
+                    Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp)) {
+                        BugDetailHeader(currentBug, source)
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(scrollState)
+                            .padding(horizontal = 24.dp)
+                            .padding(bottom = 100.dp)
+                    ) {
+                        BugDetailSections(currentBug, isLoading)
                     }
                 }
 
@@ -154,9 +168,10 @@ fun BugDetailScreen(
  *
  * @param detailedBug Đối tượng chứa thông tin chi tiết của sinh vật để render.
  * @param isLoading Trạng thái tải dữ liệu từ API/Firebase (Hiển thị con xoay nếu true).
+ * @param source Nguồn mở màn hình để xác định có hiển thị nhãn Đã nhận diện hay không.
  */
 @Composable
-private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
+private fun BugDetailHeader(detailedBug: BugInfo, source: ScanSource) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -175,23 +190,31 @@ private fun BugDetailContent(detailedBug: BugInfo, isLoading: Boolean) {
             )
         }
 
-        Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+        if (source != ScanSource.UNKNOWN) {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Đã nhận diện", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Đã nhận diện", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
+}
 
-    Spacer(modifier = Modifier.height(24.dp))
-
+/**
+ * Khối Component hiển thị danh sách các trường thông tin chi tiết.
+ * @param detailedBug Đối tượng chứa thông tin chi tiết của sinh vật để render.
+ * @param isLoading Trạng thái tải dữ liệu từ API/Firebase.
+ */
+@Composable
+private fun BugDetailSections(detailedBug: BugInfo, isLoading: Boolean) {
     if (isLoading) {
         Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)

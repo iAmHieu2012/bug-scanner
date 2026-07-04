@@ -53,15 +53,36 @@ class EncyclopediaViewModel(
         fetchExploreList()
     }
 
+    private var currentLimit = 30
+    private var hasMoreExplore = true
+
     /**
      * Tải danh sách mặc định các loài côn trùng từ Firebase để hiển thị ở Tab Khám phá.
      */
     fun fetchExploreList() {
+        currentLimit = 30
+        hasMoreExplore = true
         viewModelScope.launch {
             _isLoading.value = true
-            val list = repository.getExploreInsects(limit = 20)
+            val list = repository.getExploreInsects(limit = currentLimit)
             _exploreList.value = list
             _isLoading.value = false
+        }
+    }
+
+    /**
+     * Tải thêm dữ liệu khi cuộn xuống cuối màn hình (Pagination).
+     */
+    fun loadMoreExploreInsects() {
+        if (!hasMoreExplore || _isLoading.value) return
+        currentLimit += 30
+        viewModelScope.launch {
+            // Không set _isLoading = true ở đây để tránh chớp màn hình, chỉ tải ngầm thêm dữ liệu
+            val list = repository.getExploreInsects(searchQuery = _exploreSearchQuery.value.trim(), limit = currentLimit)
+            if (list.size <= _exploreList.value.size) {
+                hasMoreExplore = false
+            }
+            _exploreList.value = list
         }
     }
 
@@ -72,11 +93,13 @@ class EncyclopediaViewModel(
      */
     fun onExploreSearchQueryChange(query: String) {
         _exploreSearchQuery.value = query
+        currentLimit = 30
+        hasMoreExplore = true
         exploreSearchJob?.cancel()
         exploreSearchJob = viewModelScope.launch {
             delay(500.milliseconds)
             _isLoading.value = true
-            val list = repository.getExploreInsects(searchQuery = query.trim(), limit = 20)
+            val list = repository.getExploreInsects(searchQuery = query.trim(), limit = currentLimit)
             _exploreList.value = list
             _isLoading.value = false
         }

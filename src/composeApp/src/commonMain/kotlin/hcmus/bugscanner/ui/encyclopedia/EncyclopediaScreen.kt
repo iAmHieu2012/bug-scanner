@@ -188,13 +188,21 @@ fun ExploreTab(
             EmptyState("Không tìm thấy kết quả nào")
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 220.dp),
+                columns = GridCells.Adaptive(minSize = 150.dp),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(exploreList) { bug ->
+                items(exploreList.size) { index ->
+                    val bug = exploreList[index]
+                    
+                    if (index == exploreList.lastIndex) {
+                        LaunchedEffect(index) {
+                            viewModel.loadMoreExploreInsects()
+                        }
+                    }
+
                     Card(
                         onClick = { onBugSelected(bug) },
                         shape = RoundedCornerShape(12.dp),

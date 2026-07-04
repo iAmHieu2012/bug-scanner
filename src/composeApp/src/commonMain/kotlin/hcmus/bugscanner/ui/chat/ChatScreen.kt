@@ -234,14 +234,18 @@ private fun ChatInput(
     onSubmit: () -> Unit
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.background,
-        shadowElevation = 8.dp
+        modifier = Modifier
+            .fillMaxWidth()
+            .imePadding()
+            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .imePadding()
-                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp)
+                .padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)
         ) {
             if (imageBytes != null || imageUrl != null) {
                 Box(
