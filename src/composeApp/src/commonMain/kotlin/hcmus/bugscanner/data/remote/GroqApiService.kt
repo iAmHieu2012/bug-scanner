@@ -29,6 +29,21 @@ class GroqApiService(
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
     /**
+     * Tiền xử lý kết quả trả về từ các mô hình Reasoning (vd: DeepSeek-R1, Qwen-Reasoning)
+     * bằng cách loại bỏ toàn bộ phần nội dung nằm trong cặp thẻ <think>...</think>.
+     *
+     * @param text Chuỗi kết quả thô từ AI.
+     * @return Chuỗi văn bản đã được làm sạch thẻ suy luận.
+     */
+    private fun cleanReasoningOutput(text: String): String {
+        var cleanText = text
+        if (cleanText.contains("<think>")) {
+            cleanText = cleanText.replace(Regex("<think>[\\s\\S]*?</think>"), "")
+        }
+        return cleanText.trim()
+    }
+
+    /**
      * Sinh nội dung chi tiết bằng tiếng Việt dựa trên danh pháp khoa học.
      * Ép buộc AI trả về định dạng JSON nghiêm ngặt để Parse an toàn vào hệ thống.
      *
@@ -71,10 +86,18 @@ class GroqApiService(
                 setBody(payload)
             }.body()
 
-            val jsonString = response.choices.firstOrNull()?.message?.content ?: "{}"
+            var jsonString = response.choices.firstOrNull()?.message?.content ?: "{}"
+            jsonString = cleanReasoningOutput(jsonString)
+            val startIndex = jsonString.indexOf('{')
+            val endIndex = jsonString.lastIndexOf('}')
+            if (startIndex != -1 && endIndex != -1 && endIndex >= startIndex) {
+                jsonString = jsonString.substring(startIndex, endIndex + 1)
+            }
+            
+            println("[GROQ] Hoàn thành phân tích JSON cho '$scientificName'!")
             jsonParser.decodeFromString<AiBugData>(jsonString)
         } catch (e: Exception) {
-            println("Lỗi trích xuất dữ liệu từ Groq AI: ${e.message}")
+            println("❌ [GROQ] Lỗi trích xuất dữ liệu: ${e.message}")
             AiBugData(nameVi = scientificName, description = "Lỗi trích xuất dữ liệu từ AI.")
         }
     }
@@ -82,6 +105,9 @@ class GroqApiService(
     /**
      * Dịch tên côn trùng từ Tiếng Việt sang Tên Tiếng Anh thông dụng (English common name) sử dụng Groq AI.
      * Tránh việc AI trả về tên khoa học quá chi tiết làm hẹp phạm vi tìm kiếm.
+     *
+     * @param vietnameseName Tên gọi bằng tiếng Việt.
+     * @return Tên gọi bằng tiếng Anh tương ứng.
      */
     suspend fun translateToEnglishName(vietnameseName: String): String {
         val config = appConfigProvider.getConfig()
@@ -109,10 +135,14 @@ class GroqApiService(
                 setBody(payload)
             }.body()
 
-            val result = response.choices.firstOrNull()?.message?.content?.trim()?.removeSurrounding("\"") ?: ""
-            if (result.contains("không biết", ignoreCase = true) || result.contains("sorry", ignoreCase = true)) "" else result
+            val rawResult = response.choices.firstOrNull()?.message?.content ?: ""
+            val result = cleanReasoningOutput(rawResult).removeSurrounding("\"")
+            val finalTranslated = if (result.contains("không biết", ignoreCase = true) || result.contains("sorry", ignoreCase = true)) "" else result
+            
+            println("[GROQ] Đã dịch '$vietnameseName' -> '$finalTranslated' bằng model ${config.groqModel}")
+            finalTranslated
         } catch (e: Exception) {
-            println("Lỗi dịch tên khoa học bằng Groq: ${e.message}")
+            println("[GROQ] Lỗi dịch tên khoa học: ${e.message}")
             ""
         }
     }

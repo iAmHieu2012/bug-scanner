@@ -26,7 +26,7 @@ data class AppConfig(
             "Khi nhận được ảnh, hãy phân tích kỹ các đặc điểm sinh học trên ảnh để tư vấn. " +
             "Yêu cầu định dạng: Tuyệt đối không sử dụng định dạng Markdown (như in đậm **, tiêu đề #). " +
             "Nếu cần liệt kê hoặc chia ý, chỉ sử dụng một dấu gạch ngang (-) ở đầu dòng."
-        const val DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+        const val DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
         const val DEFAULT_GROQ_SYSTEM_PROMPT =
             "You are a professional agricultural assistant. You must output ONLY valid JSON without Markdown."
     }

@@ -46,10 +46,22 @@ data class GroqResponseFormat(
  * DTO mapping cấu trúc dữ liệu phản hồi (Response) trả về từ Groq.
  *
  * @property choices Danh sách các lựa chọn (câu trả lời) mà AI sinh ra (thường chỉ lấy phần tử đầu tiên).
+ * @property error Thông tin lỗi trả về từ API (ví dụ: lỗi 404 Model Not Found).
  */
 @Serializable
 data class GroqResponse(
-    val choices: List<GroqChoice>
+    val choices: List<GroqChoice> = emptyList(),
+    val error: GroqError? = null
+)
+
+/**
+ * DTO đại diện cho cấu trúc lỗi trả về từ Groq API.
+ *
+ * @property message Mô tả chi tiết về lỗi (VD: "Model not found").
+ */
+@Serializable
+data class GroqError(
+    val message: String? = null
 )
 
 /**
