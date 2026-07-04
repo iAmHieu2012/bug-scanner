@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Search
@@ -18,8 +21,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.BugInfo
-import hcmus.bugscanner.ui.components.BugItemCard
+import hcmus.bugscanner.ui.components.BugEditDialog
 import hcmus.bugscanner.ui.components.BugImage
+import hcmus.bugscanner.ui.components.BugItemCard
 import hcmus.bugscanner.ui.components.EmptyState
 import hcmus.bugscanner.ui.components.ScreenHeader
 import org.koin.compose.viewmodel.koinViewModel
@@ -28,58 +32,116 @@ import org.koin.compose.viewmodel.koinViewModel
  * Màn hình Bách khoa toàn thư - Tích hợp Responsive Layout bằng GridCells.Adaptive.
  *
  * @param viewModel ViewModel quản lý trạng thái tải, tìm kiếm và dữ liệu Wikipedia.
+ * @param isAdmin Cho biết người dùng hiện tại có quyền Admin hay không.
  * @param onBugSelected Callback chuyển sang màn hình Chi tiết khi nhấn vào một thẻ côn trùng.
  */
 @Composable
 fun EncyclopediaScreen(
     viewModel: EncyclopediaViewModel = koinViewModel(),
+    isAdmin: Boolean = false,
     onBugSelected: (BugInfo) -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var bugToEdit by remember { mutableStateOf<BugInfo?>(null) }
+    var isAddingNew by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        ScreenHeader(
-            title = "Bách khoa côn trùng",
-            subtitle = "Dữ liệu nhận diện và thông tin sinh học tham khảo.",
-            leadingIcon = Icons.Rounded.GridView,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp)
-        )
+    val statusMessage by viewModel.statusMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-        PrimaryTabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            indicator = {
-                TabRowDefaults.PrimaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
-                    width = androidx.compose.ui.unit.Dp.Unspecified,
-                    color = MaterialTheme.colorScheme.primary
+    LaunchedEffect(statusMessage) {
+        statusMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearStatusMessage()
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            if (isAdmin && selectedTabIndex == 0) {
+                FloatingActionButton(
+                    onClick = { isAddingNew = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Thêm mới bài viết")
+                }
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            ScreenHeader(
+                title = "Bách khoa côn trùng",
+                subtitle = "Dữ liệu nhận diện và thông tin sinh học tham khảo.",
+                leadingIcon = Icons.Rounded.GridView,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp)
+            )
+
+            PrimaryTabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                indicator = {
+                    TabRowDefaults.PrimaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
+                        width = androidx.compose.ui.unit.Dp.Unspecified,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            ) {
+                Tab(
+                    selected = selectedTabIndex == 0,
+                    onClick = { selectedTabIndex = 0 },
+                    text = { Text("Khám phá", fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Rounded.GridView, contentDescription = null) }
+                )
+                Tab(
+                    selected = selectedTabIndex == 1,
+                    onClick = { selectedTabIndex = 1 },
+                    text = { Text("Tra cứu", fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Rounded.Search, contentDescription = null) }
                 )
             }
-        ) {
-            Tab(
-                selected = selectedTabIndex == 0,
-                onClick = { selectedTabIndex = 0 },
-                text = { Text("Khám phá", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.Rounded.GridView, contentDescription = null) }
-            )
-            Tab(
-                selected = selectedTabIndex == 1,
-                onClick = { selectedTabIndex = 1 },
-                text = { Text("Tra cứu", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.Rounded.Search, contentDescription = null) }
-            )
-        }
 
-        if (selectedTabIndex == 0) {
-            ExploreTab(viewModel = viewModel, onBugSelected = onBugSelected)
-        } else {
-            SearchTab(viewModel, onBugSelected)
+            if (selectedTabIndex == 0) {
+                ExploreTab(
+                    viewModel = viewModel,
+                    isAdmin = isAdmin,
+                    onBugSelected = onBugSelected,
+                    onEditRequest = { bugToEdit = it }
+                )
+            } else {
+                SearchTab(viewModel, onBugSelected)
+            }
         }
+    }
+
+    if (isAddingNew) {
+        BugEditDialog(
+            bugInfo = null,
+            onDismiss = { isAddingNew = false },
+            onSave = {
+                viewModel.saveBugEntry(it)
+                isAddingNew = false
+            }
+        )
+    }
+
+    bugToEdit?.let { bug ->
+        BugEditDialog(
+            bugInfo = bug,
+            onDismiss = { bugToEdit = null },
+            onSave = {
+                viewModel.saveBugEntry(it)
+                bugToEdit = null
+            }
+        )
     }
 }
 
@@ -88,16 +150,22 @@ fun EncyclopediaScreen(
  * Card được cấu hình tỷ lệ 1:1 cho hình ảnh để duy trì tính đồng nhất trên giao diện đa cột.
  *
  * @param viewModel ViewModel chứa luồng dữ liệu Khám phá.
+ * @param isAdmin Cho biết quyền Admin để hiển thị nút Sửa/Xóa.
  * @param onBugSelected Callback xử lý nhấn vào thẻ côn trùng.
+ * @param onEditRequest Callback khi người dùng nhấn nút Sửa.
  */
 @Composable
 fun ExploreTab(
     viewModel: EncyclopediaViewModel,
-    onBugSelected: (BugInfo) -> Unit
+    isAdmin: Boolean,
+    onBugSelected: (BugInfo) -> Unit,
+    onEditRequest: (BugInfo) -> Unit
 ) {
     val exploreList by viewModel.exploreList.collectAsState()
     val searchQuery by viewModel.exploreSearchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    
+    var bugToDelete by remember { mutableStateOf<BugInfo?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -121,7 +189,7 @@ fun ExploreTab(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 220.dp),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp), // Thêm padding bottom để không bị che bởi FAB
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxSize()
@@ -143,18 +211,58 @@ fun ExploreTab(
                                     .aspectRatio(1f)
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                             )
-                            Text(
-                                text = bug.name,
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = bug.name,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                                if (isAdmin) {
+                                    Row(horizontalArrangement = Arrangement.End) {
+                                        IconButton(onClick = { onEditRequest(bug) }, modifier = Modifier.size(32.dp)) {
+                                            Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                        IconButton(onClick = { bugToDelete = bug }, modifier = Modifier.size(32.dp)) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Xóa", tint = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+    
+    bugToDelete?.let { bug ->
+        AlertDialog(
+            onDismissRequest = { bugToDelete = null },
+            title = { Text("Xóa bài viết") },
+            text = { Text("Bạn có chắc chắn muốn xóa bài viết '${bug.name}' không? Hành động này không thể hoàn tác.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteBugEntry(bug)
+                        bugToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Xóa")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { bugToDelete = null }) {
+                    Text("Hủy")
+                }
+            }
+        )
     }
 }
 

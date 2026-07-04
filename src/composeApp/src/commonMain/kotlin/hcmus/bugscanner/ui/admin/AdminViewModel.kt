@@ -17,6 +17,9 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * ViewModel quản lý logic của Bảng điều khiển Quản trị (Admin Dashboard).
  * Tích hợp đa chức năng: quản lý người dùng, nội dung bách khoa, cấu hình AI.
+ *
+ * @param adminRepository Repository thao tác trực tiếp với dữ liệu Admin trên Firestore.
+ * @param appConfigProvider Provider cung cấp bộ nhớ đệm (cache) cho cấu hình ứng dụng.
  */
 class AdminViewModel(
     private val adminRepository: AdminRepository,
@@ -52,7 +55,9 @@ class AdminViewModel(
     }
 
     /**
-     * Chuyển đổi giữa các tab chức năng.
+     * Thay đổi tab (section) đang được hiển thị trên giao diện.
+     *
+     * @param index Chỉ mục của tab cần chọn.
      */
     fun selectSection(index: Int) {
         _currentSection.value = index
@@ -122,6 +127,8 @@ class AdminViewModel(
 
     /**
      * Cập nhật cấu hình ứng dụng (AI models, prompts).
+     *
+     * @param config Dữ liệu cấu hình mới cần lưu.
      */
     fun updateConfig(config: AppConfig) {
         _isLoading.value = true
@@ -140,6 +147,8 @@ class AdminViewModel(
 
     /**
      * Xóa một bản ghi lịch sử nhận diện khỏi hệ thống.
+     *
+     * @param id Mã định danh của bản ghi lịch sử cần xóa.
      */
     fun deleteHistoryEntry(id: String) {
         viewModelScope.launch {
@@ -153,6 +162,8 @@ class AdminViewModel(
 
     /**
      * Khóa hoặc mở khóa tài khoản người dùng.
+     *
+     * @param user Đối tượng hồ sơ người dùng cần cập nhật.
      */
     fun toggleBanUser(user: UserProfile) {
         _isLoading.value = true

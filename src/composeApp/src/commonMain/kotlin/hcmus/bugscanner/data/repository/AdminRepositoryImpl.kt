@@ -10,6 +10,8 @@ import hcmus.bugscanner.domain.repository.AdminRepository
 /**
  * Lớp thực thi (Implementation) quản lý các thao tác quản trị hệ thống.
  * Sử dụng Firebase Firestore kết hợp thư viện KMP GitLive để đồng bộ đa nền tảng.
+ *
+ * @param db Đối tượng Firestore dùng để kết nối và truy vấn dữ liệu.
  */
 class AdminRepositoryImpl(
     private val db: FirebaseFirestore

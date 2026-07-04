@@ -44,4 +44,12 @@ interface EncyclopediaRepository {
      * @return `true` nếu lưu thành công, ngược lại `false`.
      */
     suspend fun saveBugToFirebase(bug: BugInfo): Boolean
+
+    /**
+     * Xóa một bài viết côn trùng khỏi Bách khoa toàn thư.
+     *
+     * @param docId Document ID (Tên khoa học đã chuẩn hóa) của mục cần xóa.
+     * @return `true` nếu xóa thành công, ngược lại `false`.
+     */
+    suspend fun deleteBugEntry(docId: String): Boolean
 }

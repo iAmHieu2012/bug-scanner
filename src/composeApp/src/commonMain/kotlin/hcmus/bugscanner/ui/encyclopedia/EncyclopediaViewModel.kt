@@ -44,6 +44,9 @@ class EncyclopediaViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _statusMessage = MutableStateFlow<String?>(null)
+    val statusMessage: StateFlow<String?> = _statusMessage.asStateFlow()
+
     private var searchJob: Job? = null
 
     init {
@@ -162,9 +165,58 @@ class EncyclopediaViewModel(
             } catch (e: Exception) {
                 _searchResults.value = emptyList()
                 println("EncyclopediaVM Search error: ${e.message}")
-            } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * Xóa thông báo trạng thái hiện tại.
+     */
+    fun clearStatusMessage() {
+        _statusMessage.value = null
+    }
+
+    /**
+     * Lưu bài viết côn trùng lên Bách khoa toàn thư.
+     * Dành riêng cho quyền Admin.
+     *
+     * @param bug Đối tượng côn trùng cần lưu.
+     */
+    fun saveBugEntry(bug: BugInfo) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            val success = repository.saveBugToFirebase(bug)
+            if (success) {
+                _statusMessage.value = "Đã lưu bài viết thành công!"
+                // Tải lại danh sách sau khi lưu
+                fetchExploreList()
+            } else {
+                _statusMessage.value = "Lỗi khi lưu bài viết."
+            }
+            _isLoading.value = false
+        }
+    }
+
+    /**
+     * Xóa một bài viết côn trùng khỏi Bách khoa toàn thư.
+     * Dành riêng cho quyền Admin.
+     *
+     * @param bug Đối tượng côn trùng cần xóa.
+     */
+    fun deleteBugEntry(bug: BugInfo) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            val docId = bug.scientificName.ifBlank { bug.id }.replace(" ", "_")
+            val success = repository.deleteBugEntry(docId)
+            if (success) {
+                _statusMessage.value = "Đã xóa bài viết khỏi bách khoa."
+                // Cập nhật danh sách trên RAM thay vì gọi API tải lại
+                _exploreList.value = _exploreList.value.filter { it.scientificName != bug.scientificName }
+            } else {
+                _statusMessage.value = "Lỗi khi xóa bài viết."
+            }
+            _isLoading.value = false
         }
     }
 }

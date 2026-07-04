@@ -9,6 +9,8 @@ import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 /**
  * Lớp thực thi (Implementation) quản lý giao tiếp với cơ sở dữ liệu Bách khoa toàn thư.
  * Sử dụng Firebase Firestore kết hợp thư viện KMP GitLive để đồng bộ đa nền tảng.
+ *
+ * @param db Đối tượng Firestore dùng để kết nối và truy vấn dữ liệu.
  */
 class EncyclopediaRepositoryImpl(
     db: FirebaseFirestore
@@ -127,6 +129,22 @@ class EncyclopediaRepositoryImpl(
             true
         } catch (e: Exception) {
             println("Lỗi khi lưu dữ liệu lên Firebase: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Xóa một mục trong Bách khoa toàn thư dựa trên Document ID.
+     *
+     * @param docId Document ID của mục cần xóa.
+     * @return `true` nếu xóa thành công, ngược lại `false`.
+     */
+    override suspend fun deleteBugEntry(docId: String): Boolean {
+        return try {
+            encyclopediaCollection.document(docId).delete()
+            true
+        } catch (e: Exception) {
+            println("Lỗi xóa mục Bách khoa toàn thư: ${e.message}")
             false
         }
     }

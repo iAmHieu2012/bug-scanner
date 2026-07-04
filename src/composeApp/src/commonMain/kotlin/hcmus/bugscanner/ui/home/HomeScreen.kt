@@ -42,6 +42,7 @@ enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT, ADMIN }
  * @param initialTab Tab ban đầu khi mở màn hình, mặc định là tab quét (AppTab.SCAN).
  * @param onTabChanged Callback kích hoạt khi người dùng chuyển tab.
  * @param isLoggedIn Trạng thái đăng nhập của người dùng.
+ * @param isAdmin Cờ báo hiệu quyền Admin của người dùng.
  * @param onAuthAction Callback xử lý hành động xác thực (Đăng nhập/Đăng xuất).
  * @param onShareClick Callback xử lý chia sẻ thông tin côn trùng.
  * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
@@ -159,6 +160,7 @@ fun HomeScreen(
                         initialChatPrompt = initialChatPrompt,
                         initialChatImage = initialChatImage,
                         initialChatImageUrl = initialChatImageUrl,
+                        isAdmin = isAdmin,
                         onClearChatPrompt = {
                             initialChatPrompt = null
                             initialChatImage = null
@@ -215,6 +217,7 @@ fun HomeScreen(
                         initialChatPrompt = initialChatPrompt,
                         initialChatImage = initialChatImage,
                         initialChatImageUrl = initialChatImageUrl,
+                        isAdmin = isAdmin,
                         onClearChatPrompt = {
                             initialChatPrompt = null
                             initialChatImage = null
@@ -232,6 +235,7 @@ fun HomeScreen(
  *
  * @param currentTab Tab hiện tại đang hiển thị.
  * @param isLoggedIn Trạng thái đăng nhập của người dùng.
+ * @param isAdmin Cờ báo hiệu quyền Admin của người dùng.
  * @param onAuthAction Callback xử lý hành động xác thực.
  * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
  * @param historyViewModel ViewModel quản lý dữ liệu lịch sử.
@@ -245,6 +249,7 @@ fun HomeScreen(
 private fun HomeContent(
     currentTab: AppTab,
     isLoggedIn: Boolean,
+    isAdmin: Boolean,
     onAuthAction: () -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
@@ -278,8 +283,9 @@ private fun HomeContent(
             }
         }
         AppTab.WIKI -> EncyclopediaScreen(
-            onBugSelected = {
-                onSnapshotSelected(DetectedBugSnapshot(bug = it, source = ScanSource.UNKNOWN))
+            isAdmin = isAdmin,
+            onBugSelected = { bug ->
+                onSnapshotSelected(DetectedBugSnapshot(bug = bug, source = ScanSource.UNKNOWN))
             }
         )
         AppTab.CHATBOT -> {

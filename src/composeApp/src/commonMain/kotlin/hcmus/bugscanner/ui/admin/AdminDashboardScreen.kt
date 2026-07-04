@@ -26,11 +26,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.AppConfig
 import hcmus.bugscanner.domain.model.ScanHistory
+import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.domain.model.UserProfile
+import hcmus.bugscanner.core.utils.TimeUtils
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import hcmus.bugscanner.ui.components.BugImage
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình Bảng điều khiển dành riêng cho Quản trị viên (Admin).
+ *
+ * @param viewModel ViewModel chứa luồng dữ liệu cấu hình, người dùng và lịch sử cho dashboard.
  */
 @Composable
 fun AdminDashboardScreen(
@@ -92,7 +99,8 @@ fun AdminDashboardScreen(
                 val tabs = listOf(
                     "Tổng quan" to Icons.Rounded.Dashboard,
                     "Cấu hình AI" to Icons.Rounded.Settings,
-                    "Người dùng" to Icons.Rounded.People
+                    "Người dùng" to Icons.Rounded.People,
+                    "Lịch sử" to Icons.Rounded.History
                 )
                 tabs.forEachIndexed { index, (title, icon) ->
                     Tab(
@@ -109,6 +117,7 @@ fun AdminDashboardScreen(
                     0 -> OverviewSection(users, allHistory, topScannedBugs, scansPerDay)
                     1 -> ConfigSection(appConfig) { viewModel.updateConfig(it) }
                     2 -> UsersSection(users = users, onToggleBan = { viewModel.toggleBanUser(it) })
+                    3 -> GlobalHistorySection(allHistory, onDelete = { viewModel.deleteHistoryEntry(it) })
                 }
 
                 if (isLoading) {
@@ -316,6 +325,7 @@ private fun ConfigSection(appConfig: AppConfig, onSave: (AppConfig) -> Unit) {
     var groqModel by remember(appConfig) { mutableStateOf(appConfig.groqModel) }
     var groqPrompt by remember(appConfig) { mutableStateOf(appConfig.groqSystemPrompt) }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -338,6 +348,8 @@ private fun ConfigSection(appConfig: AppConfig, onSave: (AppConfig) -> Unit) {
                 OutlinedTextField(value = groqPrompt, onValueChange = { groqPrompt = it }, label = { Text("System Prompt") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             }
         }
+
+
 
         Button(
             onClick = {
@@ -436,6 +448,92 @@ private fun UsersSection(users: List<UserProfile>, onToggleBan: (UserProfile) ->
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(start = 72.dp, bottom = 12.dp)
                     )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Thành phần giao diện hiển thị danh sách toàn bộ Lịch sử quét của hệ thống.
+ *
+ * @param history Danh sách lịch sử quét.
+ * @param onDelete Callback khi Admin muốn xóa một bản ghi lịch sử.
+ */
+@Composable
+private fun GlobalHistorySection(history: List<ScanHistory>, onDelete: (String) -> Unit) {
+    if (history.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Chưa có dữ liệu lịch sử quét", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(history, key = { it.id }) { item ->
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        hcmus.bugscanner.ui.components.BugImage(
+                            imageUrl = item.imageUrl,
+                            contentDescription = item.bugName,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = item.bugName.ifBlank { item.scientificName.ifBlank { "Không xác định" } },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "UID: ${item.userId}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "Thời gian: ${hcmus.bugscanner.core.utils.TimeUtils.formatTimestamp(item.timestamp)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Độ tin cậy: ${(item.confidence * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = hcmus.bugscanner.domain.model.ScanSource.fromValue(item.source).displayName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        }
+                        IconButton(onClick = { onDelete(item.id) }) {
+                            Icon(Icons.Rounded.Delete, contentDescription = "Xóa", tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 }
             }
         }
