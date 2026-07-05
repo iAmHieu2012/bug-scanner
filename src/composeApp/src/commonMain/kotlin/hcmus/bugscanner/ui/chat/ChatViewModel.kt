@@ -21,6 +21,7 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 import hcmus.bugscanner.core.config.AppConfigProvider
+import dev.gitlive.firebase.auth.auth
 
 /**
  * ViewModel quản lý logic luồng tin nhắn và giao tiếp trực tiếp với API Google Gemini.
@@ -44,6 +45,20 @@ class ChatViewModel(
         "Xin chào! Mình là BugScanner AI. Mình có thể giúp bạn đọc kết quả nhận diện, tìm hiểu côn trùng và gợi ý cách xử lý an toàn.",
         isUser = false
     )
+
+    init {
+        viewModelScope.launch {
+            try {
+                dev.gitlive.firebase.Firebase.auth.authStateChanged.collect { user ->
+                    if (user == null) {
+                        clearConversation()
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore if auth is not available
+            }
+        }
+    }
 
     private val _messages = MutableStateFlow(listOf(greetingMessage))
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
