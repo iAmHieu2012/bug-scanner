@@ -77,7 +77,18 @@ fun AdminDashboardScreen(
                 subtitle = "Quản lý hệ thống toàn diện",
                 leadingIcon = Icons.Rounded.AdminPanelSettings,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
-            )
+            ) {
+                IconButton(
+                    onClick = { viewModel.loadDashboardData() },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer, androidx.compose.foundation.shape.CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Refresh,
+                        contentDescription = "Làm mới dữ liệu",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
 
             PrimaryScrollableTabRow(
                 selectedTabIndex = currentSection,

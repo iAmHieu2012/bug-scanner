@@ -15,12 +15,14 @@ import hcmus.bugscanner.domain.model.BugInfo
  * @param bugInfo Dữ liệu côn trùng cần sửa. Nếu null thì là chế độ Thêm mới.
  * @param onDismiss Callback khi đóng hộp thoại.
  * @param onSave Callback khi lưu thành công, trả về [BugInfo] đã cập nhật.
+ * @param onDelete Callback khi Admin xác nhận xóa bài viết (tuỳ chọn).
  */
 @Composable
 fun BugEditDialog(
     bugInfo: BugInfo?,
     onDismiss: () -> Unit,
-    onSave: (BugInfo) -> Unit
+    onSave: (BugInfo) -> Unit,
+    onDelete: ((BugInfo) -> Unit)? = null
 ) {
     var name by remember { mutableStateOf(bugInfo?.name ?: "") }
     var englishName by remember { mutableStateOf(bugInfo?.englishName ?: "") }
@@ -49,6 +51,17 @@ fun BugEditDialog(
                 OutlinedTextField(value = identification, onValueChange = { identification = it }, label = { Text("Đặc điểm nhận dạng") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
                 OutlinedTextField(value = danger, onValueChange = { danger = it }, label = { Text("Mức độ nguy hại") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 OutlinedTextField(value = treatment, onValueChange = { treatment = it }, label = { Text("Cách xử lý") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                
+                if (bugInfo != null && onDelete != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = { onDelete(bugInfo) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Xóa bài viết", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    }
+                }
             }
         },
         confirmButton = {

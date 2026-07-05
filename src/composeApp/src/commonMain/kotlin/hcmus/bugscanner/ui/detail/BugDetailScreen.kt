@@ -148,13 +148,11 @@ fun BugDetailScreen(
                             .weight(1f)
                             .verticalScroll(scrollState)
                             .padding(horizontal = 24.dp)
-                            .padding(bottom = 100.dp)
+                            .padding(bottom = 16.dp)
                     ) {
                         BugDetailSections(currentBug, isLoading)
                     }
-                }
-
-                Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                    
                     BugDetailBottomBar(currentBug, confidence, source, onAskChatbotClick, onShareClick)
                 }
             }

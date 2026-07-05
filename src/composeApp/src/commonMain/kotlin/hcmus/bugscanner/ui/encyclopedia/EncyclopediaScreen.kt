@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,7 @@ fun EncyclopediaScreen(
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var bugToEdit by remember { mutableStateOf<BugInfo?>(null) }
+    var bugToDelete by remember { mutableStateOf<BugInfo?>(null) }
     var isAddingNew by remember { mutableStateOf(false) }
 
     val statusMessage by viewModel.statusMessage.collectAsState()
@@ -137,6 +139,34 @@ fun EncyclopediaScreen(
             onSave = {
                 viewModel.saveBugEntry(it)
                 bugToEdit = null
+            },
+            onDelete = {
+                bugToDelete = it
+                bugToEdit = null
+            }
+        )
+    }
+
+    bugToDelete?.let { bug ->
+        AlertDialog(
+            onDismissRequest = { bugToDelete = null },
+            title = { Text("Xóa bài viết") },
+            text = { Text("Bạn có chắc chắn muốn xóa bài viết '${bug.name}' không? Hành động này không thể hoàn tác.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteBugEntry(bug)
+                        bugToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Xóa")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { bugToDelete = null }) {
+                    Text("Hủy")
+                }
             }
         )
     }
@@ -163,8 +193,6 @@ fun ExploreTab(
     val exploreList by viewModel.exploreList.collectAsState()
     val searchQuery by viewModel.exploreSearchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
-    var bugToDelete by remember { mutableStateOf<BugInfo?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -225,67 +253,50 @@ fun ExploreTab(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column {
-                            BugImage(
-                                imageUrl = bug.imageUrl,
-                                contentDescription = bug.name,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = bug.name,
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1
+                            Box {
+                                BugImage(
+                                    imageUrl = bug.imageUrl,
+                                    contentDescription = bug.name,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
                                 )
                                 if (isAdmin) {
-                                    Row(horizontalArrangement = Arrangement.End) {
-                                        IconButton(onClick = { onEditRequest(bug) }, modifier = Modifier.size(32.dp)) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = MaterialTheme.colorScheme.primary)
-                                        }
-                                        IconButton(onClick = { bugToDelete = bug }, modifier = Modifier.size(32.dp)) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Xóa", tint = MaterialTheme.colorScheme.error)
+                                    Surface(
+                                        onClick = { onEditRequest(bug) },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp)
+                                            .size(36.dp),
+                                        shape = androidx.compose.foundation.shape.CircleShape,
+                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                         }
                                     }
                                 }
+                            }
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = bug.name,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    minLines = 2,
+                                    maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
                 }
             }
         }
-    }
-    
-    bugToDelete?.let { bug ->
-        AlertDialog(
-            onDismissRequest = { bugToDelete = null },
-            title = { Text("Xóa bài viết") },
-            text = { Text("Bạn có chắc chắn muốn xóa bài viết '${bug.name}' không? Hành động này không thể hoàn tác.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteBugEntry(bug)
-                        bugToDelete = null
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Xóa")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { bugToDelete = null }) {
-                    Text("Hủy")
-                }
-            }
-        )
     }
 }
 
@@ -310,12 +321,33 @@ fun SearchTab(
             onValueChange = viewModel::searchInsects,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
             placeholder = { Text("Nhập tên côn trùng để tra cứu iNaturalist...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
             singleLine = true,
             shape = RoundedCornerShape(14.dp)
         )
+
+        val isScientificSearch by viewModel.isScientificSearch.collectAsState()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = "Tra cứu Tên Khoa học",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = isScientificSearch,
+                onCheckedChange = viewModel::toggleScientificSearch,
+                modifier = Modifier.scale(0.8f)
+            )
+        }
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             if (isLoading && searchResults.isEmpty()) {

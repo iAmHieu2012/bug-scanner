@@ -105,12 +105,28 @@ class EncyclopediaViewModel(
         }
     }
 
+    private val _isScientificSearch = MutableStateFlow(false)
+    
+    val isScientificSearch: StateFlow<Boolean> = _isScientificSearch.asStateFlow()
+
+    /**
+     * Bật hoặc tắt chế độ tra cứu bằng Tên khoa học.
+     * Nếu có sẵn từ khóa hợp lệ đang được nhập, hệ thống sẽ tự động tra cứu lại ngay lập tức.
+     *
+     * @param enabled True nếu muốn bật, False nếu muốn tắt.
+     */
+    fun toggleScientificSearch(enabled: Boolean) {
+        _isScientificSearch.value = enabled
+        if (_searchQuery.value.trim().length >= 2) {
+            searchInsects(_searchQuery.value)
+        }
+    }
+
     /**
      * Gửi truy vấn tìm kiếm sinh vật học đến API iNaturalist.
-     * Tự động tra cứu tên khoa học thông qua dữ liệu nội bộ (Firebase cache)
-     * hoặc dịch sang Tên Tiếng Anh thông qua Groq API (nếu tìm bằng tiếng Việt)
-     * trước khi gửi yêu cầu lên iNaturalist để mở rộng phạm vi tìm kiếm.
-     * Tự động format, dịch thuật cấp bậc phân loại và bóc tách dữ liệu JSON để trả về danh sách [BugInfo] chuẩn hóa.
+     * Hỗ trợ 2 chế độ:
+     * - Tên khoa học: Tra cứu trực tiếp iNaturalist, không qua dịch thuật.
+     * - Tên phổ thông (Tiếng Việt): Dịch qua AI trước khi tra cứu.
      *
      * @param query Từ khóa tìm kiếm do người dùng nhập.
      */
@@ -129,18 +145,23 @@ class EncyclopediaViewModel(
             delay(500.milliseconds)
             _isLoading.value = true
             try {
-                val cachedBugs = repository.getExploreInsects(searchQuery = trimmedQuery, limit = 1)
-                val matchedScientificName = cachedBugs.firstOrNull()?.scientificName
-                
-                val queryToSearch = if (matchedScientificName != null) {
-                    matchedScientificName
-                } else {
-                    val translated = groqApi.translateToEnglishName(trimmedQuery)
-                    if (translated.isNotEmpty()) translated else trimmedQuery
-                }
+                var results = emptyList<hcmus.bugscanner.domain.model.INaturalistTaxon>()
 
-                val response = iNaturalistApi.searchInsects(query = queryToSearch)
-                val results = response.results
+                if (_isScientificSearch.value) {
+                    results = iNaturalistApi.searchInsects(query = trimmedQuery).results
+                } else {
+                    val cachedBugs = repository.getExploreInsects(searchQuery = trimmedQuery, limit = 1)
+                    val matchedScientificName = cachedBugs.firstOrNull()?.scientificName
+                    
+                    val queryToSearch = if (matchedScientificName != null) {
+                        matchedScientificName
+                    } else {
+                        val translated = groqApi.translateToEnglishName(trimmedQuery)
+                        if (translated.isNotEmpty()) translated else trimmedQuery
+                    }
+
+                    results = iNaturalistApi.searchInsects(query = queryToSearch).results
+                }
 
                 if (results.isNotEmpty()) {
                     val bugs = results.map { taxon ->
