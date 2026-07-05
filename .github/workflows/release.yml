@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       # Bước 1: Tải mã nguồn
@@ -27,8 +29,8 @@ jobs:
         env:
           ENCODED_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          mkdir -p src
-          echo $ENCODED_KEYSTORE | base64 -d > src/release-key.jks
+          mkdir -p src/composeApp
+          echo $ENCODED_KEYSTORE | base64 -d > src/composeApp/release-key.jks
 
       # Bước 4: Build Release APK (Nạp trực tiếp API Keys và Passwords qua biến môi trường)
       - name: Build Release APK
