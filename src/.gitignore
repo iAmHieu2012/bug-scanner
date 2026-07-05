@@ -67,3 +67,8 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Keystore files (VERY IMPORTANT: NEVER COMMIT THESE)
+*.jks
+*.keystore
+local.properties
