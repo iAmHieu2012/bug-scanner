@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BugScanner Figma Export (Full Screens)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #E5E7EB; padding: 40px; display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
+        .android-device { width: 360px; height: 800px; background-color: #FDFDFD; border-radius: 32px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column; position: relative; border: 8px solid #1f2937; flex-shrink: 0; }
+        .status-bar { height: 24px; display: flex; justify-content: space-between; padding: 0 16px; align-items: center; font-size: 12px; font-weight: 500; color: #1f2937; z-index: 50;}
+        .status-bar.white { color: white; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .bottom-nav { height: 80px; background-color: #F0F4F1; display: flex; justify-content: space-between; align-items: center; padding: 0 12px 12px 12px; border-top: 1px solid #E5E7EB; z-index: 50;}
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #4B5563; font-size: 10px; font-weight: 500; width: 64px;}
+        .nav-item.active .icon-container { background-color: #C2F0D2; color: #0B3A22; }
+        .nav-item .icon-container { padding: 4px 16px; border-radius: 16px; }
+        .material-symbols-rounded { font-size: 24px; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. SPLASH SCREEN -->
+    <div class="android-device bg-[#3DDC84]">
+        <div class="status-bar white"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="flex-1 flex flex-col items-center justify-center -mt-6">
+            <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-lg">
+                <span class="material-symbols-rounded text-[#3DDC84]" style="font-size: 64px;">bug_report</span>
+            </div>
+            <h1 class="text-4xl font-bold text-white mt-6">BugScanner</h1>
+            <p class="text-white/80 text-lg mt-2">Khám phá thế giới côn trùng</p>
+            <div class="mt-12 w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    </div>
+
+    <!-- 2. AUTH SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="status-bar"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="flex-1 flex flex-col items-center justify-center p-7">
+            <div class="w-20 h-20 bg-white rounded-3xl shadow-md flex items-center justify-center mb-6">
+                <span class="material-symbols-rounded text-[#3DDC84]" style="font-size: 40px;">bug_report</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-1">Chào mừng trở lại</h1>
+            <p class="text-sm text-gray-500 mb-8 text-center">Khám phá thế giới côn trùng ngay hôm nay</p>
+            
+            <div class="w-full bg-white border border-gray-200 rounded-xl h-14 flex items-center px-4 gap-3 mb-4">
+                <span class="material-symbols-rounded text-gray-500">email</span>
+                <input type="text" placeholder="Email" class="bg-transparent outline-none flex-1 text-sm text-gray-700" value="user@example.com">
+            </div>
+            <div class="w-full bg-white border border-gray-200 rounded-xl h-14 flex items-center px-4 gap-3 mb-8">
+                <span class="material-symbols-rounded text-gray-500">lock</span>
+                <input type="password" placeholder="Mật khẩu" class="bg-transparent outline-none flex-1 text-sm text-gray-700" value="12345678">
+                <span class="material-symbols-rounded text-gray-500">visibility</span>
+            </div>
+
+            <button class="w-full bg-[#3DDC84] text-white font-bold h-12 rounded-xl mb-4 shadow-sm">Đăng nhập</button>
+            <button class="text-[#3DDC84] text-sm font-medium mb-4">Chưa có tài khoản? Đăng ký ngay</button>
+            <button class="text-gray-500 text-sm">Tiếp tục mà không cần đăng nhập</button>
+        </div>
+    </div>
+
+    <!-- 3. SCAN SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="status-bar"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="px-5 pt-6 pb-4">
+            <h1 class="text-3xl font-bold text-gray-900">Quét & Nhận diện</h1>
+            <p class="text-sm text-gray-500 mt-1">Sử dụng Camera để AI nhận diện côn trùng</p>
+        </div>
+        <div class="flex-1 mx-4 rounded-[32px] bg-black border-2 border-white relative overflow-hidden flex flex-col justify-end pb-6">
+            <img src="https://images.unsplash.com/photo-1544324222-1d58ea1d5db0?w=600&h=800&fit=crop" class="absolute inset-0 w-full h-full object-cover opacity-70">
+            <div class="absolute border-2 border-[#3DDC84] rounded-lg w-32 h-32 flex items-start justify-start p-1" style="top: 30%; left: 25%">
+                <span class="bg-[#3DDC84] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Bọ rùa</span>
+            </div>
+            <div class="relative z-10 w-full flex justify-evenly items-center px-4">
+                <button class="w-12 h-12 rounded-full bg-black/50 flex justify-center items-center text-white"><span class="material-symbols-rounded">photo_library</span></button>
+                <button class="w-14 h-14 rounded-full border-4 border-white/30 bg-white flex justify-center items-center"><span class="material-symbols-rounded text-black text-3xl">pause</span></button>
+                <button class="w-12 h-12 rounded-full bg-black/50 flex justify-center items-center text-white"><span class="material-symbols-rounded">refresh</span></button>
+            </div>
+        </div>
+        <div class="h-48 mx-4 mt-2 flex flex-col items-center justify-center">
+            <div class="w-full bg-[#E8F5E9] rounded-2xl p-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#3DDC84]"><span class="material-symbols-rounded">bug_report</span></div>
+                <div>
+                    <h3 class="font-bold text-gray-900 text-lg">Bọ rùa (98%)</h3>
+                    <p class="text-sm text-gray-600">Nhấn để xem chi tiết</p>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-nav h-[72px]">
+            <div class="nav-item active"><div class="icon-container"><span class="material-symbols-rounded">center_focus_weak</span></div><span>Nhận diện</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">history</span></div><span>Lịch sử</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">menu_book</span></div><span>Bách khoa</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">smart_toy</span></div><span>Trợ lý</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">person</span></div><span>Tài khoản</span></div>
+        </div>
+    </div>
+
+    <!-- 4. ENCYCLOPEDIA SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="status-bar"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="px-5 pt-6 pb-4 flex items-center gap-4">
+            <div class="bg-[#E8F5E9] w-12 h-12 rounded-full flex items-center justify-center text-[#3DDC84]"><span class="material-symbols-rounded">grid_view</span></div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Bách khoa</h1>
+                <p class="text-xs text-gray-500 mt-1">Dữ liệu nhận diện và thông tin sinh học.</p>
+            </div>
+        </div>
+        <div class="flex border-b border-gray-200">
+            <div class="flex-1 text-center py-3 border-b-2 border-[#3DDC84] text-[#3DDC84] font-bold flex items-center justify-center gap-2"><span class="material-symbols-rounded text-xl">grid_view</span>Khám phá</div>
+            <div class="flex-1 text-center py-3 text-gray-500 font-bold flex items-center justify-center gap-2"><span class="material-symbols-rounded text-xl">search</span>Tra cứu</div>
+        </div>
+        <div class="px-4 mt-4">
+            <div class="w-full bg-[#F3F4F6] rounded-xl h-12 flex items-center px-4 gap-3 border border-gray-200">
+                <span class="material-symbols-rounded text-gray-500">search</span>
+                <input type="text" placeholder="Tìm côn trùng trong dữ liệu..." class="bg-transparent border-none outline-none flex-1 text-sm text-gray-700">
+            </div>
+        </div>
+        <div class="flex-1 px-4 mt-4 overflow-y-auto hide-scrollbar grid grid-cols-2 gap-4 pb-4 content-start">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <img src="https://images.unsplash.com/photo-1544324222-1d58ea1d5db0?w=300&h=300&fit=crop" class="h-32 w-full object-cover">
+                <div class="p-3"><h3 class="font-bold text-gray-800 text-sm">Bọ rùa 7 chấm</h3></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <div class="h-32 w-full bg-[#E5E7EB] flex items-center justify-center"><span class="material-symbols-rounded text-gray-400 text-4xl">bug_report</span></div>
+                <div class="p-3"><h3 class="font-bold text-gray-800 text-sm">Sâu cuốn lá</h3></div>
+            </div>
+        </div>
+        <div class="bottom-nav h-[72px]">
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">center_focus_weak</span></div><span>Nhận diện</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">history</span></div><span>Lịch sử</span></div>
+            <div class="nav-item active"><div class="icon-container"><span class="material-symbols-rounded">menu_book</span></div><span>Bách khoa</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">smart_toy</span></div><span>Trợ lý</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">person</span></div><span>Tài khoản</span></div>
+        </div>
+    </div>
+
+    <!-- 5. HISTORY SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="status-bar"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="px-5 pt-6 pb-4 flex items-center gap-4">
+            <div class="bg-[#E8F5E9] w-12 h-12 rounded-full flex items-center justify-center text-[#3DDC84]"><span class="material-symbols-rounded">history</span></div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Lịch sử khám phá</h1>
+                <p class="text-xs text-gray-500 mt-1">Những loài côn trùng bạn đã tìm thấy</p>
+            </div>
+        </div>
+        <div class="flex-1 px-4 overflow-y-auto hide-scrollbar flex flex-col gap-3">
+            <div class="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center">
+                <img src="https://images.unsplash.com/photo-1544324222-1d58ea1d5db0?w=100&h=100&fit=crop" class="w-12 h-12 rounded-full object-cover bg-gray-200">
+                <div class="ml-4 flex-1">
+                    <h3 class="font-bold text-gray-900 text-sm">Bọ rùa 7 chấm</h3>
+                    <div class="flex items-center text-gray-500 mt-1">
+                        <span class="material-symbols-rounded text-[14px]">schedule</span>
+                        <span class="text-xs ml-1">05/07/2026 09:30</span>
+                    </div>
+                </div>
+                <span class="material-symbols-rounded text-gray-400">chevron_right</span>
+            </div>
+            
+            <div class="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center">
+                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><span class="material-symbols-rounded text-gray-400">bug_report</span></div>
+                <div class="ml-4 flex-1">
+                    <h3 class="font-bold text-gray-900 text-sm">Sâu cuốn lá</h3>
+                    <div class="flex items-center text-gray-500 mt-1">
+                        <span class="material-symbols-rounded text-[14px]">schedule</span>
+                        <span class="text-xs ml-1">04/07/2026 14:15</span>
+                    </div>
+                </div>
+                <span class="material-symbols-rounded text-gray-400">chevron_right</span>
+            </div>
+        </div>
+        <div class="bottom-nav h-[72px]">
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">center_focus_weak</span></div><span>Nhận diện</span></div>
+            <div class="nav-item active"><div class="icon-container"><span class="material-symbols-rounded">history</span></div><span>Lịch sử</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">menu_book</span></div><span>Bách khoa</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">smart_toy</span></div><span>Trợ lý</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">person</span></div><span>Tài khoản</span></div>
+        </div>
+    </div>
+
+    <!-- 6. CHAT SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="status-bar"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="px-5 pt-6 pb-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="bg-[#E8F5E9] w-12 h-12 rounded-full flex items-center justify-center text-[#3DDC84]"><span class="material-symbols-rounded">smart_toy</span></div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Trợ lý BugScanner</h1>
+                    <p class="text-[11px] text-gray-500 mt-1">Hỏi về nhận diện, đặc điểm côn trùng</p>
+                </div>
+            </div>
+            <span class="material-symbols-rounded text-gray-500">delete_sweep</span>
+        </div>
+        <div class="flex-1 p-4 flex flex-col gap-4 overflow-y-auto hide-scrollbar bg-white">
+            <div class="flex gap-2 w-10/12">
+                <div class="w-8 h-8 rounded-full bg-[#E8F5E9] text-[#3DDC84] flex items-center justify-center shrink-0"><span class="material-symbols-rounded text-sm">smart_toy</span></div>
+                <div class="bg-[#F3F4F6] p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-gray-800">Xin chào! Tôi là trợ lý BugScanner AI.</div>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs text-gray-500 mb-2 ml-1">Gợi ý nhanh</p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="border border-gray-300 rounded-full px-3 py-1.5 text-xs text-gray-700">Cách trị sâu cuốn lá?</span>
+                    <span class="border border-gray-300 rounded-full px-3 py-1.5 text-xs text-gray-700">Côn trùng có ích?</span>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-white">
+            <div class="w-full bg-[#F3F4F6] rounded-[28px] p-2 flex items-center shadow-sm h-14">
+                <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500"><span class="material-symbols-rounded">image</span></button>
+                <input type="text" placeholder="Hỏi BugScanner điều gì đó..." class="flex-1 bg-transparent border-none outline-none px-3 text-sm text-gray-800">
+                <button class="w-12 h-12 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center"><span class="material-symbols-rounded">send</span></button>
+            </div>
+        </div>
+        <div class="bottom-nav h-[72px]">
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">center_focus_weak</span></div><span>Nhận diện</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">history</span></div><span>Lịch sử</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">menu_book</span></div><span>Bách khoa</span></div>
+            <div class="nav-item active"><div class="icon-container"><span class="material-symbols-rounded">smart_toy</span></div><span>Trợ lý</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">person</span></div><span>Tài khoản</span></div>
+        </div>
+    </div>
+
+    <!-- 7. PROFILE SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="status-bar"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="px-5 pt-6 pb-4 flex items-center gap-4">
+            <div class="bg-[#E8F5E9] w-12 h-12 rounded-full flex items-center justify-center text-[#3DDC84]"><span class="material-symbols-rounded">person</span></div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Tài khoản</h1>
+                <p class="text-xs text-gray-500 mt-1">Quản lý hồ sơ cá nhân</p>
+            </div>
+        </div>
+        <div class="flex-1 px-4 overflow-y-auto hide-scrollbar flex flex-col gap-6">
+            <div class="bg-[#F3F4F6] rounded-[24px] p-6 flex flex-col items-center">
+                <div class="w-20 h-20 bg-[#3DDC84] rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-white text-4xl">person</span></div>
+                <h2 class="text-xl font-bold text-gray-900">Thành viên Ứng dụng</h2>
+                <p class="text-sm text-gray-500 mb-4">UID: 12345ABC</p>
+                <button class="border border-red-500 text-red-500 px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium"><span class="material-symbols-rounded text-sm">logout</span>Đăng xuất</button>
+            </div>
+            <div class="bg-[#C2F0D2] text-[#0B3A22] rounded-[24px] p-5 flex items-center gap-4">
+                <span class="material-symbols-rounded text-4xl">admin_panel_settings</span>
+                <div class="flex-1">
+                    <h3 class="font-bold text-lg">Bảng Điều Khiển (Admin)</h3>
+                    <p class="text-sm opacity-80">Quản lý người dùng & Bách khoa</p>
+                </div>
+                <span class="material-symbols-rounded">chevron_right</span>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-[24px] p-5 flex flex-col gap-4 shadow-sm">
+                <h3 class="font-bold text-gray-900 text-lg">Thông tin Ứng dụng</h3>
+                <div class="flex items-center gap-4">
+                    <span class="material-symbols-rounded text-[#3DDC84]">info</span>
+                    <div>
+                        <p class="font-medium text-gray-800 text-sm">BugScanner - Ứng dụng Nhận diện</p>
+                        <p class="text-xs text-gray-500">Phiên bản: 1.0.0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-nav h-[72px]">
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">center_focus_weak</span></div><span>Nhận diện</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">history</span></div><span>Lịch sử</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">menu_book</span></div><span>Bách khoa</span></div>
+            <div class="nav-item"><div class="icon-container"><span class="material-symbols-rounded">smart_toy</span></div><span>Trợ lý</span></div>
+            <div class="nav-item active"><div class="icon-container"><span class="material-symbols-rounded">person</span></div><span>Tài khoản</span></div>
+        </div>
+    </div>
+
+    <!-- 8. BUG DETAIL SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="h-[320px] bg-black relative">
+            <img src="https://images.unsplash.com/photo-1544324222-1d58ea1d5db0?w=600&h=400&fit=crop" class="w-full h-full object-cover">
+            <div class="absolute top-0 w-full p-4 pt-12 flex justify-between items-center">
+                <button class="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white"><span class="material-symbols-rounded">arrow_back</span></button>
+            </div>
+        </div>
+        <div class="flex-1 bg-[#FDFDFD] -mt-[48px] rounded-t-[28px] overflow-y-auto hide-scrollbar z-10 flex flex-col relative pb-[100px]">
+            <div class="px-6 pt-6 pb-2">
+                <div class="flex justify-between items-center mb-1">
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-bold text-gray-900">Bọ rùa 7 chấm</h1>
+                        <p class="text-sm text-gray-500 mt-1">Coccinella septempunctata</p>
+                    </div>
+                    <div class="bg-[#E8F5E9] text-[#2E7D32] text-[10px] px-2 py-1.5 rounded-lg font-bold flex items-center gap-1">
+                        <span class="material-symbols-rounded text-[14px]">check_circle</span> Đã nhận diện
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 flex flex-col gap-4 mt-2">
+                <div class="bg-[#F3F4F6] rounded-2xl p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-symbols-rounded text-blue-500">menu_book</span>
+                        <h3 class="font-bold text-gray-700">Tổng quan</h3>
+                    </div>
+                    <div class="h-px bg-gray-300 mb-3"></div>
+                    <p class="text-sm text-gray-600 leading-relaxed">Bọ rùa là tên gọi chung cho các loài côn trùng nhỏ, hình bán cầu, vỏ cứng với các chấm đen đặc trưng.</p>
+                </div>
+                <div class="bg-[#F3F4F6] rounded-2xl p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-symbols-rounded text-red-500">warning</span>
+                        <h3 class="font-bold text-gray-700">Mức độ nguy hại</h3>
+                    </div>
+                    <div class="h-px bg-gray-300 mb-3"></div>
+                    <p class="text-sm text-gray-600 leading-relaxed">Tuyệt đối không gây hại cho cây trồng, ngược lại rất có ích vì tiêu diệt rệp sáp.</p>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-0 w-full bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.05)] p-4 pb-6 flex gap-4">
+            <button class="flex-1 h-12 border border-[#3DDC84] text-[#3DDC84] rounded-2xl flex items-center justify-center gap-2 font-bold"><span class="material-symbols-rounded">share</span>Chia sẻ</button>
+            <button class="flex-[1.5] h-12 bg-[#3DDC84] text-white rounded-2xl flex items-center justify-center gap-2 font-bold"><span class="material-symbols-rounded">smart_toy</span>Hỏi BugScanner AI</button>
+        </div>
+    </div>
+
+    <!-- 9. ADMIN DASHBOARD SCREEN -->
+    <div class="android-device bg-[#FDFDFD]">
+        <div class="status-bar"><span>09:41</span><div class="flex gap-1"><span class="material-symbols-rounded text-sm">wifi</span><span class="material-symbols-rounded text-sm">battery_full</span></div></div>
+        <div class="px-5 pt-6 pb-4 flex items-center gap-4">
+            <div class="bg-[#E8F5E9] w-12 h-12 rounded-full flex items-center justify-center text-[#3DDC84]"><span class="material-symbols-rounded">admin_panel_settings</span></div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Bảng Quản trị</h1>
+                <p class="text-xs text-gray-500 mt-1">Quản lý hệ thống toàn diện</p>
+            </div>
+        </div>
+        
+        <div class="flex border-b border-gray-200 overflow-x-auto hide-scrollbar">
+            <div class="px-4 py-3 border-b-2 border-[#3DDC84] text-[#3DDC84] font-bold flex items-center justify-center gap-2 whitespace-nowrap"><span class="material-symbols-rounded text-xl">dashboard</span>Tổng quan</div>
+            <div class="px-4 py-3 text-gray-500 font-bold flex items-center justify-center gap-2 whitespace-nowrap"><span class="material-symbols-rounded text-xl">settings</span>Cấu hình AI</div>
+            <div class="px-4 py-3 text-gray-500 font-bold flex items-center justify-center gap-2 whitespace-nowrap"><span class="material-symbols-rounded text-xl">people</span>Người dùng</div>
+        </div>
+
+        <div class="flex-1 p-4 overflow-y-auto hide-scrollbar flex flex-col gap-4">
+            <div class="flex gap-4">
+                <div class="flex-1 bg-[#C2F0D2] rounded-[16px] p-5">
+                    <span class="material-symbols-rounded text-[#0B3A22] text-4xl mb-2">people</span>
+                    <h3 class="text-[#0B3A22]/80 text-sm font-medium">Người dùng</h3>
+                    <p class="text-3xl font-bold text-[#0B3A22]">128</p>
+                </div>
+                <div class="flex-1 bg-[#C2F0D2] rounded-[16px] p-5">
+                    <span class="material-symbols-rounded text-[#0B3A22] text-4xl mb-2">history</span>
+                    <h3 class="text-[#0B3A22]/80 text-sm font-medium">Lượt quét</h3>
+                    <p class="text-3xl font-bold text-[#0B3A22]">1,024</p>
+                </div>
+            </div>
+            
+            <div class="bg-[#F3F4F6] rounded-[16px] p-4">
+                <h3 class="font-bold text-gray-900 mb-4">Top 5 Côn trùng được quét</h3>
+                
+                <div class="flex items-center mb-3">
+                    <span class="w-1/3 text-sm font-medium text-gray-700">Bọ rùa</span>
+                    <div class="flex-1 flex items-center">
+                        <div class="h-3 bg-[#3DDC84] rounded-full" style="width: 100%"></div>
+                        <span class="text-xs ml-2 font-bold text-gray-600">450</span>
+                    </div>
+                </div>
+                <div class="flex items-center mb-3">
+                    <span class="w-1/3 text-sm font-medium text-gray-700">Sâu cuốn lá</span>
+                    <div class="flex-1 flex items-center">
+                        <div class="h-3 bg-[#3DDC84] rounded-full" style="width: 70%"></div>
+                        <span class="text-xs ml-2 font-bold text-gray-600">320</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <span class="w-1/3 text-sm font-medium text-gray-700">Kiến ba khoang</span>
+                    <div class="flex-1 flex items-center">
+                        <div class="h-3 bg-[#3DDC84] rounded-full" style="width: 40%"></div>
+                        <span class="text-xs ml-2 font-bold text-gray-600">180</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
