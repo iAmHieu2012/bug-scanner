@@ -27,20 +27,34 @@ class EncyclopediaRepositoryImpl(
      */
     override suspend fun getExploreInsects(searchQuery: String, limit: Int): List<BugInfo> {
         return try {
-            val query = if (searchQuery.isNotBlank()) {
+            if (searchQuery.isNotBlank()) {
                 val searchStr = searchQuery.trim()
-                encyclopediaCollection
-                    .orderBy("name")
-                    .startAtFieldValues { add(searchStr) }
-                    .endAtFieldValues { add(searchStr + "\uf8ff") }
-                    .limit(limit)
+                val lowerStr = searchStr.lowercase()
+                val capitalizedStr = lowerStr.replaceFirstChar { it.uppercase() }
+                val titleCaseStr = lowerStr.split(" ").joinToString(" ") { word ->
+                    word.replaceFirstChar { it.uppercase() }
+                }
+                
+                val searchVariations = setOf(searchStr, lowerStr, capitalizedStr, titleCaseStr)
+                val results = mutableListOf<BugInfo>()
+                
+                for (variation in searchVariations) {
+                    if (results.size >= limit) break
+                    val snapshot = encyclopediaCollection
+                        .orderBy("name")
+                        .startAtFieldValues { add(variation) }
+                        .endAtFieldValues { add(variation + "\uf8ff") }
+                        .limit(limit)
+                        .get()
+                        
+                    results.addAll(snapshot.documents.map { it.data<BugInfoEntity>().toDomain() })
+                }
+                
+                results.distinctBy { it.id }.take(limit)
             } else {
-                encyclopediaCollection.orderBy("name").limit(limit)
+                val snapshot = encyclopediaCollection.orderBy("name").limit(limit).get()
+                snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
             }
-
-            val snapshot = query.get()
-            // Firebase KMP gọi .data() để parse trực tiếp ra Object
-            snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
         } catch (e: Exception) {
             println("Lỗi tải danh sách Khám phá: ${e.message}")
             emptyList()

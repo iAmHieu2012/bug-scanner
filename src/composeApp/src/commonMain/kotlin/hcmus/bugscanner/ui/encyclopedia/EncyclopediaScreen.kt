@@ -34,12 +34,14 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param viewModel ViewModel quản lý trạng thái tải, tìm kiếm và dữ liệu Wikipedia.
  * @param isAdmin Cho biết người dùng hiện tại có quyền Admin hay không.
  * @param onBugSelected Callback chuyển sang màn hình Chi tiết khi nhấn vào một thẻ côn trùng.
+ * @param onAskAI Callback chuyển sang tab Trợ lý AI kèm từ khóa tìm kiếm khi không có kết quả.
  */
 @Composable
 fun EncyclopediaScreen(
     viewModel: EncyclopediaViewModel = koinViewModel(),
     isAdmin: Boolean = false,
-    onBugSelected: (BugInfo) -> Unit = {}
+    onBugSelected: (BugInfo) -> Unit = {},
+    onAskAI: (String) -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var bugToEdit by remember { mutableStateOf<BugInfo?>(null) }
@@ -110,12 +112,7 @@ fun EncyclopediaScreen(
             }
 
             if (selectedTabIndex == 0) {
-                ExploreTab(
-                    viewModel = viewModel,
-                    isAdmin = isAdmin,
-                    onBugSelected = onBugSelected,
-                    onEditRequest = { bugToEdit = it }
-                )
+                ExploreTab(viewModel, isAdmin, onBugSelected, onEditRequest = { bugToEdit = it }, onAskAI = onAskAI)
             } else {
                 SearchTab(viewModel, onBugSelected)
             }
@@ -153,13 +150,15 @@ fun EncyclopediaScreen(
  * @param isAdmin Cho biết quyền Admin để hiển thị nút Sửa/Xóa.
  * @param onBugSelected Callback xử lý nhấn vào thẻ côn trùng.
  * @param onEditRequest Callback khi người dùng nhấn nút Sửa.
+ * @param onAskAI Callback khi người dùng nhấn nút hỏi AI lúc danh sách trống.
  */
 @Composable
 fun ExploreTab(
     viewModel: EncyclopediaViewModel,
     isAdmin: Boolean,
     onBugSelected: (BugInfo) -> Unit,
-    onEditRequest: (BugInfo) -> Unit
+    onEditRequest: (BugInfo) -> Unit,
+    onAskAI: (String) -> Unit
 ) {
     val exploreList by viewModel.exploreList.collectAsState()
     val searchQuery by viewModel.exploreSearchQuery.collectAsState()
@@ -185,7 +184,23 @@ fun ExploreTab(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else if (exploreList.isEmpty()) {
-            EmptyState("Không tìm thấy kết quả nào")
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Không tìm thấy kết quả nào",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (searchQuery.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { onAskAI(searchQuery) }) {
+                        Text("Hỏi BugScanner AI")
+                    }
+                }
+            }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 150.dp),

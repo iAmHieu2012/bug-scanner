@@ -169,7 +169,11 @@ fun HomeScreen(
                             initialChatImage = null
                             initialChatImageUrl = null
                         },
-                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) }
+                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) },
+                        onNavigateToChatbot = { query ->
+                            initialChatPrompt = query
+                            selectTab(AppTab.CHATBOT)
+                        }
                     )
                 }
             }
@@ -229,7 +233,11 @@ fun HomeScreen(
                             initialChatImage = null
                             initialChatImageUrl = null
                         },
-                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) }
+                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) },
+                        onNavigateToChatbot = { query ->
+                            initialChatPrompt = query
+                            selectTab(AppTab.CHATBOT)
+                        }
                     )
                 }
             }
@@ -252,6 +260,7 @@ fun HomeScreen(
  * @param initialChatImageUrl URL ảnh khởi tạo truyền sang màn hình Trợ lý.
  * @param onClearChatPrompt Callback để xoá sạch các thông tin khởi tạo của chatbot.
  * @param onNavigateToAdmin Callback chuyển hướng sang màn hình Quản trị hệ thống.
+ * @param onNavigateToChatbot Callback chuyển hướng sang màn hình Trợ lý (Chatbot) kèm theo một câu hỏi mồi.
  */
 @Composable
 private fun HomeContent(
@@ -266,7 +275,8 @@ private fun HomeContent(
     initialChatImage: ByteArray?,
     initialChatImageUrl: String?,
     onClearChatPrompt: () -> Unit,
-    onNavigateToAdmin: () -> Unit
+    onNavigateToAdmin: () -> Unit,
+    onNavigateToChatbot: (String) -> Unit
 ) {
     when (currentTab) {
         AppTab.SCAN -> scanTabContent { snapshot ->
@@ -295,7 +305,8 @@ private fun HomeContent(
             isAdmin = isAdmin,
             onBugSelected = { bug ->
                 onSnapshotSelected(DetectedBugSnapshot(bug = bug, source = ScanSource.UNKNOWN))
-            }
+            },
+            onAskAI = onNavigateToChatbot
         )
         AppTab.CHATBOT -> {
             ChatScreen(
