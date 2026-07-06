@@ -76,7 +76,7 @@ python scripts/build_practical_yolo_dataset.py \
 python scripts/inspect_yolo_dataset.py --data configs/vietnam-practical-yolo.yaml
 ```
 
-Current rebuilt dataset check after adding reviewed Roboflow sources: 33/33 classes, 25,413 train images / 48,485 boxes, 4,364 val images / 8,774 boxes, and 4,210 test images / 6,785 boxes. Full-image-like boxes remain low at about 0.2-0.3%, so this is suitable for YOLO detection experiments. See:
+Current rebuilt dataset check after adding reviewed Roboflow sources: 33/33 classes, 27,321 train images / 52,240 boxes, 4,669 val images / 9,403 boxes, and 4,385 test images / 7,177 boxes. Full-image-like boxes remain low at about 0.2-0.3%, so this is suitable for YOLO detection experiments. See:
 
 ```text
 datasets/vietnam-practical-yolo/metadata/class_map.csv
@@ -132,8 +132,15 @@ Use these clean boxed sources first:
 - `roboflow-thrips`: YOLO boxes from `https://universe.roboflow.com/disease-74h5a/thrips-ecqs7/dataset/2`, mapped only to generic `thrips`
 - `roboflow-planthopper-wbph-candidate`: YOLO boxes from `https://universe.roboflow.com/wang-pingan-hf2it/planthopper-8oogf/dataset/1`, mapped only from numeric source class `'1'` to `whitebacked_planthopper`
 - existing clean weak-class support already included in the practical config: `roboflow-spider-mite`, `roboflow-cabbage-pest`, and aphid mask boxes
+- manually reviewed Roboflow exports under `datasets/manual/extracted/`:
+  - `rice_pest_detection_6_v1i_yolov11`, mapped only from `rice thrips` to `rice_thrips`
+  - `small_brown_plant_hopper_yolov11`, mapped only from `small_brown_plant_hopper` to `small_brown_planthopper`
+  - `Pest_detection_thesis_yolov11`, mapped only from `Red_Hairy_Catterpillar_C` to `hairy_caterpillar`
+  - `Pest_Detection_v4i_yolov11`, mapped only from `Black hairy caterpillar` to `hairy_caterpillar`
 
 Do not map `roboflow-thrips` into `rice_thrips`. Do not map the planthopper export into `brown_planthopper` or `small_brown_planthopper` until its numeric class-id order has been independently verified.
+
+Do not use `rice-pest-bb.v3-bb_augmented_320_3x` for v4 unless it is manually cleaned. Inspection showed mosaic/cutout augmentation, black squares, and mixed cropped patches. Do not use the downloaded YOLO-JD zip directly; the inspected archive contains images but no annotation files.
 
 If clean boxed data is still missing for `rice_thrips`, `small_brown_planthopper`, or `hairy_caterpillar`, then use manual review/labeling. The old weak-class review queue is deprecated because inspection found noisy images. Rebuild it only if better candidate sources are added:
 

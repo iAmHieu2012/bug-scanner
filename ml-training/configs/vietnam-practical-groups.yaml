@@ -264,6 +264,22 @@ external_yolo_sources:
   root: datasets/candidate-downloads/roboflow/planthopper
   class_map:
     '1': whitebacked_planthopper
+- name: manual-rice-thrips-detection-6
+  root: datasets/manual/extracted/rice_pest_detection_6_v1i_yolov11
+  class_map:
+    rice thrips: rice_thrips
+- name: manual-small-brown-plant-hopper
+  root: datasets/manual/extracted/small_brown_plant_hopper_yolov11
+  class_map:
+    small_brown_plant_hopper: small_brown_planthopper
+- name: manual-red-hairy-caterpillar-thesis
+  root: datasets/manual/extracted/Pest_detection_thesis_yolov11
+  class_map:
+    Red_Hairy_Catterpillar_C: hairy_caterpillar
+- name: manual-black-hairy-caterpillar
+  root: datasets/manual/extracted/Pest_Detection_v4i_yolov11
+  class_map:
+    Black hairy caterpillar: hairy_caterpillar
 - name: roboflow-longhorn
   root: datasets/candidate-downloads/roboflow/longhorn
   class_map:
