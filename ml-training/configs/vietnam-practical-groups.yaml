@@ -256,6 +256,14 @@ external_yolo_sources:
   root: datasets/candidate-downloads/roboflow/spider-mite
   class_map:
     Spider Mite: spider_mite
+- name: roboflow-thrips
+  root: datasets/candidate-downloads/roboflow/thrips
+  class_map:
+    Thrips: thrips
+- name: roboflow-planthopper-wbph-candidate
+  root: datasets/candidate-downloads/roboflow/planthopper
+  class_map:
+    '1': whitebacked_planthopper
 - name: roboflow-longhorn
   root: datasets/candidate-downloads/roboflow/longhorn
   class_map:
@@ -277,6 +285,19 @@ external_yolo_sources:
   root: datasets/candidate-downloads/roboflow/cabbage-pest
   class_map:
     cabbage pest: cabbage_caterpillar
+- name: roboflow-v4-weak-reviewed
+  root: datasets/v4-weak-reviewed-yolo
+  class_map:
+    rice_thrips: rice_thrips
+    thrips: thrips
+    whitebacked_planthopper: whitebacked_planthopper
+    white backed planthopper: whitebacked_planthopper
+    small_brown_planthopper: small_brown_planthopper
+    small brown planthopper: small_brown_planthopper
+    hairy_caterpillar: hairy_caterpillar
+    hairy caterpillar: hairy_caterpillar
+    cabbage_caterpillar: cabbage_caterpillar
+    cabbage caterpillar: cabbage_caterpillar
 external_mask_sources:
 - name: aphid-generalization-masks
   image_root: datasets/candidate-downloads/aphid-generalization/data_generalization/Aphid Detection Dataset/image

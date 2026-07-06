@@ -42,3 +42,6 @@ ml-training/kaggle-packages/ip102-yolo/ip102-yolo/
 ml-training/kaggle-packages/vietnam-practical-yolo/vietnam-practical-yolo/
 ml-training/kaggle-packages/training-code/configs/
 ml-training/kaggle-packages/training-code/scripts/
+ml-training/datasets/roboflow-v4-weakclass-upload/
+ml-training/datasets/roboflow-v4-weakclass-prelabel-yolo/
+ml-training/datasets/v4-weak-reviewed-yolo/

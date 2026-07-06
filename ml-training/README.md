@@ -52,13 +52,16 @@ For the app-facing model, use the practical group-level dataset when exact speci
 - `nafayunnoor/rice-pest-datasets-for-detection`, a Roboflow YOLO export for common rice pests
 - compatible YOLO exports for mango pests, red chili pests, and aphids where the class mapping is safe
 - aphid segmentation masks converted into bounding boxes
-- reviewed Roboflow Universe exports for rice gall midge, rice leaf caterpillar, fruit fly, spider mite, longhorn beetle, flea beetle, cabbage pests, and leafminer where the class mapping is safe enough
+- reviewed Roboflow Universe exports for rice gall midge, rice leaf caterpillar, fruit fly, spider mite, thrips, longhorn beetle, flea beetle, cabbage pests, and leafminer where the class mapping is safe enough
+- a narrow Roboflow planthopper candidate source for `whitebacked_planthopper`; this source uses numeric class ids, so keep the mapping under review before using it for a final model
 
 Do not use `eljazouly/ip102-coco-annotations` for object detection training. Inspection showed its boxes are full-image pseudo boxes, not real insect locations.
 
 Do not train on classification-only folders directly. Classification images go into `datasets/labeling-queue/` and must be manually annotated with real boxes first.
 
 Do not merge generic thrips into `rice_thrips`, or unlabeled planthopper class ids into specific planthopper classes. Keep those sources in review until their taxonomy/class-id mapping is verified.
+
+The previous weak-class review queue from `agricultural-pest-detection-11-species` is not recommended for v4 replacement data. Manual inspection found noisy classification-style images, text overlays, and collage images. Prefer clean detection exports with real boxes before spending review time on that queue.
 
 Build and inspect the practical dataset:
 
@@ -112,6 +115,97 @@ python scripts/build_annotation_queue.py \
 ```
 
 The queue currently includes 370 clean `rice_gall_midge` candidate images plus review folders for broader rice-pest families such as `Delphacidae`, `Thripidae`, `Phlaeothripidae`, `Crambidae`, and `Noctuidae`. These review images are useful, but they need taxonomy review and manual boxes before they can improve training.
+
+## V4 Weak-Class Data
+
+V4 should focus on clean object-detection data for the classes that stayed weak after v3:
+
+- `rice_thrips`
+- `thrips`
+- `whitebacked_planthopper`
+- `small_brown_planthopper`
+- `hairy_caterpillar`
+- `cabbage_caterpillar`
+
+Use these clean boxed sources first:
+
+- `roboflow-thrips`: YOLO boxes from `https://universe.roboflow.com/disease-74h5a/thrips-ecqs7/dataset/2`, mapped only to generic `thrips`
+- `roboflow-planthopper-wbph-candidate`: YOLO boxes from `https://universe.roboflow.com/wang-pingan-hf2it/planthopper-8oogf/dataset/1`, mapped only from numeric source class `'1'` to `whitebacked_planthopper`
+- existing clean weak-class support already included in the practical config: `roboflow-spider-mite`, `roboflow-cabbage-pest`, and aphid mask boxes
+
+Do not map `roboflow-thrips` into `rice_thrips`. Do not map the planthopper export into `brown_planthopper` or `small_brown_planthopper` until its numeric class-id order has been independently verified.
+
+If clean boxed data is still missing for `rice_thrips`, `small_brown_planthopper`, or `hairy_caterpillar`, then use manual review/labeling. The old weak-class review queue is deprecated because inspection found noisy images. Rebuild it only if better candidate sources are added:
+
+```bash
+python scripts/prepare_roboflow_weakclass_package.py \
+  --queue datasets/labeling-queue \
+  --output datasets/roboflow-v4-weakclass-upload
+```
+
+Default package size is about 500 images:
+
+- `Delphacidae`: 160 images for planthopper review
+- `Thripidae`: 120 images for thrips review
+- `Phlaeothripidae`: 120 images for thrips review
+- `Noctuidae`: 100 images for hairy caterpillar review
+
+Upload only reviewed, clean images from `datasets/roboflow-v4-weakclass-upload/images/` to Roboflow. Use exact class names when labeling:
+
+```text
+rice_thrips
+thrips
+whitebacked_planthopper
+small_brown_planthopper
+hairy_caterpillar
+cabbage_caterpillar
+```
+
+Reject ambiguous images instead of forcing them into a class. Draw tight pest boxes only; do not draw full-image boxes.
+
+Optionally create draft labels with the current v3 model before importing into Roboflow:
+
+```bash
+python scripts/prelabel_weakclass_package.py \
+  --weights output-vietnamese-3/runs/train/yolo11m-vn-practical-896-v3-dataqa/weights/best.pt \
+  --data configs/vietnam-practical-yolo.yaml \
+  --images-root datasets/roboflow-v4-weakclass-upload/images \
+  --output datasets/roboflow-v4-weakclass-prelabel-yolo
+```
+
+Import `datasets/roboflow-v4-weakclass-prelabel-yolo/` if you want to review/edit draft boxes instead of drawing every box from scratch. Treat all draft labels as untrusted and correct or delete them during review.
+
+After Roboflow labeling, export as YOLOv8/YOLO format and place the export at:
+
+```text
+datasets/v4-weak-reviewed-yolo/
+  data.yaml
+  train/images/
+  train/labels/
+  valid/images/
+  valid/labels/
+  test/images/
+  test/labels/
+```
+
+The practical dataset config already includes this reviewed source as `roboflow-v4-weak-reviewed`. Rebuild with external sources:
+
+```bash
+python scripts/build_practical_yolo_dataset.py \
+  --config configs/vietnam-practical-groups.yaml \
+  --ip102-root datasets/ip102-yolo \
+  --output datasets/vietnam-practical-yolo \
+  --data-yaml configs/vietnam-practical-yolo.yaml \
+  --include-external
+
+python scripts/inspect_yolo_dataset.py --data configs/vietnam-practical-yolo.yaml
+```
+
+Then upload a new Kaggle dataset version and train with run name:
+
+```text
+yolo11m-vn-practical-896-v4-weakclass
+```
 
 ## Local Machine Notes
 
