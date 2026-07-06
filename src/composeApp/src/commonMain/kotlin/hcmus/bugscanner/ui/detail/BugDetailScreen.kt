@@ -2,6 +2,8 @@ package hcmus.bugscanner.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,7 +20,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.model.ScanSource
@@ -46,7 +51,7 @@ fun BugDetailScreen(
     source: ScanSource = ScanSource.UNKNOWN,
     viewModel: BugDetailViewModel = koinViewModel(),
     onBackClick: () -> Unit,
-    onAskChatbotClick: (String) -> Unit,
+    onAskChatbotClick: (String, BugInfo) -> Unit,
     onShareClick: (BugInfo) -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -100,7 +105,7 @@ fun BugDetailScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp)) {
-                            BugDetailHeader(currentBug, source)
+                            BugDetailHeader(currentBug, source, confidence)
                         }
                         Column(
                             modifier = Modifier
@@ -141,7 +146,7 @@ fun BugDetailScreen(
                         .background(MaterialTheme.colorScheme.background)
                 ) {
                     Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp)) {
-                        BugDetailHeader(currentBug, source)
+                        BugDetailHeader(currentBug, source, confidence)
                     }
                     Column(
                         modifier = Modifier
@@ -168,40 +173,82 @@ fun BugDetailScreen(
  * @param isLoading Trạng thái tải dữ liệu từ API/Firebase (Hiển thị con xoay nếu true).
  * @param source Nguồn mở màn hình để xác định có hiển thị nhãn Đã nhận diện hay không.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BugDetailHeader(detailedBug: BugInfo, source: ScanSource) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
+private fun BugDetailHeader(detailedBug: BugInfo, source: ScanSource, confidence: Float) {
+    val confidenceInfo = hcmus.bugscanner.domain.model.ConfidencePolicy.explain(confidence)
+    val harmfulness = hcmus.bugscanner.domain.model.HarmfulnessLevel.fromValue(detailedBug.harmfulnessLevel)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = detailedBug.name,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = detailedBug.scientificName.ifBlank { "Chưa rõ" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        ResultMetadataBadges(
+            confidenceLabel = if (confidence > 0f) "${confidenceInfo.label} (${confidenceInfo.percentText})" else null,
+            sourceLabel = if (source != ScanSource.UNKNOWN) "Nguồn: ${source.userFacingName}" else null,
+            harmfulness = harmfulness
+        )
+        if (confidence > 0f && confidence < 0.5f) {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = detailedBug.name,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = detailedBug.scientificName.ifBlank { "Chưa rõ" },
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = confidenceInfo.guidance,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
             )
         }
+    }
+}
 
-        if (source != ScanSource.UNKNOWN) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Đã nhận diện", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
-                }
-            }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ResultMetadataBadges(
+    confidenceLabel: String?,
+    sourceLabel: String?,
+    harmfulness: hcmus.bugscanner.domain.model.HarmfulnessLevel
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        confidenceLabel?.let {
+            AssistChip(
+                onClick = {},
+                label = { Text(it) },
+                leadingIcon = { Icon(Icons.Rounded.Verified, null, modifier = Modifier.size(16.dp)) }
+            )
+        }
+        AssistChip(
+            onClick = {},
+            label = { Text(harmfulness.label) },
+            leadingIcon = { Icon(Icons.Rounded.Warning, null, modifier = Modifier.size(16.dp)) },
+            colors = AssistChipDefaults.assistChipColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                labelColor = MaterialTheme.colorScheme.onErrorContainer
+            )
+        )
+        sourceLabel?.let {
+            AssistChip(
+                onClick = {},
+                label = { Text(it) },
+                leadingIcon = { Icon(Icons.Rounded.Analytics, null, modifier = Modifier.size(16.dp)) }
+            )
         }
     }
 }
@@ -218,20 +265,62 @@ private fun BugDetailSections(detailedBug: BugInfo, isLoading: Boolean) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else {
-        if (detailedBug.description.isNotBlank()) {
-            SectionCard(title = "Tổng quan", icon = Icons.AutoMirrored.Rounded.MenuBook, iconTint = MaterialTheme.colorScheme.secondary, content = detailedBug.description)
+        val images = detailedBug.displayImageUrls()
+        if (images.size > 1) {
+            Text(
+                text = "Thư viện ảnh",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(images) { url ->
+                    BugImage(
+                        imageUrl = url,
+                        contentDescription = "Ảnh ${detailedBug.name}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(100.dp).clip(RoundedCornerShape(8.dp))
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
         }
-        if (detailedBug.identification.isNotBlank()) {
-            SectionCard(title = "Đặc điểm nhận dạng", icon = Icons.Rounded.Info, iconTint = MaterialTheme.colorScheme.secondary, content = detailedBug.identification)
+
+        val overview = detailedBug.description.cleanFarmerText()
+        val identification = listOf(detailedBug.identification, detailedBug.identificationTips.joinDisplay()).joinDisplay().cleanFarmerText()
+        val danger = listOf(detailedBug.danger, detailedBug.damageSymptoms.joinDisplay()).joinDisplay().cleanFarmerText()
+        val treatment = listOf(detailedBug.treatment, detailedBug.safeActions.joinDisplay(), detailedBug.ipmNotes.joinDisplay()).joinDisplay().cleanFarmerText()
+
+        if (overview.isNotBlank()) {
+            SectionCard(title = "Tổng quan", icon = Icons.AutoMirrored.Rounded.MenuBook, iconTint = MaterialTheme.colorScheme.secondary, content = overview)
             Spacer(modifier = Modifier.height(16.dp))
         }
-        if (detailedBug.danger.isNotBlank()) {
-            SectionCard(title = "Mức độ nguy hại", icon = Icons.Rounded.Warning, iconTint = MaterialTheme.colorScheme.error, content = detailedBug.danger)
+        if (detailedBug.affectedCrops.isNotEmpty() || detailedBug.hostPlants.isNotEmpty()) {
+            val crops = listOf(
+                detailedBug.affectedCrops.joinDisplay(prefix = "Cây trồng thường gặp: "),
+                detailedBug.hostPlants.joinDisplay(prefix = "Cây ký chủ tham khảo: ")
+            ).joinDisplay().cleanFarmerText()
+            SectionCard(title = "Cây thường gặp", icon = Icons.Rounded.Grass, iconTint = MaterialTheme.colorScheme.primary, content = crops)
             Spacer(modifier = Modifier.height(16.dp))
         }
-        if (detailedBug.treatment.isNotBlank()) {
-            SectionCard(title = "Biện pháp xử lý (Khuyên dùng)", icon = Icons.Rounded.Eco, iconTint = MaterialTheme.colorScheme.primary, content = detailedBug.treatment)
+        if (identification.isNotBlank()) {
+            SectionCard(title = "Dấu hiệu nhận biết", icon = Icons.Rounded.Info, iconTint = MaterialTheme.colorScheme.secondary, content = identification)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        if (danger.isNotBlank()) {
+            SectionCard(title = "Gây hại", icon = Icons.Rounded.Warning, iconTint = MaterialTheme.colorScheme.error, content = danger)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        if (detailedBug.whereToFind.isNotEmpty() || detailedBug.season.isNotBlank()) {
+            val where = listOf(
+                detailedBug.whereToFind.joinDisplay(prefix = "Thường thấy ở: "),
+                detailedBug.season.takeIf { it.isNotBlank() }?.let { "Thời điểm thường gặp: $it" }.orEmpty()
+            ).joinDisplay().cleanFarmerText()
+            SectionCard(title = "Khi kiểm tra ruộng vườn", icon = Icons.Rounded.Place, iconTint = MaterialTheme.colorScheme.secondary, content = where)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        if (treatment.isNotBlank()) {
+            SectionCard(title = "Nên làm gì?", icon = Icons.Rounded.Eco, iconTint = MaterialTheme.colorScheme.primary, content = treatment)
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -251,7 +340,7 @@ private fun BugDetailBottomBar(
     detailedBug: BugInfo,
     confidence: Float,
     source: ScanSource,
-    onAskChatbotClick: (String) -> Unit,
+    onAskChatbotClick: (String, BugInfo) -> Unit,
     onShareClick: (BugInfo) -> Unit
 ) {
     Surface(
@@ -276,7 +365,7 @@ private fun BugDetailBottomBar(
             }
 
             Button(
-                onClick = { onAskChatbotClick(ChatPromptSuggestions.detailPrompt(detailedBug, confidence, source)) },
+                onClick = { onAskChatbotClick("", detailedBug) },
                 modifier = Modifier.weight(1.5f).height(50.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -321,12 +410,66 @@ fun SectionCard(title: String, icon: ImageVector, iconTint: Color, content: Stri
                 color = MaterialTheme.colorScheme.outlineVariant
             )
 
-            Text(
-                text = content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5f
-            )
+            SectionBody(content = content)
         }
     }
+}
+
+@Composable
+private fun SectionBody(content: String) {
+    val items = DetailSectionTextPolicy.sectionItems(content)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.forEach { item ->
+            Row(verticalAlignment = Alignment.Top) {
+                if (items.size > 1) {
+                    Text(
+                        text = "•",
+                        modifier = Modifier.padding(end = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                SectionItemText(
+                    item = item,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionItemText(item: DetailSectionItem, modifier: Modifier = Modifier) {
+    Text(
+        text = buildAnnotatedString {
+            if (item.label.isNotBlank()) {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(item.label)
+                    append(": ")
+                }
+            }
+            append(item.body)
+        },
+        modifier = modifier,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.35f
+    )
+}
+
+private fun List<String>.joinDisplay(prefix: String = ""): String {
+    val value = map { it.trim() }
+        .filter { it.isNotBlank() }
+        .distinct()
+        .joinToString("; ")
+    return if (value.isBlank()) "" else prefix + value
+}
+
+private fun String.cleanFarmerText(): String {
+    val forbidden = listOf("YOLO", "IP102", "GBIF", "iNaturalist", "dataset", "mã lớp", "nhãn mô hình")
+    return lines()
+        .map { it.trim() }
+        .filter { line -> line.isNotBlank() && forbidden.none { line.contains(it, ignoreCase = true) } }
+        .joinToString("\n")
+        .trim()
 }

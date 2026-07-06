@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
+import hcmus.bugscanner.domain.model.ConfidencePolicy
 import hcmus.bugscanner.ml.YoloConstants
 import hcmus.bugscanner.ui.scan.ScanMode
 import hcmus.bugscanner.ui.scan.utils.getBugColor
@@ -145,6 +146,7 @@ fun DetectionPanel(
                     items(detectionSummary.toList()) { (name, stats) ->
                         val count = stats.first
                         val maxScore = stats.second
+                        val confidence = ConfidencePolicy.explain(maxScore)
                         val bugColor = getBugColor(name)
                         val displayVietnameseName = YoloConstants.BUG_DICTIONARY[name] ?: name
 
@@ -157,7 +159,22 @@ fun DetectionPanel(
                             ListItem(
                                 leadingContent = { Icon(Icons.Rounded.Eco, null, tint = bugColor) },
                                 headlineContent = { Text(displayVietnameseName, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                supportingContent = { Text("Độ chính xác: ${(maxScore * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 13.sp) },
+                                supportingContent = {
+                                    Column {
+                                        Text(
+                                            "Độ tin cậy: ${confidence.percentText} - ${confidence.shortLabel}",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                                            fontSize = 13.sp
+                                        )
+                                        if (maxScore < 0.5f) {
+                                            Text(
+                                                confidence.guidance,
+                                                color = MaterialTheme.colorScheme.error,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
+                                },
                                 trailingContent = { Text("x$count", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )

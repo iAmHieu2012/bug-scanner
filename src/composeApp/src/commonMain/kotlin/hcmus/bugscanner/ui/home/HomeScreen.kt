@@ -108,11 +108,11 @@ fun HomeScreen(
             confidence = snapshotToShow.confidence,
             source = snapshotToShow.source,
             onBackClick = { selectedSnapshot = null },
-            onAskChatbotClick = { prompt ->
+            onAskChatbotClick = { prompt, detailedBug ->
                 initialChatPrompt = prompt.takeIf { it.isNotBlank() }
                 initialChatImage = null
                 initialChatImageUrl = null
-                initialChatBugContext = snapshotToShow.bug
+                initialChatBugContext = detailedBug
                 selectedSnapshot = null
                 currentTab = AppTab.CHATBOT
                 onTabChanged(AppTab.CHATBOT)
