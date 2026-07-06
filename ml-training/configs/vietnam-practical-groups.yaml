@@ -1,0 +1,285 @@
+targets:
+- key: rice_leaf_folder
+  name: rice leaf folder
+  vi_name: Sau cuon la lua
+  crop_group: rice
+- key: rice_leaf_caterpillar
+  name: rice leaf caterpillar
+  vi_name: Sau an la lua
+  crop_group: rice
+- key: rice_stem_borer
+  name: rice stem borer
+  vi_name: Sau duc than lua
+  crop_group: rice
+- key: rice_stem_maggot
+  name: rice stem maggot
+  vi_name: Doi duc non lua
+  crop_group: rice
+- key: rice_gall_midge
+  name: rice gall midge
+  vi_name: Muoi hanh hai lua
+  crop_group: rice
+- key: brown_planthopper
+  name: brown planthopper
+  vi_name: Ray nau
+  crop_group: rice
+- key: whitebacked_planthopper
+  name: white backed planthopper
+  vi_name: Ray lung trang
+  crop_group: rice
+- key: small_brown_planthopper
+  name: small brown planthopper
+  vi_name: Ray nau nho
+  crop_group: rice
+- key: green_leafhopper
+  name: green leafhopper
+  vi_name: Ray xanh
+  crop_group: rice
+- key: rice_thrips
+  name: rice thrips
+  vi_name: Bo tri hai lua
+  crop_group: rice
+- key: rice_bug
+  name: rice bug
+  vi_name: Bo xit hai lua
+  crop_group: rice
+- key: soil_grub
+  name: soil grub
+  vi_name: Sung dat
+  crop_group: field
+- key: mole_cricket
+  name: mole cricket
+  vi_name: De nhui
+  crop_group: field
+- key: wireworm
+  name: wireworm
+  vi_name: Sau thep
+  crop_group: field
+- key: cutworm
+  name: cutworm
+  vi_name: Sau xam
+  crop_group: field
+- key: spider_mite
+  name: spider mite
+  vi_name: Nhen do
+  crop_group: field
+- key: corn_borer
+  name: corn borer
+  vi_name: Sau duc than ngo
+  crop_group: maize
+- key: armyworm
+  name: armyworm
+  vi_name: Sau keo sau khoang
+  crop_group: field
+- key: aphid
+  name: aphid
+  vi_name: Rep muoi
+  crop_group: field
+- key: flea_beetle
+  name: flea beetle
+  vi_name: Bo nhay
+  crop_group: vegetable
+- key: cabbage_caterpillar
+  name: cabbage caterpillar
+  vi_name: Sau hai rau ho cai
+  crop_group: vegetable
+- key: locust_grasshopper
+  name: locust or grasshopper
+  vi_name: Chau chau
+  crop_group: field
+- key: thrips
+  name: thrips
+  vi_name: Bo tri
+  crop_group: field
+- key: hairy_caterpillar
+  name: hairy caterpillar
+  vi_name: Sau long sau nai
+  crop_group: fruit
+- key: scale_mealybug
+  name: scale insect or mealybug
+  vi_name: Rep sap rep vay
+  crop_group: fruit
+- key: longhorn_borer
+  name: longhorn borer
+  vi_name: Xen toc duc than
+  crop_group: fruit
+- key: mirid_bug
+  name: mirid bug
+  vi_name: Bo xit mu
+  crop_group: field
+- key: whitefly
+  name: whitefly
+  vi_name: Bo phan trang
+  crop_group: vegetable
+- key: fruit_fly
+  name: fruit fly
+  vi_name: Ruoi duc qua
+  crop_group: fruit
+- key: citrus_leafminer
+  name: citrus leafminer
+  vi_name: Sau ve bua
+  crop_group: citrus
+- key: mango_hopper
+  name: mango hopper
+  vi_name: Ray xoai
+  crop_group: mango
+- key: mango_borer_weevil
+  name: mango borer or weevil
+  vi_name: Sau duc chồi mot xoai
+  crop_group: mango
+- key: leafhopper_general
+  name: leafhopper
+  vi_name: Ray la
+  crop_group: field
+quality_thresholds:
+  ready_train_images: 300
+  low_train_images: 100
+  critical_train_images: 50
+  min_val_images: 30
+  min_test_images: 30
+ip102:
+  class_map:
+    0: rice_leaf_folder
+    1: rice_leaf_caterpillar
+    2: rice_stem_maggot
+    3: rice_stem_borer
+    4: rice_stem_borer
+    5: rice_gall_midge
+    6: rice_stem_maggot
+    7: brown_planthopper
+    8: whitebacked_planthopper
+    9: small_brown_planthopper
+    11: green_leafhopper
+    12: rice_thrips
+    13: rice_bug
+    14: soil_grub
+    15: mole_cricket
+    16: wireworm
+    18: cutworm
+    19: cutworm
+    20: cutworm
+    21: spider_mite
+    22: corn_borer
+    23: armyworm
+    24: aphid
+    27: aphid
+    28: aphid
+    29: aphid
+    37: flea_beetle
+    38: cabbage_caterpillar
+    39: armyworm
+    48: locust_grasshopper
+    54: thrips
+    56: cabbage_caterpillar
+    58: hairy_caterpillar
+    64: scale_mealybug
+    68: longhorn_borer
+    69: green_leafhopper
+    70: mirid_bug
+    71: whitefly
+    74: spider_mite
+    76: scale_mealybug
+    77: scale_mealybug
+    78: scale_mealybug
+    79: scale_mealybug
+    81: scale_mealybug
+    82: whitefly
+    83: fruit_fly
+    84: fruit_fly
+    85: fruit_fly
+    86: armyworm
+    88: citrus_leafminer
+    89: aphid
+    90: aphid
+    91: aphid
+    92: thrips
+    94: mango_hopper
+    95: mango_hopper
+    96: mango_borer_weevil
+    97: mango_borer_weevil
+    98: mango_hopper
+    99: mango_borer_weevil
+    100: mango_borer_weevil
+    101: leafhopper_general
+external_yolo_sources:
+- name: common-rice-pests-philippines
+  root: datasets/common-rice-pests-philippines-download/Common Rice Pests -Philippines-.v1-raw-data.yolov8/Common
+    Rice Pests -Philippines-.v1-raw-data.yolov8
+  class_map:
+    brown-planthopper: brown_planthopper
+    green-leafhopper: green_leafhopper
+    leaf-folder: rice_leaf_folder
+    rice-bug: rice_bug
+    stem-borer: rice_stem_borer
+    whorl-maggot: rice_stem_maggot
+- name: agropest-12
+  root: datasets/agropest-12-download
+  class_map:
+    Grasshoppers: locust_grasshopper
+- name: mango-pests-yolo
+  root: datasets/mango-pests-yolo
+  class_map:
+    蝗虫: locust_grasshopper
+    芒果料斗: mango_hopper
+    芒果粉蚧: scale_mealybug
+    钻心虫: mango_borer_weevil
+    象鼻虫: mango_borer_weevil
+- name: red-chili-pepper-pests
+  root: datasets/red-chili-pepper-pests
+  class_map:
+    MP: aphid
+    BT: whitefly
+    T: thrips
+- name: aphid-yolo
+  root: datasets/aphid-yolo
+  class_map:
+    Alive: aphid
+    Dead: aphid
+- name: roboflow-rice-gall-midge-a
+  root: datasets/candidate-downloads/roboflow/rice-gall-midge-a
+  class_map:
+    rice-gall-midge: rice_gall_midge
+- name: roboflow-rice-gall-midge-b
+  root: datasets/candidate-downloads/roboflow/rice-gall-midge-b
+  class_map:
+    RiceGallMidge: rice_gall_midge
+- name: roboflow-rice-leaf-caterpillar
+  root: datasets/candidate-downloads/roboflow/rice-leaf-caterpillar
+  class_map:
+    RiceLeafCaterpillar: rice_leaf_caterpillar
+- name: roboflow-fruit-fly
+  root: datasets/candidate-downloads/roboflow/fruit-fly
+  class_map:
+    dorsalis: fruit_fly
+    zonata: fruit_fly
+- name: roboflow-spider-mite
+  root: datasets/candidate-downloads/roboflow/spider-mite
+  class_map:
+    Spider Mite: spider_mite
+- name: roboflow-longhorn
+  root: datasets/candidate-downloads/roboflow/longhorn
+  class_map:
+    '0': longhorn_borer
+- name: roboflow-leafminer-det
+  root: datasets/candidate-downloads/roboflow/leafminer-det
+  class_map:
+    leaf-miner: citrus_leafminer
+- name: roboflow-leafminer-seg
+  root: datasets/candidate-downloads/roboflow/leafminer-seg
+  class_map:
+    objects: citrus_leafminer
+- name: roboflow-flea-beetle-b
+  root: datasets/candidate-downloads/roboflow/flea-beetle-b
+  class_map:
+    Flea-beetle: flea_beetle
+    flea beetle: flea_beetle
+- name: roboflow-cabbage-pest
+  root: datasets/candidate-downloads/roboflow/cabbage-pest
+  class_map:
+    cabbage pest: cabbage_caterpillar
+external_mask_sources:
+- name: aphid-generalization-masks
+  image_root: datasets/candidate-downloads/aphid-generalization/data_generalization/Aphid Detection Dataset/image
+  mask_root: datasets/candidate-downloads/aphid-generalization/data_generalization/Aphid Detection Dataset/mask
+  target_key: aphid
+  min_area: 20

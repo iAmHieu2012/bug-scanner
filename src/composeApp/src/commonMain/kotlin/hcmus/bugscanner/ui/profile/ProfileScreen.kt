@@ -24,12 +24,16 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * Màn hình Hồ sơ (Profile) hiển thị thông tin tài khoản, thông tin ứng dụng và chức năng quản trị (nếu là Admin).
  *
+ * @param useDarkTheme Trạng thái giao diện sáng/tối hiện tại.
+ * @param onThemeToggle Callback kích hoạt chuyển đổi giao diện sáng/tối.
  * @param onNavigateToAdmin Callback chuyển hướng sang màn hình Quản trị (chỉ dành cho Admin).
  * @param onAuthAction Callback xử lý hành động xác thực (Đăng nhập).
  * @param viewModel ViewModel quản lý trạng thái xác thực.
  */
 @Composable
 fun ProfileScreen(
+    useDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
     onNavigateToAdmin: () -> Unit,
     onAuthAction: () -> Unit,
     viewModel: AuthViewModel = koinViewModel()
@@ -178,6 +182,42 @@ fun ProfileScreen(
                         Text("Phát triển bởi", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                         Text("BugScanner Developers", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                }
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Cá nhân hóa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (useDarkTheme) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text("Chế độ tối", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text("Giảm độ sáng, tiết kiệm pin", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Switch(
+                        checked = useDarkTheme,
+                        onCheckedChange = { onThemeToggle() }
+                    )
                 }
             }
         }

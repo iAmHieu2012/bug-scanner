@@ -29,6 +29,23 @@ class GroqApiService(
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
     /**
+     * Hàm nội bộ để gửi request dạng Chat Completion tới API Groq.
+     * Tự động đính kèm API Key thông qua ApiKeyPolicy.
+     *
+     * @param payload Nội dung request gửi cho Groq AI.
+     * @return [GroqResponse] chứa kết quả phản hồi thô.
+     */
+    private suspend fun postChatCompletion(payload: GroqRequest): GroqResponse {
+        return client.post("https://api.groq.com/openai/v1/chat/completions") {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer ${BuildConfig.GROQ_API_KEY}")
+                append(HttpHeaders.ContentType, "application/json")
+            }
+            setBody(payload)
+        }.body()
+    }
+
+    /**
      * Tiền xử lý kết quả trả về từ các mô hình Reasoning (vd: DeepSeek-R1, Qwen-Reasoning)
      * bằng cách loại bỏ toàn bộ phần nội dung nằm trong cặp thẻ <think>...</think>.
      *
@@ -55,15 +72,31 @@ class GroqApiService(
         val config = appConfigProvider.getConfig()
 
         val prompt = """
-            Cung cấp thông tin sinh học và nông nghiệp bằng tiếng Việt cho loài côn trùng có tên khoa học là "$scientificName" (Tên tiếng Anh: "$englishName").
+            Cung cấp thông tin sinh học và nông nghiệp chi tiết bằng tiếng Việt cho loài côn trùng/sinh vật có tên khoa học là "$scientificName" (Tên tiếng Anh: "$englishName").
             
-            BẮT BUỘC TRẢ VỀ CHUẨN JSON VỚI 5 KEY NÀY, KHÔNG ĐƯỢC CHỨA BẤT KỲ TEXT NÀO KHÁC:
+            QUY TẮC BẮT BUỘC:
+            1. Trả về đúng định dạng JSON hợp lệ, KHÔNG chứa đoạn text nào nằm ngoài JSON.
+            2. Tuyệt đối không được bỏ sót key nào.
+            3. Đối với các mảng (Array), hãy liệt kê MỌI thông tin có thể (từ 3 đến 10 phần tử tùy loại), KHÔNG giới hạn số lượng.
+            4. Nếu không có dữ liệu thực tế cho một mảng, hãy trả về mảng rỗng [].
+            5. TUYỆT ĐỐI KHÔNG ghi kèm tên khoa học (tiếng Latin) vào trong mảng `affectedCrops` và `hostPlants`. Chỉ ghi tên gọi thông thường bằng tiếng Việt (Ví dụ: "Lúa", "Ngô" - KHÔNG ghi "Lúa (Oryza sativa)").
+            
+            CẤU TRÚC JSON YÊU CẦU:
             {
-                "nameVi": "Tên gọi tiếng Việt phổ biến nhất (hoặc dịch chuẩn sang tiếng Việt).",
-                "description": "Mô tả sinh học, tập tính, vòng đời (3-4 câu).",
-                "identification": "Đặc điểm nhận dạng hình thái.",
-                "danger": "Chọn đúng 1 từ: Nguy hiểm, An toàn, hoặc Theo dõi.",
-                "treatment": "Biện pháp xử lý hoặc phòng trừ."
+                "nameVi": "string (Tên tiếng Việt phổ biến nhất)",
+                "description": "string (Mô tả chi tiết sinh học, tập tính, vòng đời)",
+                "identification": "string (Đặc điểm nhận dạng hình thái)",
+                "danger": "string (Chỉ chọn 1: Nguy hiểm, An toàn, hoặc Theo dõi)",
+                "treatment": "string (Biện pháp xử lý hoặc phòng trừ chi tiết)",
+                "affectedCrops": ["string", "string", "..."], // Toàn bộ cây trồng bị ảnh hưởng
+                "hostPlants": ["string", "string", "..."], // Toàn bộ cây ký chủ
+                "damageSymptoms": ["string", "string", "..."], // Dấu hiệu gây hại có thể quan sát
+                "identificationTips": ["string", "string", "..."], // Mẹo nhận biết nhanh ngoài thực địa
+                "whereToFind": ["string", "string", "..."], // Vị trí thường trú ngụ (VD: chồi non, mặt dưới lá)
+                "season": "string (Mùa vụ hoặc điều kiện thời tiết xuất hiện)",
+                "safeActions": ["string", "string", "..."], // Hành động xử lý an toàn nên làm ngay
+                "ipmNotes": ["string", "string", "..."], // Lưu ý về Quản lý dịch hại tổng hợp (IPM)
+                "searchTokens": ["string", "string", "..."] // Rất nhiều từ khóa, từ đồng nghĩa để tìm kiếm
             }
         """.trimIndent()
 
@@ -78,14 +111,7 @@ class GroqApiService(
         )
 
         return try {
-            val response: GroqResponse = client.post("https://api.groq.com/openai/v1/chat/completions") {
-                headers {
-                    append(HttpHeaders.Authorization, "Bearer ${BuildConfig.GROQ_API_KEY}")
-                    append(HttpHeaders.ContentType, "application/json")
-                }
-                setBody(payload)
-            }.body()
-
+            val response = postChatCompletion(payload)
             var jsonString = response.choices.firstOrNull()?.message?.content ?: "{}"
             jsonString = cleanReasoningOutput(jsonString)
             val startIndex = jsonString.indexOf('{')
@@ -127,14 +153,7 @@ class GroqApiService(
         )
 
         return try {
-            val response: GroqResponse = client.post("https://api.groq.com/openai/v1/chat/completions") {
-                headers {
-                    append(HttpHeaders.Authorization, "Bearer ${BuildConfig.GROQ_API_KEY}")
-                    append(HttpHeaders.ContentType, "application/json")
-                }
-                setBody(payload)
-            }.body()
-
+            val response = postChatCompletion(payload)
             val rawResult = response.choices.firstOrNull()?.message?.content ?: ""
             val result = cleanReasoningOutput(rawResult).removeSurrounding("\"")
             val finalTranslated = if (result.contains("không biết", ignoreCase = true) || result.contains("sorry", ignoreCase = true)) "" else result

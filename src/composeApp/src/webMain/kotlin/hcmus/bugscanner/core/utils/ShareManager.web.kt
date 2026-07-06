@@ -33,15 +33,24 @@ class WebShareManager : ShareManager {
      * @param bugName Tên phổ thông của côn trùng.
      * @param scientificName Tên khoa học của côn trùng.
      * @param imageBytes Mảng byte của hình ảnh (nếu có).
+     * @param confidenceLabel Độ tin cậy của kết quả nhận diện.
+     * @param harmfulnessLabel Mức độ gây hại của côn trùng.
      * @param appLink Đường dẫn tải app hoặc trang web.
      */
     override fun shareBugInfo(
         bugName: String,
         scientificName: String,
         imageBytes: ByteArray?,
+        confidenceLabel: String,
+        harmfulnessLabel: String,
         appLink: String
     ) {
-        val shareText = "Tôi vừa phát hiện ra loài: $bugName trên ứng dụng BugScanner. Tên khoa học: $scientificName."
+        val shareText = buildString {
+            append("Tôi vừa phát hiện ra loài: $bugName trên ứng dụng BugScanner. ")
+            append("Tên khoa học: $scientificName. ")
+            if (confidenceLabel.isNotBlank()) append("Độ tin cậy: $confidenceLabel. ")
+            if (harmfulnessLabel.isNotBlank()) append("Mức gây hại: $harmfulnessLabel.")
+        }.trim()
 
         try {
             val navigator: dynamic = window.navigator

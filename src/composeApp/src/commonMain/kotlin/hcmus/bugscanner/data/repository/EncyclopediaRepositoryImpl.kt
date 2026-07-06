@@ -126,27 +126,38 @@ class EncyclopediaRepositoryImpl(
         return try {
             val docId = bug.scientificName.ifBlank { bug.id }.replace(" ", "_")
 
-            val bugData = mapOf(
-                "id" to bug.id,
-                "name" to bug.name,
-                "englishName" to bug.englishName,
-                "scientificName" to bug.scientificName,
-                "description" to bug.description,
-                "imageUrl" to bug.imageUrl,
-                "identification" to bug.identification,
-                "danger" to bug.danger,
-                "treatment" to bug.treatment,
-                "wikiUrl" to bug.wikiUrl
+            val bugEntity = BugInfoEntity(
+                id = bug.id,
+                name = bug.name,
+                englishName = bug.englishName,
+                scientificName = bug.scientificName,
+                description = bug.description,
+                imageUrl = bug.imageUrl,
+                imageUrls = bug.displayImageUrls(),
+                identification = bug.identification,
+                danger = bug.danger,
+                harmfulnessLevel = bug.harmfulnessLevel,
+                treatment = bug.treatment,
+                affectedCrops = bug.affectedCrops,
+                hostPlants = bug.hostPlants,
+                damageSymptoms = bug.damageSymptoms,
+                identificationTips = bug.identificationTips,
+                whereToFind = bug.whereToFind,
+                season = bug.season,
+                safeActions = bug.safeActions,
+                ipmNotes = bug.ipmNotes,
+                sourceRefs = bug.sourceRefs,
+                searchTokens = bug.searchTokens,
+                wikiUrl = bug.wikiUrl
             )
 
-            encyclopediaCollection.document(docId).set(bugData)
+            encyclopediaCollection.document(docId).set(bugEntity)
             true
         } catch (e: Exception) {
             println("Lỗi khi lưu dữ liệu lên Firebase: ${e.message}")
             false
         }
     }
-
     /**
      * Xóa một mục trong Bách khoa toàn thư dựa trên Document ID.
      *

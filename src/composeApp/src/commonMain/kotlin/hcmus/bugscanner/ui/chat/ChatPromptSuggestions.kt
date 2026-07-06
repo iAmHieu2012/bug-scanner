@@ -11,11 +11,27 @@ object ChatPromptSuggestions {
      * Danh sách các câu hỏi gợi ý mặc định khi mở màn hình chatbot.
      */
     val defaultPrompts = listOf(
-        "Côn trùng này có nguy hiểm với người không?",
+        "Tôi nên chụp ảnh thế nào để nhận diện rõ hơn?",
+        "Dấu hiệu nào cho thấy côn trùng đang gây hại cây trồng?",
         "Làm sao phân biệt côn trùng có ích và gây hại?",
-        "Nên xử lý côn trùng trong nhà như thế nào?",
-        "Giải thích kết quả nhận diện theo cách dễ hiểu."
+        "Khi chưa chắc loài côn trùng, tôi nên làm gì?"
     )
+
+    /**
+     * Sinh danh sách câu hỏi gợi ý được cá nhân hóa dựa trên tên của sinh vật.
+     *
+     * @param bug Đối tượng sinh vật đang làm ngữ cảnh.
+     * @return Danh sách các câu hỏi gợi ý phù hợp.
+     */
+    fun promptsForBug(bug: BugInfo?): List<String> {
+        val name = bug?.name?.takeIf { it.isNotBlank() } ?: return defaultPrompts
+        return listOf(
+            "$name thường gây hại cây nào?",
+            "Dấu hiệu nhận biết $name là gì?",
+            "Khi thấy $name trên cây, tôi nên kiểm tra gì trước?",
+            "Tóm tắt thông tin quan trọng nhất về $name."
+        )
+    }
 
     /**
      * Sinh câu lệnh (prompt) hỏi thông tin đơn giản theo tên loài.
@@ -47,7 +63,7 @@ object ChatPromptSuggestions {
             "Tên hiển thị: ${bug.name.ifBlank { scientificName }}",
             "Tên khoa học: $scientificName",
             "Tên tiếng Anh: $englishName",
-            "Nguồn nhận diện: ${source.displayName}",
+            "Nguồn nhận diện: ${source.userFacingName}",
             "Độ tin cậy: $confidenceText",
             "Mô tả: ${bug.description.ifBlank { "chưa có" }}",
             "Đặc điểm nhận dạng: ${bug.identification.ifBlank { "chưa có" }}",

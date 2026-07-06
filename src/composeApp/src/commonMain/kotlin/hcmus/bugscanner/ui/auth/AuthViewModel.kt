@@ -133,7 +133,7 @@ class AuthViewModel(
                     }
                 }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Lỗi đăng ký")
+                _authState.value = AuthState.Error(translateError(e, "Lỗi đăng ký"))
             }
         }
     }
@@ -168,7 +168,7 @@ class AuthViewModel(
             try {
                 auth.signInAnonymously()
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Lỗi đăng nhập ẩn danh: ${e.message}")
+                _authState.value = AuthState.Error(translateError(e, "Lỗi đăng nhập ẩn danh"))
             }
         }
     }
@@ -184,6 +184,17 @@ class AuthViewModel(
             } catch (e: Exception) {
                 println("Lỗi đăng xuất: ${e.message}")
             }
+        }
+    }
+
+    private fun translateError(e: Exception, fallback: String): String {
+        val msg = e.message ?: return fallback
+        return when {
+            msg.contains("email address is already in use", ignoreCase = true) -> "Email này đã được sử dụng."
+            msg.contains("network", ignoreCase = true) || msg.contains("host", ignoreCase = true) -> "Lỗi kết nối mạng. Vui lòng kiểm tra internet."
+            msg.contains("invalid-email", ignoreCase = true) -> "Định dạng email không hợp lệ."
+            msg.contains("weak-password", ignoreCase = true) -> "Mật khẩu quá yếu."
+            else -> "$fallback: $msg"
         }
     }
 }

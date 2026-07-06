@@ -21,11 +21,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import hcmus.bugscanner.domain.model.AppConfig
+import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.ui.components.ScreenHeader
 import kotlinx.coroutines.launch
 import hcmus.bugscanner.ui.chat.components.ChatBubble
@@ -41,6 +48,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param initialPrompt Câu hỏi mẫu truyền vào từ màn hình khác (tuỳ chọn).
  * @param initialImageBytes Hình ảnh đính kèm dạng mảng Byte truyền vào từ màn hình Scan (tuỳ chọn).
  * @param initialImageUrl Hình ảnh đính kèm dạng URL truyền vào từ màn hình Lịch sử / Bách khoa (tuỳ chọn).
+ * @param initialBugContext Dữ liệu bách khoa toàn thư truyền vào để làm ngữ cảnh tham chiếu cho AI (tuỳ chọn).
  * @param viewModel ViewModel quản lý logic gọi API Gemini và duy trì trạng thái lịch sử đoạn chat.
  */
 @Composable
@@ -48,15 +56,18 @@ fun ChatScreen(
     initialPrompt: String? = null,
     initialImageBytes: ByteArray? = null,
     initialImageUrl: String? = null,
+    initialBugContext: BugInfo? = null,
     viewModel: ChatViewModel = koinViewModel()
 ) {
     var prompt by remember { mutableStateOf("") }
     var imageToSend by remember { mutableStateOf<ByteArray?>(null) }
     var urlToSend by remember { mutableStateOf<String?>(null) }
     var lastAutoSentPrompt by remember { mutableStateOf<String?>(null) }
+    var activeBugContext by remember { mutableStateOf<BugInfo?>(null) }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
     val listState = rememberLazyListState()
+    val shouldShowSuggestions = messages.size <= 1 && !isTyping
 
     val scanProvider = LocalPlatformScanProvider.current
     val imagePicker = scanProvider.rememberImagePickerHelper(
@@ -71,21 +82,30 @@ fun ChatScreen(
         }
     )
 
+    scanProvider.registerClipboardImagePasteHandler { bytes: ByteArray? ->
+        imageToSend = bytes
+        urlToSend = null
+    }
+
     fun submitPrompt(text: String = prompt) {
         val cleanPrompt = text.trim()
         if ((cleanPrompt.isNotEmpty() || imageToSend != null || urlToSend != null) && !isTyping) {
-            viewModel.sendMessage(cleanPrompt, imageToSend, urlToSend)
+            viewModel.sendMessage(cleanPrompt, imageToSend, urlToSend, activeBugContext)
             prompt = ""
             imageToSend = null
             urlToSend = null
         }
     }
 
-    LaunchedEffect(initialPrompt, initialImageBytes, initialImageUrl) {
+    LaunchedEffect(initialPrompt, initialImageBytes, initialImageUrl, initialBugContext) {
+        if (initialBugContext != null) {
+            activeBugContext = initialBugContext
+            prompt = ""
+        }
         val cleanPrompt = initialPrompt?.trim()
-        if ((!cleanPrompt.isNullOrEmpty() && cleanPrompt != lastAutoSentPrompt) || initialImageBytes != null || initialImageUrl != null) {
+        if (!cleanPrompt.isNullOrEmpty() && cleanPrompt != lastAutoSentPrompt) {
             lastAutoSentPrompt = cleanPrompt
-            viewModel.sendMessage(cleanPrompt.orEmpty(), initialImageBytes, initialImageUrl)
+            viewModel.sendMessage(cleanPrompt.orEmpty(), initialImageBytes, initialImageUrl, initialBugContext)
         }
     }
 
@@ -142,9 +162,11 @@ fun ChatScreen(
                     ChatBubble(message = msg)
                 }
 
-                if (messages.size <= 1 && !isTyping) {
-                    item {
-                        PromptSuggestions(onPromptClick = ::submitPrompt)
+                if (shouldShowSuggestions) {
+                    activeBugContext?.let { bug ->
+                        item {
+                            ActiveBugContextCard(bug = bug)
+                        }
                     }
                 }
 
@@ -153,6 +175,14 @@ fun ChatScreen(
                         TypingIndicator()
                     }
                 }
+            }
+
+            if (shouldShowSuggestions) {
+                PromptSuggestions(
+                    bugContext = activeBugContext,
+                    onPromptClick = ::submitPrompt,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
             }
 
             ChatInput(
@@ -173,18 +203,53 @@ fun ChatScreen(
 }
 }
 
+/**
+ * Component hiển thị thẻ thông báo rằng đang có ngữ cảnh bách khoa được đính kèm vào cuộc trò chuyện.
+ *
+ * @param bug Dữ liệu sinh vật đang được dùng làm ngữ cảnh tham chiếu.
+ */
+@Composable
+private fun ActiveBugContextCard(bug: BugInfo) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 10.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = "Đang hỏi về ${bug.name.ifBlank { bug.scientificName }}",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = "Ngữ cảnh bách khoa đã được gắn vào cuộc trò chuyện. Bạn chỉ cần hỏi phần muốn biết thêm.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.82f)
+            )
+        }
+    }
+}
+
 
 
 /**
  * Hiển thị danh sách các gợi ý câu hỏi nhanh dưới dạng chip để người dùng lựa chọn.
  *
+ * @param bugContext Ngữ cảnh sinh vật hiện tại dùng để cá nhân hóa gợi ý.
  * @param onPromptClick Callback kích hoạt khi người dùng nhấn chọn một câu gợi ý.
+ * @param modifier Tùy chỉnh giao diện bên ngoài.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PromptSuggestions(onPromptClick: (String) -> Unit) {
+private fun PromptSuggestions(
+    bugContext: BugInfo?,
+    onPromptClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = 4.dp, bottom = 12.dp)
     ) {
@@ -199,7 +264,7 @@ private fun PromptSuggestions(onPromptClick: (String) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ChatPromptSuggestions.defaultPrompts.forEach { suggestion ->
+            ChatPromptSuggestions.promptsForBug(bugContext).forEach { suggestion ->
                 SuggestionChip(
                     onClick = { onPromptClick(suggestion) },
                     label = { Text(suggestion) },
@@ -237,19 +302,20 @@ private fun ChatInput(
         modifier = Modifier
             .fillMaxWidth()
             .imePadding()
-            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+        tonalElevation = 3.dp,
+        shadowElevation = 6.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)
+                .padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)
         ) {
             if (imageBytes != null || imageUrl != null) {
                 Box(
-                    modifier = Modifier.padding(top = 4.dp, end = 12.dp, bottom = 8.dp, start = 8.dp)
+                    modifier = Modifier.padding(top = 4.dp, end = 12.dp, bottom = 8.dp, start = 10.dp)
                 ) {
                     AsyncImage(
                         model = imageBytes ?: imageUrl,
@@ -286,9 +352,9 @@ private fun ChatInput(
                 IconButton(
                     onClick = onPickImageClick,
                     modifier = Modifier
-                        .padding(end = 8.dp, bottom = 4.dp)
-                        .size(48.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                        .padding(end = 6.dp)
+                        .size(46.dp)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Image,
@@ -300,34 +366,43 @@ private fun ChatInput(
                 OutlinedTextField(
                     value = prompt,
                     onValueChange = onPromptChange,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && event.key == Key.Enter && !event.isShiftPressed) {
+                                onSubmit()
+                                true
+                            } else {
+                                false
+                            }
+                        },
                     placeholder = {
                         Text(
                             "Hỏi BugScanner điều gì đó...",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(30.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color.Transparent,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
                     ),
                     maxLines = 4
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 val canSend = (prompt.isNotBlank() || imageBytes != null || imageUrl != null) && !isTyping
 
                 IconButton(
                     onClick = onSubmit,
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(48.dp)
                         .background(
                             color = if (canSend) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            else MaterialTheme.colorScheme.surface,
                             shape = CircleShape
                         ),
                     enabled = canSend

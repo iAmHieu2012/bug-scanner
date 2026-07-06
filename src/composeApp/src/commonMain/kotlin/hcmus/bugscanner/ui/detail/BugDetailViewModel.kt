@@ -56,7 +56,16 @@ class BugDetailViewModel(
                         description = aiData.description,
                         identification = initialBug.identification + "\n" + aiData.identification,
                         danger = aiData.danger,
-                        treatment = aiData.treatment
+                        treatment = aiData.treatment,
+                        affectedCrops = aiData.affectedCrops,
+                        hostPlants = aiData.hostPlants,
+                        damageSymptoms = aiData.damageSymptoms,
+                        identificationTips = aiData.identificationTips,
+                        whereToFind = aiData.whereToFind,
+                        season = aiData.season,
+                        safeActions = aiData.safeActions,
+                        ipmNotes = aiData.ipmNotes,
+                        searchTokens = aiData.searchTokens
                     )
 
                     _detailedBug.value = completeBug

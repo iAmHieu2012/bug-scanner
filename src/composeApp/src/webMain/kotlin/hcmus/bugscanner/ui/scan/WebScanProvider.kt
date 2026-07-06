@@ -1,6 +1,7 @@
 package hcmus.bugscanner.ui.scan
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -8,7 +9,10 @@ import androidx.compose.ui.Modifier
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.ml.WebYoloDetector
 import kotlinx.coroutines.launch
+import org.khronos.webgl.Int8Array
 import org.w3c.dom.HTMLImageElement
+import org.w3c.dom.events.Event
+import org.w3c.files.FileReader
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -17,6 +21,59 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * Đóng vai trò là cầu nối giữa cây giao diện Compose Multiplatform và các API đặc thù của Trình duyệt Web.
  */
 object WebScanProvider : PlatformScanProvider {
+    /**
+     * Đăng ký trình xử lý (Listener) để bắt sự kiện dán ảnh (Paste) từ khay nhớ tạm trên trình duyệt.
+     * Tự động giải mã ảnh dán và trả về mảng byte.
+     *
+     * @param onImageBytesPasted Callback trả về mảng byte của ảnh sau khi được người dùng dán thành công.
+     */
+    @Composable
+    override fun registerClipboardImagePasteHandler(onImageBytesPasted: (ByteArray) -> Unit) {
+        DisposableEffect(onImageBytesPasted) {
+            val listener: (Event) -> Unit = listener@{ event ->
+                fun readClipboardFile(file: dynamic) {
+                    val reader = FileReader()
+                    reader.onload = {
+                        val buffer = reader.result as org.khronos.webgl.ArrayBuffer
+                        onImageBytesPasted(Int8Array(buffer).unsafeCast<ByteArray>())
+                        null
+                    }
+                    reader.readAsArrayBuffer(file)
+                    event.preventDefault()
+                }
+
+                val clipboardData = event.asDynamic().clipboardData ?: return@listener
+                val items = clipboardData.items
+                val length = (items?.length as? Int) ?: 0
+                for (index in 0 until length) {
+                    val item = items[index] ?: continue
+                    val type = item.type as? String ?: ""
+                    if (type.startsWith("image/")) {
+                        val file = item.getAsFile() ?: continue
+                        readClipboardFile(file)
+                        return@listener
+                    }
+                }
+
+                val files = clipboardData.files
+                val fileLength = (files?.length as? Int) ?: 0
+                for (index in 0 until fileLength) {
+                    val file = files[index] ?: continue
+                    val type = file.type as? String ?: ""
+                    if (type.startsWith("image/")) {
+                        readClipboardFile(file)
+                        return@listener
+                    }
+                }
+            }
+
+            kotlinx.browser.window.addEventListener("paste", listener)
+            onDispose {
+                kotlinx.browser.window.removeEventListener("paste", listener)
+            }
+        }
+    }
+
     /**
      * Hàm xin quyền truy cập Camera trên nền tảng Web.
      * Trình duyệt xử lý quyền tự động khi gọi Video API, nên hàm này gọi thẳng vào block xử lý thành công.

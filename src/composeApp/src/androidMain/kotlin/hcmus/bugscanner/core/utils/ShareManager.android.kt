@@ -27,10 +27,26 @@ class AndroidShareManager(private val context: Context) : ShareManager {
      * @param bugName Tên phổ thông của côn trùng.
      * @param scientificName Tên khoa học của côn trùng.
      * @param imageBytes Mảng byte của hình ảnh côn trùng đã quét (có thể null nếu chỉ share chữ).
+     * @param confidenceLabel Độ tin cậy của kết quả nhận diện.
+     * @param harmfulnessLabel Mức độ gây hại của côn trùng.
      * @param appLink Đường dẫn tải app hoặc trang web để người dùng khác click vào.
      */
-    override fun shareBugInfo(bugName: String, scientificName: String, imageBytes: ByteArray?, appLink: String) {
-        val shareText = "Tôi vừa phát hiện ra loài: $bugName trên BugScanner.\nTên khoa học: $scientificName.\n\nKhám phá ngay tại: $appLink"
+    override fun shareBugInfo(
+        bugName: String,
+        scientificName: String,
+        imageBytes: ByteArray?,
+        confidenceLabel: String,
+        harmfulnessLabel: String,
+        appLink: String
+    ) {
+        val shareText = buildString {
+            appendLine("Tôi vừa phát hiện ra loài: $bugName trên BugScanner.")
+            appendLine("Tên khoa học: $scientificName.")
+            if (confidenceLabel.isNotBlank()) appendLine("Độ tin cậy: $confidenceLabel")
+            if (harmfulnessLabel.isNotBlank()) appendLine("Mức gây hại: $harmfulnessLabel")
+            appendLine()
+            append("Khám phá ngay tại: $appLink")
+        }
 
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("BugScanner Share", shareText)

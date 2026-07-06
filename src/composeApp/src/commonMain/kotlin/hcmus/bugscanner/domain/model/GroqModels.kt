@@ -90,5 +90,14 @@ data class AiBugData(
     val description: String = "Đang cập nhật...",
     val identification: String = "Đang cập nhật...",
     val danger: String = "Theo dõi",
-    val treatment: String = "Đang cập nhật..."
+    val treatment: String = "Đang cập nhật...",
+    val affectedCrops: List<String> = emptyList(),
+    val hostPlants: List<String> = emptyList(),
+    val damageSymptoms: List<String> = emptyList(),
+    val identificationTips: List<String> = emptyList(),
+    val whereToFind: List<String> = emptyList(),
+    val season: String = "",
+    val safeActions: List<String> = emptyList(),
+    val ipmNotes: List<String> = emptyList(),
+    val searchTokens: List<String> = emptyList()
 )

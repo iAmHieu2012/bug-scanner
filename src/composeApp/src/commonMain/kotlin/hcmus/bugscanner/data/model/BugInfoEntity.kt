@@ -13,9 +13,21 @@ import kotlinx.serialization.Serializable
  * @property scientificName Tên khoa học (Danh pháp hai phần).
  * @property description Đoạn văn bản mô tả tổng quan về loài côn trùng.
  * @property imageUrl Đường dẫn URL tĩnh chứa hình ảnh minh họa.
+ * @property imageUrls Danh sách ảnh minh họa bổ sung.
  * @property identification Đặc điểm nhận dạng ngoại hình.
  * @property danger Mức độ nguy hiểm hoặc tác hại đối với con người/nông nghiệp.
+ * @property harmfulnessLevel Mức gây hại chuẩn hóa để UI hiển thị badge nhất quán.
  * @property treatment Biện pháp xử lý, phòng ngừa hoặc sơ cứu y tế khi tiếp xúc.
+ * @property affectedCrops Cây trồng thường gặp hoặc dễ bị ảnh hưởng.
+ * @property hostPlants Cây ký chủ được nguồn tham khảo ghi nhận.
+ * @property damageSymptoms Dấu hiệu gây hại người dùng có thể quan sát.
+ * @property identificationTips Đặc điểm nhận biết bằng ngôn ngữ đơn giản.
+ * @property whereToFind Vị trí thường thấy trên cây hoặc ngoài ruộng/vườn.
+ * @property season Thời điểm/điều kiện thường xuất hiện nếu có dữ liệu.
+ * @property safeActions Việc nên làm an toàn, không thay thế tư vấn chuyên gia.
+ * @property ipmNotes Ghi chú quản lý dịch hại tổng hợp từ nguồn đáng tin.
+ * @property sourceRefs Danh sách nguồn tham khảo dùng để xây dựng hồ sơ.
+ * @property searchTokens Từ khóa tìm kiếm bổ sung đã chuẩn hóa/curate.
  * @property wikiUrl Đường dẫn đến bài viết Wikipedia (nếu có).
  */
 @Serializable
@@ -26,9 +38,21 @@ data class BugInfoEntity(
     val scientificName: String = "",
     val description: String = "",
     val imageUrl: String = "",
+    val imageUrls: List<String>? = null,
     val identification: String = "",
     val danger: String = "",
+    val harmfulnessLevel: String = "crop_pest",
     val treatment: String = "",
+    val affectedCrops: List<String>? = null,
+    val hostPlants: List<String>? = null,
+    val damageSymptoms: List<String>? = null,
+    val identificationTips: List<String>? = null,
+    val whereToFind: List<String>? = null,
+    val season: String = "",
+    val safeActions: List<String>? = null,
+    val ipmNotes: List<String>? = null,
+    val sourceRefs: List<String>? = null,
+    val searchTokens: List<String>? = null,
     val wikiUrl: String = ""
 )
 
@@ -46,9 +70,21 @@ fun BugInfoEntity.toDomain(): BugInfo {
         scientificName = this.scientificName,
         description = this.description,
         imageUrl = this.imageUrl,
+        imageUrls = this.imageUrls ?: emptyList(),
         identification = this.identification,
         danger = this.danger,
+        harmfulnessLevel = this.harmfulnessLevel,
         treatment = this.treatment,
+        affectedCrops = this.affectedCrops ?: emptyList(),
+        hostPlants = this.hostPlants ?: emptyList(),
+        damageSymptoms = this.damageSymptoms ?: emptyList(),
+        identificationTips = this.identificationTips ?: emptyList(),
+        whereToFind = this.whereToFind ?: emptyList(),
+        season = this.season,
+        safeActions = this.safeActions ?: emptyList(),
+        ipmNotes = this.ipmNotes ?: emptyList(),
+        sourceRefs = this.sourceRefs ?: emptyList(),
+        searchTokens = this.searchTokens ?: emptyList(),
         wikiUrl = this.wikiUrl
     )
 }

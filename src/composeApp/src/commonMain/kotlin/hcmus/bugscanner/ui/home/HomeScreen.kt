@@ -6,8 +6,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -43,6 +46,8 @@ enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT, PROFILE, ADMIN }
  * @param onTabChanged Callback kích hoạt khi người dùng chuyển tab.
  * @param isLoggedIn Trạng thái đăng nhập của người dùng.
  * @param isAdmin Cờ báo hiệu quyền Admin của người dùng.
+ * @param useDarkTheme Cờ báo hiệu đang sử dụng giao diện Tối (Dark mode).
+ * @param onThemeToggle Callback kích hoạt khi người dùng chuyển đổi Sáng/Tối.
  * @param onAuthAction Callback xử lý hành động xác thực (Đăng nhập/Đăng xuất).
  * @param onShareClick Callback xử lý chia sẻ thông tin côn trùng.
  * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
@@ -56,8 +61,10 @@ fun HomeScreen(
     onTabChanged: (AppTab) -> Unit = {},
     isLoggedIn: Boolean,
     isAdmin: Boolean = false,
+    useDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
     onAuthAction: () -> Unit,
-    onShareClick: (BugInfo, ByteArray?) -> Unit,
+    onShareClick: (BugInfo, ByteArray?, Float) -> Unit,
     scanTabContent: @Composable (onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel = koinViewModel()
 ) {
@@ -66,6 +73,7 @@ fun HomeScreen(
     var initialChatPrompt by remember { mutableStateOf<String?>(null) }
     var initialChatImage by remember { mutableStateOf<ByteArray?>(null) }
     var initialChatImageUrl by remember { mutableStateOf<String?>(null) }
+    var initialChatBugContext by remember { mutableStateOf<BugInfo?>(null) }
 
     val navItems: List<Triple<AppTab, String, ImageVector>> = buildList {
         add(Triple(AppTab.SCAN, "Nhận diện", Icons.Rounded.CenterFocusWeak))
@@ -84,6 +92,7 @@ fun HomeScreen(
             initialChatPrompt = null
             initialChatImage = null
             initialChatImageUrl = null
+            initialChatBugContext = null
         }
         selectedSnapshot = null
         currentTab = tab
@@ -100,15 +109,16 @@ fun HomeScreen(
             source = snapshotToShow.source,
             onBackClick = { selectedSnapshot = null },
             onAskChatbotClick = { prompt ->
-                initialChatPrompt = prompt
-                initialChatImage = snapshotToShow.imageBytes
-                initialChatImageUrl = snapshotToShow.bug.imageUrl
+                initialChatPrompt = prompt.takeIf { it.isNotBlank() }
+                initialChatImage = null
+                initialChatImageUrl = null
+                initialChatBugContext = snapshotToShow.bug
                 selectedSnapshot = null
                 currentTab = AppTab.CHATBOT
                 onTabChanged(AppTab.CHATBOT)
             },
             onShareClick = { bug ->
-                onShareClick(bug, snapshotToShow.imageBytes)
+                onShareClick(bug, snapshotToShow.imageBytes, snapshotToShow.confidence)
             }
         )
     } else {
@@ -122,7 +132,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .padding(vertical = 16.dp, horizontal = 8.dp)
                         .clip(RoundedCornerShape(24.dp)),
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ) {
                     Spacer(modifier = Modifier.weight(1f))
@@ -153,28 +163,37 @@ fun HomeScreen(
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    HomeContent(
-                        currentTab = currentTab,
-                        isLoggedIn = isLoggedIn,
-                        onAuthAction = onAuthAction,
-                        scanTabContent = scanTabContent,
-                        historyViewModel = historyViewModel,
-                        onSnapshotSelected = { selectedSnapshot = it },
-                        initialChatPrompt = initialChatPrompt,
-                        initialChatImage = initialChatImage,
-                        initialChatImageUrl = initialChatImageUrl,
-                        isAdmin = isAdmin,
-                        onClearChatPrompt = {
-                            initialChatPrompt = null
-                            initialChatImage = null
-                            initialChatImageUrl = null
-                        },
-                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) },
-                        onNavigateToChatbot = { query ->
-                            initialChatPrompt = query
-                            selectTab(AppTab.CHATBOT)
-                        }
-                    )
+                    Crossfade(
+                        targetState = currentTab,
+                        animationSpec = tween(300)
+                    ) { tab ->
+                        HomeContent(
+                            currentTab = tab,
+                            isLoggedIn = isLoggedIn,
+                            isAdmin = isAdmin,
+                            useDarkTheme = useDarkTheme,
+                            onThemeToggle = onThemeToggle,
+                            onAuthAction = onAuthAction,
+                            scanTabContent = scanTabContent,
+                            historyViewModel = historyViewModel,
+                            onSnapshotSelected = { selectedSnapshot = it },
+                            initialChatPrompt = initialChatPrompt,
+                            initialChatImage = initialChatImage,
+                            initialChatImageUrl = initialChatImageUrl,
+                            initialChatBugContext = initialChatBugContext,
+                            onNavigateToAdmin = { selectTab(AppTab.ADMIN) },
+                            onNavigateToChatbot = { query ->
+                                initialChatPrompt = query
+                                selectTab(AppTab.CHATBOT)
+                            },
+                            onClearChatPrompt = {
+                                initialChatPrompt = null
+                                initialChatImage = null
+                                initialChatImageUrl = null
+                                initialChatBugContext = null
+                            }
+                        )
+                    }
                 }
             }
         } else {
@@ -184,9 +203,10 @@ fun HomeScreen(
                         modifier = Modifier
                             .navigationBarsPadding()
                             .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
+                        shadowElevation = 8.dp,
                         tonalElevation = 5.dp,
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                     ) {
                         NavigationBar(
                             containerColor = Color.Transparent,
@@ -217,28 +237,37 @@ fun HomeScreen(
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    HomeContent(
-                        currentTab = currentTab,
-                        isLoggedIn = isLoggedIn,
-                        onAuthAction = onAuthAction,
-                        scanTabContent = scanTabContent,
-                        historyViewModel = historyViewModel,
-                        onSnapshotSelected = { selectedSnapshot = it },
-                        initialChatPrompt = initialChatPrompt,
-                        initialChatImage = initialChatImage,
-                        initialChatImageUrl = initialChatImageUrl,
-                        isAdmin = isAdmin,
-                        onClearChatPrompt = {
-                            initialChatPrompt = null
-                            initialChatImage = null
-                            initialChatImageUrl = null
-                        },
-                        onNavigateToAdmin = { selectTab(AppTab.ADMIN) },
-                        onNavigateToChatbot = { query ->
-                            initialChatPrompt = query
-                            selectTab(AppTab.CHATBOT)
-                        }
-                    )
+                    Crossfade(
+                        targetState = currentTab,
+                        animationSpec = tween(300)
+                    ) { tab ->
+                        HomeContent(
+                            currentTab = tab,
+                            isLoggedIn = isLoggedIn,
+                            isAdmin = isAdmin,
+                            useDarkTheme = useDarkTheme,
+                            onThemeToggle = onThemeToggle,
+                            onAuthAction = onAuthAction,
+                            scanTabContent = scanTabContent,
+                            historyViewModel = historyViewModel,
+                            onSnapshotSelected = { selectedSnapshot = it },
+                            initialChatPrompt = initialChatPrompt,
+                            initialChatImage = initialChatImage,
+                            initialChatImageUrl = initialChatImageUrl,
+                            initialChatBugContext = initialChatBugContext,
+                            onNavigateToAdmin = { selectTab(AppTab.ADMIN) },
+                            onNavigateToChatbot = { query ->
+                                initialChatPrompt = query
+                                selectTab(AppTab.CHATBOT)
+                            },
+                            onClearChatPrompt = {
+                                initialChatPrompt = null
+                                initialChatImage = null
+                                initialChatImageUrl = null
+                                initialChatBugContext = null
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -251,6 +280,8 @@ fun HomeScreen(
  * @param currentTab Tab hiện tại đang hiển thị.
  * @param isLoggedIn Trạng thái đăng nhập của người dùng.
  * @param isAdmin Cờ báo hiệu quyền Admin của người dùng.
+ * @param useDarkTheme Cờ báo hiệu trạng thái giao diện hiện tại.
+ * @param onThemeToggle Callback xử lý chuyển đổi giao diện Sáng/Tối.
  * @param onAuthAction Callback xử lý hành động xác thực.
  * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
  * @param historyViewModel ViewModel quản lý dữ liệu lịch sử.
@@ -258,6 +289,7 @@ fun HomeScreen(
  * @param initialChatPrompt Nội dung prompt khởi tạo truyền sang màn hình Trợ lý.
  * @param initialChatImage Dữ liệu ảnh dạng mảng byte khởi tạo truyền sang màn hình Trợ lý.
  * @param initialChatImageUrl URL ảnh khởi tạo truyền sang màn hình Trợ lý.
+ * @param initialChatBugContext Dữ liệu bách khoa khởi tạo để Gemini dùng làm ngữ cảnh.
  * @param onClearChatPrompt Callback để xoá sạch các thông tin khởi tạo của chatbot.
  * @param onNavigateToAdmin Callback chuyển hướng sang màn hình Quản trị hệ thống.
  * @param onNavigateToChatbot Callback chuyển hướng sang màn hình Trợ lý (Chatbot) kèm theo một câu hỏi mồi.
@@ -267,6 +299,8 @@ private fun HomeContent(
     currentTab: AppTab,
     isLoggedIn: Boolean,
     isAdmin: Boolean,
+    useDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
     onAuthAction: () -> Unit,
     scanTabContent: @Composable (onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
@@ -274,6 +308,7 @@ private fun HomeContent(
     initialChatPrompt: String?,
     initialChatImage: ByteArray?,
     initialChatImageUrl: String?,
+    initialChatBugContext: BugInfo?,
     onClearChatPrompt: () -> Unit,
     onNavigateToAdmin: () -> Unit,
     onNavigateToChatbot: (String) -> Unit
@@ -312,16 +347,19 @@ private fun HomeContent(
             ChatScreen(
                 initialPrompt = initialChatPrompt,
                 initialImageBytes = initialChatImage,
-                initialImageUrl = initialChatImageUrl
+                initialImageUrl = initialChatImageUrl,
+                initialBugContext = initialChatBugContext
             )
-            LaunchedEffect(initialChatPrompt, initialChatImage, initialChatImageUrl) {
-                if (initialChatPrompt != null || initialChatImage != null || initialChatImageUrl != null) {
+            LaunchedEffect(initialChatPrompt, initialChatImage, initialChatImageUrl, initialChatBugContext) {
+                if (initialChatPrompt != null || initialChatImage != null || initialChatImageUrl != null || initialChatBugContext != null) {
                     onClearChatPrompt()
                 }
             }
         }
         AppTab.PROFILE -> {
             hcmus.bugscanner.ui.profile.ProfileScreen(
+                useDarkTheme = useDarkTheme,
+                onThemeToggle = onThemeToggle,
                 onNavigateToAdmin = onNavigateToAdmin,
                 onAuthAction = onAuthAction
             )

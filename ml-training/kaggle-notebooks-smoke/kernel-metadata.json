@@ -1,0 +1,21 @@
+{
+  "id": "trungminh815/bugscanner-yolo11-ip102-offline-smoke",
+  "title": "BugScanner YOLO11 IP102 Offline Smoke",
+  "code_file": "train_yolo11_ip102_offline_smoke.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "trungminh815/bugscanner-ip102-yolo",
+    "trungminh815/bugscanner-yolo-training-code",
+    "trungminh815/bugscanner-yolo11-weights",
+    "trungminh815/bugscanner-offline-wheels"
+  ],
+  "competition_sources": [],
+  "enable_tpu": "false",
+  "machine_shape": "",
+  "kernel_sources": [],
+  "model_sources": []
+}

@@ -23,7 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import hcmus.bugscanner.core.utils.TimeUtils.formatTimestamp
+import hcmus.bugscanner.domain.model.ConfidencePolicy
+import hcmus.bugscanner.domain.model.HarmfulnessLevel
 import hcmus.bugscanner.domain.model.ScanHistory
+import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.ui.components.BugImage
 import hcmus.bugscanner.ui.components.EmptyState
 import hcmus.bugscanner.ui.components.ScreenHeader
@@ -142,6 +145,9 @@ fun HistoryScreen(
 @Composable
 fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
     val dateString = formatTimestamp(item.timestamp)
+    val confidence = ConfidencePolicy.explain(item.confidence)
+    val harmfulness = HarmfulnessLevel.fromValue(item.harmfulnessLevel)
+    val source = ScanSource.fromValue(item.source)
 
     Card(
         onClick = onClick,
@@ -189,6 +195,15 @@ fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    HistoryBadge(if (item.confidence > 0f) "${confidence.shortLabel} ${confidence.percentText}" else "Chưa có độ tin cậy")
+                    HistoryBadge(harmfulness.shortLabel)
+                    HistoryBadge(source.userFacingName)
+                }
             }
 
             Icon(
@@ -197,5 +212,26 @@ fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.outlineVariant
             )
         }
+    }
+}
+
+/**
+ * Thành phần UI dạng huy hiệu (Badge) nhỏ để hiển thị các nhãn trạng thái của côn trùng.
+ *
+ * @param text Nội dung văn bản ngắn gọn hiển thị trong huy hiệu.
+ */
+@Composable
+private fun HistoryBadge(text: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

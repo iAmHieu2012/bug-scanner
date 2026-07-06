@@ -21,6 +21,7 @@ import hcmus.bugscanner.ui.history.HistoryViewModel
 import hcmus.bugscanner.ui.encyclopedia.EncyclopediaViewModel
 import hcmus.bugscanner.ui.scan.ScanFallbackViewModel
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -36,6 +37,11 @@ val appModule = module {
     // 1. Tầng Mạng: Khởi tạo HttpClient dùng chung (Singleton)
     single {
         HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 15_000L
+                connectTimeoutMillis = 15_000L
+                socketTimeoutMillis = 20_000L
+            }
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true
