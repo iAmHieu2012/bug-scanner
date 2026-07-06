@@ -1,0 +1,210 @@
+candidate_sources:
+- name: agricultural-pest-detection-11-species
+  url: https://www.kaggle.com/datasets/yangzhengyuxxxz/agricultural-pest-detection-11-species
+  local_root: datasets/candidate-downloads/agricultural-pest-detection-11-species/Rice_pests
+  source_type: classification_images
+  decision: annotation_queue_only
+  reason: Folder names are useful for candidate collection, but no bounding-box labels were found in the Kaggle file listing.
+  license: CC-BY-NC-SA-4.0
+  class_map:
+    Cecidomyiidae: rice_gall_midge
+  review_map:
+    Chloropidae:
+    - rice_stem_maggot
+    Cicadellidae:
+    - green_leafhopper
+    - leafhopper_general
+    Crambidae:
+    - rice_leaf_folder
+    - rice_stem_borer
+    - corn_borer
+    Curculionidae:
+    - mango_borer_weevil
+    Delphacidae:
+    - brown_planthopper
+    - whitebacked_planthopper
+    - small_brown_planthopper
+    Ephyridae:
+    - rice_stem_maggot
+    Hesperiidae:
+    - rice_leaf_caterpillar
+    Noctuidae:
+    - cutworm
+    - armyworm
+    - hairy_caterpillar
+    Phlaeothripidae:
+    - rice_thrips
+    - thrips
+    Thripidae:
+    - rice_thrips
+    - thrips
+- name: planthopper
+  url: https://www.kaggle.com/datasets/xushengji/planthopper
+  local_root: datasets/candidate-downloads/planthopper
+  source_type: images_unverified
+  decision: pending
+  reason: Dataset is large and first file listing showed images only; do not download or merge until annotation files are confirmed.
+  class_map: {}
+- name: yellow-sticky-traps
+  url: https://www.kaggle.com/datasets/friso1987/yellow-sticky-traps
+  local_root: datasets/candidate-downloads/yellow-sticky-traps
+  source_type: voc_boxes
+  decision: rejected_for_current_targets
+  reason: VOC boxes exist, but labels are trap abbreviations such as WF/MR and do not safely map to the rare rice classes currently limiting the model.
+  class_map: {}
+- name: agropest-12
+  url: https://www.kaggle.com/datasets/rupankarmajumdar/crop-pests-dataset
+  local_root: datasets/agropest-12-download
+  source_type: yolo_boxes
+  decision: partially_accepted
+  reason: Broad labels are not safe for exact pest species; only Grasshoppers is mapped to the broad locust_grasshopper target.
+  class_map:
+    Grasshoppers: locust_grasshopper
+- name: ip102-coco-annotations
+  url: https://www.kaggle.com/datasets/eljazouly/ip102-coco-annotations
+  local_root: datasets/candidate-downloads/ip102-coco-annotations
+  source_type: coco_boxes
+  decision: rejected
+  reason: Sampled boxes are full-image pseudo labels rather than insect localization boxes.
+  class_map: {}
+- name: aphid-generalization
+  url: https://www.kaggle.com/datasets/chahineeee/aphid-generalization
+  local_root: datasets/candidate-downloads/aphid-generalization
+  source_type: segmentation_masks
+  decision: accepted
+  reason: Binary masks in the Aphid Detection Dataset subset can be converted into real aphid bounding boxes.
+  class_map:
+    Aphid Detection Dataset: aphid
+- name: roboflow-planthopper
+  url: https://universe.roboflow.com/wang-pingan-hf2it/planthopper-8oogf
+  local_root: datasets/candidate-downloads/roboflow/planthopper
+  source_type: yolo_boxes
+  decision: pending_class_id_review
+  reason: Dataset is real YOLO detection data, but data.yaml class names are only 0/1/2. README says BPH-WBPH-RLM but does not define the exact id order, so it should not be merged until class ids are confirmed.
+  license: CC BY 4.0
+  class_map: {}
+- name: roboflow-thrips
+  url: https://universe.roboflow.com/disease-74h5a/thrips-ecqs7
+  local_root: datasets/candidate-downloads/roboflow/thrips
+  source_type: yolo_boxes
+  decision: rejected_for_rice_thrips
+  reason: Project is generic Thrips. The model has both rice_thrips and general thrips, so merging generic thrips into rice_thrips would create label noise.
+  license: CC BY 4.0
+  class_map:
+    Thrips: thrips
+- name: roboflow-rice-gall-midge-a
+  url: https://universe.roboflow.com/navjot-kaur-office/rice-gall-midge-csh9d
+  local_root: datasets/candidate-downloads/roboflow/rice-gall-midge-a
+  source_type: yolo_boxes
+  decision: accepted
+  reason: Exact rice gall midge project with valid YOLO boxes.
+  license: CC BY 4.0
+  class_map:
+    rice-gall-midge: rice_gall_midge
+- name: roboflow-rice-gall-midge-b
+  url: https://universe.roboflow.com/naneng/rice-gall-midge-ydx8q
+  local_root: datasets/candidate-downloads/roboflow/rice-gall-midge-b
+  source_type: yolo_boxes
+  decision: accepted
+  reason: Exact rice gall midge project with valid YOLO boxes.
+  license: CC BY 4.0
+  class_map:
+    RiceGallMidge: rice_gall_midge
+- name: roboflow-rice-leaf-caterpillar
+  url: https://universe.roboflow.com/matepal/rice-leaf-caterpillar-tnlja
+  local_root: datasets/candidate-downloads/roboflow/rice-leaf-caterpillar
+  source_type: yolo_boxes
+  decision: accepted
+  reason: Exact rice leaf caterpillar project with valid YOLO boxes.
+  license: CC BY 4.0
+  class_map:
+    RiceLeafCaterpillar: rice_leaf_caterpillar
+- name: roboflow-leafminer
+  url: https://universe.roboflow.com/dbrait-2fi8b/leaf-miner
+  local_root: datasets/candidate-downloads/roboflow/leafminer-det
+  source_type: yolo_boxes
+  decision: accepted_with_semantic_caution
+  reason: Valid leaf-miner boxes; visual samples primarily localize leaf-miner damage rather than adult insect body.
+  license: Public Domain
+  class_map:
+    leaf-miner: citrus_leafminer
+- name: roboflow-leafminer-seg
+  url: https://universe.roboflow.com/yosra-trpxm/leafminer
+  local_root: datasets/candidate-downloads/roboflow/leafminer-seg
+  source_type: yolo_polygon_boxes
+  decision: accepted_with_semantic_caution
+  reason: Valid YOLO polygon labels converted to boxes; visual samples primarily localize leaf-miner damage/affected leaf areas.
+  license: CC BY 4.0
+  class_map:
+    objects: citrus_leafminer
+- name: roboflow-fruit-fly
+  url: https://universe.roboflow.com/suruchis-workspace-5smoj/fruit-fly-pest-detection
+  local_root: datasets/candidate-downloads/roboflow/fruit-fly
+  source_type: yolo_boxes
+  decision: accepted
+  reason: Valid fruit fly boxes with dorsalis and zonata classes, both compatible with the practical fruit_fly target.
+  license: CC BY 4.0
+  class_map:
+    dorsalis: fruit_fly
+    zonata: fruit_fly
+- name: roboflow-spider-mite
+  url: https://universe.roboflow.com/disease-74h5a/spider-mite-39zf3
+  local_root: datasets/candidate-downloads/roboflow/spider-mite
+  source_type: yolo_boxes
+  decision: accepted
+  reason: Valid spider mite boxes and visual samples match the target.
+  license: CC BY 4.0
+  class_map:
+    Spider Mite: spider_mite
+- name: roboflow-longhorn
+  url: https://universe.roboflow.com/robinw-zbbcn/longhorn-detection
+  local_root: datasets/candidate-downloads/roboflow/longhorn
+  source_type: yolo_boxes
+  decision: accepted_with_class_filter
+  reason: Valid longhorn beetle boxes. Class '0' is used; the single generic 'object' box is ignored.
+  license: CC BY 4.0
+  class_map:
+    '0': longhorn_borer
+- name: roboflow-flea-beetle-a
+  url: https://universe.roboflow.com/insect-7gvp4/flea-beetle-dd6so
+  local_root: datasets/candidate-downloads/roboflow/flea-beetle-a
+  source_type: yolo_boxes
+  decision: rejected_after_visual_check
+  reason: Visual sample showed at least one caterpillar labeled as flea beetle, so the single-class labels are not trustworthy enough for automatic merge.
+  license: CC BY 4.0
+  class_map: {}
+- name: roboflow-flea-beetle-b
+  url: https://universe.roboflow.com/sample-uo9dx/flea-beetle-1wcof
+  local_root: datasets/candidate-downloads/roboflow/flea-beetle-b
+  source_type: yolo_boxes
+  decision: accepted_with_class_filter
+  reason: Mixed insect dataset, but explicit Flea-beetle/flea beetle classes are visually plausible and can be filtered safely.
+  license: CC BY 4.0
+  class_map:
+    Flea-beetle: flea_beetle
+    flea beetle: flea_beetle
+- name: roboflow-cabbage-pest
+  url: https://universe.roboflow.com/ksb-yolo-lable/cabbage-pest
+  local_root: datasets/candidate-downloads/roboflow/cabbage-pest
+  source_type: yolo_boxes
+  decision: accepted_with_low_impact
+  reason: Visual samples show small larvae on cabbage leaves, but the export has few actual boxes.
+  license: CC BY 4.0
+  class_map:
+    cabbage pest: cabbage_caterpillar
+- name: roboflow-plutella-xylostella
+  url: https://universe.roboflow.com/geniamaria/deteccao-plutella-xylostella-em
+  local_root: datasets/candidate-downloads/roboflow/plutella-xylostella
+  source_type: yolo_boxes
+  decision: rejected_after_visual_check
+  reason: Project title mentions Plutella xylostella, but exported class names are tuta/without tuta. Visual samples show small larvae on cabbage leaves, but the label taxonomy is inconsistent enough to avoid automatic merge.
+  license: unknown
+  class_map: {}
+- name: roboflow-diamondback-moth
+  url: https://universe.roboflow.com/ashwini/diamondback-moth-detection
+  local_root: datasets/candidate-downloads/roboflow/diamondback-moth
+  source_type: yolo_boxes
+  decision: rejected_after_visual_check
+  reason: Visual samples are mostly yellow sticky-trap adult moth detections, not cabbage caterpillar larvae on crop leaves, so merging would change the meaning of the cabbage_caterpillar class.
+  license: unknown
+  class_map: {}
