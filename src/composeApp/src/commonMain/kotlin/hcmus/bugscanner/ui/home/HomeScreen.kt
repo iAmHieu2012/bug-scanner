@@ -6,8 +6,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -53,8 +56,10 @@ fun HomeScreen(
     initialTab: AppTab = AppTab.SCAN,
     onTabChanged: (AppTab) -> Unit = {},
     isLoggedIn: Boolean,
+    useDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
     onAuthAction: () -> Unit,
-    onShareClick: (BugInfo, ByteArray?) -> Unit,
+    onShareClick: (BugInfo, ByteArray?, Float) -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel = koinViewModel()
 ) {
@@ -63,6 +68,7 @@ fun HomeScreen(
     var initialChatPrompt by remember { mutableStateOf<String?>(null) }
     var initialChatImage by remember { mutableStateOf<ByteArray?>(null) }
     var initialChatImageUrl by remember { mutableStateOf<String?>(null) }
+    var initialChatBugContext by remember { mutableStateOf<BugInfo?>(null) }
 
     val navItems: List<Triple<AppTab, String, ImageVector>> = listOf(
         Triple(AppTab.SCAN, "Nhận diện", Icons.Rounded.CenterFocusWeak),
@@ -80,6 +86,7 @@ fun HomeScreen(
             initialChatPrompt = null
             initialChatImage = null
             initialChatImageUrl = null
+            initialChatBugContext = null
         }
         selectedSnapshot = null
         currentTab = tab
@@ -95,16 +102,17 @@ fun HomeScreen(
             confidence = snapshotToShow.confidence,
             source = snapshotToShow.source,
             onBackClick = { selectedSnapshot = null },
-            onAskChatbotClick = { prompt ->
-                initialChatPrompt = prompt
-                initialChatImage = snapshotToShow.imageBytes
-                initialChatImageUrl = snapshotToShow.bug.imageUrl
+            onAskChatbotClick = { prompt, bugContext ->
+                initialChatPrompt = prompt.takeIf { it.isNotBlank() }
+                initialChatImage = null
+                initialChatImageUrl = null
+                initialChatBugContext = bugContext
                 selectedSnapshot = null
                 currentTab = AppTab.CHATBOT
                 onTabChanged(AppTab.CHATBOT)
             },
             onShareClick = { bug ->
-                onShareClick(bug, snapshotToShow.imageBytes)
+                onShareClick(bug, snapshotToShow.imageBytes, snapshotToShow.confidence)
             }
         )
     } else {
@@ -118,9 +126,14 @@ fun HomeScreen(
                     modifier = Modifier
                         .padding(vertical = 16.dp, horizontal = 8.dp)
                         .clip(RoundedCornerShape(24.dp)),
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ) {
+                    ThemeToggleButton(
+                        useDarkTheme = useDarkTheme,
+                        onClick = onThemeToggle,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                     Spacer(modifier = Modifier.weight(1f))
                     navItems.forEach { (tab, label, icon) ->
                         NavigationRailItem(
@@ -144,22 +157,31 @@ fun HomeScreen(
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    HomeContent(
-                        currentTab = currentTab,
-                        isLoggedIn = isLoggedIn,
-                        onAuthAction = onAuthAction,
-                        scanTabContent = scanTabContent,
-                        historyViewModel = historyViewModel,
-                        onSnapshotSelected = { selectedSnapshot = it },
-                        initialChatPrompt = initialChatPrompt,
-                        initialChatImage = initialChatImage,
-                        initialChatImageUrl = initialChatImageUrl,
-                        onClearChatPrompt = {
-                            initialChatPrompt = null
-                            initialChatImage = null
-                            initialChatImageUrl = null
-                        }
-                    )
+                    Crossfade(
+                        targetState = currentTab,
+                        animationSpec = tween(300)
+                    ) { tab ->
+                        HomeContent(
+                            currentTab = tab,
+                            isLoggedIn = isLoggedIn,
+                            useDarkTheme = useDarkTheme,
+                            onThemeToggle = onThemeToggle,
+                            onAuthAction = onAuthAction,
+                            scanTabContent = scanTabContent,
+                            historyViewModel = historyViewModel,
+                            onSnapshotSelected = { selectedSnapshot = it },
+                            initialChatPrompt = initialChatPrompt,
+                            initialChatImage = initialChatImage,
+                            initialChatImageUrl = initialChatImageUrl,
+                            initialChatBugContext = initialChatBugContext,
+                            onClearChatPrompt = {
+                                initialChatPrompt = null
+                                initialChatImage = null
+                                initialChatImageUrl = null
+                                initialChatBugContext = null
+                            }
+                        )
+                    }
                 }
             }
         } else {
@@ -169,9 +191,10 @@ fun HomeScreen(
                         modifier = Modifier
                             .navigationBarsPadding()
                             .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
+                        shadowElevation = 8.dp,
                         tonalElevation = 5.dp,
-                        color = MaterialTheme.colorScheme.surface
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                     ) {
                         NavigationBar(
                             containerColor = Color.Transparent,
@@ -200,24 +223,65 @@ fun HomeScreen(
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    HomeContent(
-                        currentTab = currentTab,
-                        isLoggedIn = isLoggedIn,
-                        onAuthAction = onAuthAction,
-                        scanTabContent = scanTabContent,
-                        historyViewModel = historyViewModel,
-                        onSnapshotSelected = { selectedSnapshot = it },
-                        initialChatPrompt = initialChatPrompt,
-                        initialChatImage = initialChatImage,
-                        initialChatImageUrl = initialChatImageUrl,
-                        onClearChatPrompt = {
-                            initialChatPrompt = null
-                            initialChatImage = null
-                            initialChatImageUrl = null
-                        }
-                    )
+                    Crossfade(
+                        targetState = currentTab,
+                        animationSpec = tween(300)
+                    ) { tab ->
+                        HomeContent(
+                            currentTab = tab,
+                            isLoggedIn = isLoggedIn,
+                            useDarkTheme = useDarkTheme,
+                            onThemeToggle = onThemeToggle,
+                            onAuthAction = onAuthAction,
+                            scanTabContent = scanTabContent,
+                            historyViewModel = historyViewModel,
+                            onSnapshotSelected = { selectedSnapshot = it },
+                            initialChatPrompt = initialChatPrompt,
+                            initialChatImage = initialChatImage,
+                            initialChatImageUrl = initialChatImageUrl,
+                            initialChatBugContext = initialChatBugContext,
+                            onClearChatPrompt = {
+                                initialChatPrompt = null
+                                initialChatImage = null
+                                initialChatImageUrl = null
+                                initialChatBugContext = null
+                            }
+                        )
+                    }
+                    if (currentTab != AppTab.SCAN) {
+                        ThemeToggleButton(
+                            useDarkTheme = useDarkTheme,
+                            onClick = onThemeToggle,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ThemeToggleButton(
+    useDarkTheme: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.size(44.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        tonalElevation = 4.dp,
+        shadowElevation = 2.dp
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = if (useDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                contentDescription = if (useDarkTheme) "Chuyển sang giao diện sáng" else "Chuyển sang giao diện tối",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -234,12 +298,15 @@ fun HomeScreen(
  * @param initialChatPrompt Nội dung prompt khởi tạo truyền sang màn hình Trợ lý.
  * @param initialChatImage Dữ liệu ảnh dạng mảng byte khởi tạo truyền sang màn hình Trợ lý.
  * @param initialChatImageUrl URL ảnh khởi tạo truyền sang màn hình Trợ lý.
+ * @param initialChatBugContext Dữ liệu bách khoa khởi tạo để Gemini dùng làm ngữ cảnh.
  * @param onClearChatPrompt Callback để xoá sạch các thông tin khởi tạo của chatbot.
  */
 @Composable
 private fun HomeContent(
     currentTab: AppTab,
     isLoggedIn: Boolean,
+    useDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
     onAuthAction: () -> Unit,
     scanTabContent: @Composable (isLoggedIn: Boolean, onAuthAction: () -> Unit, onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
@@ -247,6 +314,7 @@ private fun HomeContent(
     initialChatPrompt: String?,
     initialChatImage: ByteArray?,
     initialChatImageUrl: String?,
+    initialChatBugContext: BugInfo?,
     onClearChatPrompt: () -> Unit
 ) {
     when (currentTab) {
@@ -273,6 +341,8 @@ private fun HomeContent(
             }
         }
         AppTab.WIKI -> EncyclopediaScreen(
+            useDarkTheme = useDarkTheme,
+            onThemeToggle = onThemeToggle,
             onBugSelected = {
                 onSnapshotSelected(DetectedBugSnapshot(bug = it, source = ScanSource.UNKNOWN))
             }
@@ -281,10 +351,11 @@ private fun HomeContent(
             ChatScreen(
                 initialPrompt = initialChatPrompt,
                 initialImageBytes = initialChatImage,
-                initialImageUrl = initialChatImageUrl
+                initialImageUrl = initialChatImageUrl,
+                initialBugContext = initialChatBugContext
             )
-            LaunchedEffect(initialChatPrompt, initialChatImage, initialChatImageUrl) {
-                if (initialChatPrompt != null || initialChatImage != null || initialChatImageUrl != null) {
+            LaunchedEffect(initialChatPrompt, initialChatImage, initialChatImageUrl, initialChatBugContext) {
+                if (initialChatPrompt != null || initialChatImage != null || initialChatImageUrl != null || initialChatBugContext != null) {
                     onClearChatPrompt()
                 }
             }

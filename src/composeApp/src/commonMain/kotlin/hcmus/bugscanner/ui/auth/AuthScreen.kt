@@ -18,7 +18,6 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -33,7 +32,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * Màn hình xác thực người dùng (Đăng nhập / Đăng ký).
  * Áp dụng mô hình Responsive Layout tự động điều chỉnh dựa trên [WindowSizeClass]:
  * - Màn hình hẹp (Mobile): Hiển thị Form canh giữa toàn màn hình.
- * - Màn hình rộng (Tablet ngang, Web, Desktop): Hiển thị giao diện Split-Screen (Banner minh họa bên trái, Form nhập liệu bên phải).
+ * - Màn hình rộng (Tablet ngang, Web, Desktop): Hiển thị form canh giữa để tập trung vào thao tác đăng nhập.
  *
  * @param windowSizeClass Dữ liệu phân loại kích thước màn hình hiện tại do App Navigation truyền xuống.
  * @param authViewModel ViewModel quản lý logic gọi API xác thực Firebase.
@@ -75,61 +74,29 @@ fun AuthScreen(
     }
 
     if (isWideScreen) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(24.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        imageVector = AppIcon.IconBugscanner,
-                        contentDescription = "App Logo Large",
-                        modifier = Modifier.size(120.dp).padding(bottom = 24.dp)
-                    )
-                    Text(
-                        text = "BugScanner",
-                        style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "Bách khoa toàn thư côn trùng trong tầm tay bạn.",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                contentAlignment = Alignment.Center
-            ) {
-                AuthForm(
-                    isLoginMode = isLoginMode,
-                    email = email,
-                    password = password,
-                    authState = authState,
-                    validationMessage = validationMessage,
-                    isPasswordVisible = isPasswordVisible,
-                    onEmailChange = ::updateEmail,
-                    onPasswordChange = ::updatePassword,
-                    onPasswordVisibilityToggle = { isPasswordVisible = !isPasswordVisible },
-                    onToggleMode = {
-                        validationMessage = null
-                        isLoginMode = !isLoginMode
-                    },
-                    onActionClick = ::submitAuth,
-                    onGuestClick = { authViewModel.signInAnonymously() }
-                )
-            }
+            AuthForm(
+                isLoginMode = isLoginMode,
+                email = email,
+                password = password,
+                authState = authState,
+                validationMessage = validationMessage,
+                isPasswordVisible = isPasswordVisible,
+                onEmailChange = ::updateEmail,
+                onPasswordChange = ::updatePassword,
+                onPasswordVisibilityToggle = { isPasswordVisible = !isPasswordVisible },
+                onToggleMode = {
+                    validationMessage = null
+                    isLoginMode = !isLoginMode
+                },
+                onActionClick = ::submitAuth,
+                onGuestClick = { authViewModel.signInAnonymously() }
+            )
         }
     } else {
         Box(
@@ -229,6 +196,9 @@ private fun AuthForm(
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground
         )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
         Text(
             text = "Khám phá thế giới côn trùng ngay hôm nay",
             style = MaterialTheme.typography.bodyMedium,

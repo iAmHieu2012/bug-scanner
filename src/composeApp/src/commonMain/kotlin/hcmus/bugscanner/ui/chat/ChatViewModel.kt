@@ -3,12 +3,14 @@ package hcmus.bugscanner.ui.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import hcmus.bugscanner.data.remote.*
+import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.model.ChatMessage
 import hcmus.bugscanner.domain.model.GeminiContent
 import hcmus.bugscanner.domain.model.GeminiInlineData
 import hcmus.bugscanner.domain.model.GeminiPart
 import hcmus.bugscanner.domain.model.GeminiRequest
 import hcmus.bugscanner.domain.model.Instruction
+import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.readRawBytes
@@ -33,7 +35,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 @OptIn(ExperimentalEncodingApi::class)
 class ChatViewModel(
     private val geminiApi: GeminiApiService,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    private val encyclopediaRepository: EncyclopediaRepository
 ) : ViewModel() {
 
     private val greetingMessage = ChatMessage(
@@ -48,12 +51,14 @@ class ChatViewModel(
     val isTyping: StateFlow<Boolean> = _isTyping.asStateFlow()
 
     private val chatHistory = mutableListOf<GeminiContent>()
+    private var activeBugContext: BugInfo? = null
 
     /**
      * Xóa sạch lịch sử cuộc trò chuyện hiện tại và thiết lập lại tin nhắn chào mừng.
      */
     fun clearConversation() {
         chatHistory.clear()
+        activeBugContext = null
         _messages.value = listOf(greetingMessage)
         _isTyping.value = false
     }
@@ -65,13 +70,21 @@ class ChatViewModel(
      * @param text Nội dung tin nhắn người dùng nhập vào.
      * @param imageBytes Dữ liệu mảng byte của hình ảnh đính kèm (nếu upload từ máy).
      * @param imageUrl Đường dẫn URL của hình ảnh đính kèm (nếu chọn từ Lịch sử/Wiki).
+     * @param bugContext Dữ liệu bách khoa từ Firestore hoặc màn hình chi tiết để Gemini dùng làm ngữ cảnh.
      */
-    fun sendMessage(text: String, imageBytes: ByteArray? = null, imageUrl: String? = null) {
+    fun sendMessage(text: String, imageBytes: ByteArray? = null, imageUrl: String? = null, bugContext: BugInfo? = null) {
         if (text.isBlank() && imageBytes == null && imageUrl == null) return
 
         val cleanText = text.trim()
-        val initialMessage = ChatMessage(cleanText, isUser = true, imageBytes = imageBytes)
-        _messages.update { it + initialMessage }
+        val imageMessage = if (imageBytes != null || imageUrl != null) {
+            ChatMessage("", isUser = true, imageBytes = imageBytes)
+        } else {
+            null
+        }
+        val textMessage = cleanText.takeIf { it.isNotBlank() }?.let { ChatMessage(it, isUser = true) }
+        _messages.update { list ->
+            list + listOfNotNull(imageMessage, textMessage)
+        }
         _isTyping.value = true
 
         viewModelScope.launch {
@@ -82,7 +95,7 @@ class ChatViewModel(
                     finalBytes = httpClient.get(imageUrl).readRawBytes()
                     _messages.update { list ->
                         list.map { msg ->
-                            if (msg === initialMessage) {
+                            if (msg === imageMessage) {
                                 msg.copy(imageBytes = finalBytes)
                             } else {
                                 msg
@@ -98,6 +111,9 @@ class ChatViewModel(
                 }
 
                 if (finalBytes != null) {
+                    if (!ChatPayloadPolicy.acceptsInlineImage(finalBytes)) {
+                        throw IllegalArgumentException("Inline image is too large for chat payload")
+                    }
                     val isPng = finalBytes.size > 3 && finalBytes[0] == 0x89.toByte() && finalBytes[1] == 0x50.toByte()
                     val mimeType = if (isPng) "image/png" else "image/jpeg"
 
@@ -105,11 +121,12 @@ class ChatViewModel(
                     userParts.add(GeminiPart(inlineData = GeminiInlineData(mimeType = mimeType, data = base64String)))
                 }
 
+                activeBugContext = ChatContextResolver.resolve(encyclopediaRepository, bugContext) ?: activeBugContext
                 chatHistory.add(GeminiContent(role = "user", parts = userParts))
 
                 val requestBody = GeminiRequest(
-                    systemInstruction = Instruction(parts = GeminiPart(text = "Bạn là BugScanner AI, một trợ lý ảo chuyên nghiệp về sinh học và côn trùng học. Hãy trả lời ngắn gọn, thân thiện và chính xác các câu hỏi về thiên nhiên, côn trùng, thực vật. Khi nhận được ảnh, hãy phân tích kỹ các đặc điểm sinh học trên ảnh để tư vấn. Yêu cầu định dạng: Tuyệt đối không sử dụng định dạng Markdown (như in đậm **, tiêu đề #). Nếu cần liệt kê hoặc chia ý, chỉ sử dụng một dấu gạch ngang (-) ở đầu dòng.")),
-                    contents = chatHistory
+                    systemInstruction = Instruction(parts = GeminiPart(text = ChatRagContextPolicy.systemInstruction(activeBugContext))),
+                    contents = ChatPayloadPolicy.trimHistory(chatHistory)
                 )
 
                 val response = geminiApi.generateContent(requestBody)
@@ -120,6 +137,7 @@ class ChatViewModel(
                 _messages.update { it + ChatMessage(text = replyText, isUser = false) }
 
             } catch (e: Exception) {
+                println("Gemini chat request failed: ${e::class.simpleName}: ${e.message}")
                 _messages.update {
                     it + ChatMessage(
                         "Mình chưa kết nối được với AI. Vui lòng kiểm tra mạng hoặc API key rồi thử lại.",
@@ -132,4 +150,5 @@ class ChatViewModel(
             }
         }
     }
+
 }

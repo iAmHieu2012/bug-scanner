@@ -28,8 +28,9 @@ class GeminiApiService(private val client: HttpClient) {
      * @return Đối tượng [GeminiResponse] chứa câu trả lời từ AI đã được parse tự động từ JSON.
      */
     suspend fun generateContent(request: GeminiRequest): GeminiResponse {
+        val configuredApiKey = ApiKeyPolicy.requireConfigured("Gemini", apiKey)
         return client.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent") {
-            url { parameters.append("key", apiKey) }
+            url { parameters.append("key", configuredApiKey) }
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()

@@ -2,6 +2,8 @@ package hcmus.bugscanner.ui.navigation
 
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
+import hcmus.bugscanner.domain.model.ConfidencePolicy
+import hcmus.bugscanner.domain.model.HarmfulnessPolicy
 import hcmus.bugscanner.ui.auth.AuthScreen
 import hcmus.bugscanner.ui.auth.AuthViewModel
 import hcmus.bugscanner.ui.auth.AuthState
@@ -34,7 +36,9 @@ fun AppNavigation(
     onTabChanged: (AppTab) -> Unit = {},
     authViewModel: AuthViewModel = koinViewModel()
 ) {
-    AppTheme {
+    var useDarkTheme by remember { mutableStateOf(true) }
+
+    AppTheme(useDarkTheme = useDarkTheme) {
         var showSplash by remember { mutableStateOf(true) }
         val authState by authViewModel.authState.collectAsState()
         val shareManager = rememberShareManager()
@@ -58,11 +62,24 @@ fun AppNavigation(
                         initialTab = initialTab,
                         onTabChanged = onTabChanged,
                         isLoggedIn = !state.isGuest,
+                        useDarkTheme = useDarkTheme,
+                        onThemeToggle = { useDarkTheme = !useDarkTheme },
                         onAuthAction = {
                             authViewModel.signOut()
                         },
-                        onShareClick = { bug, imageBytes ->
-                            shareManager.shareBugInfo(bug.name, bug.scientificName, imageBytes)
+                        onShareClick = { bug, imageBytes, confidence ->
+                            shareManager.shareBugInfo(
+                                bugName = bug.name,
+                                scientificName = bug.scientificName,
+                                imageBytes = imageBytes,
+                                confidenceLabel = if (confidence > 0f) {
+                                    val confidenceInfo = ConfidencePolicy.explain(confidence)
+                                    "${confidenceInfo.shortLabel} ${confidenceInfo.percentText}"
+                                } else {
+                                    ""
+                                },
+                                harmfulnessLabel = HarmfulnessPolicy.fromValue(bug.harmfulnessLevel).label
+                            )
                         },
                         scanTabContent = { isLog, onAuth, onDetected ->
                             ScanScreen(

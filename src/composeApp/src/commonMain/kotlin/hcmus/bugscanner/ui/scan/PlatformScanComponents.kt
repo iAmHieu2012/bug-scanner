@@ -54,6 +54,9 @@ interface ImagePickerHelper {
  */
 interface PlatformScanProvider {
 
+    @Composable
+    fun RegisterClipboardImagePasteHandler(onImageBytesPasted: (ByteArray) -> Unit) = Unit
+
     /**
      * Component hiển thị luồng Camera trực tiếp.
      *

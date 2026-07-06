@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - trung
   pull_request:
     branches:
       - main
+      - trung
   workflow_dispatch:
 
 jobs:

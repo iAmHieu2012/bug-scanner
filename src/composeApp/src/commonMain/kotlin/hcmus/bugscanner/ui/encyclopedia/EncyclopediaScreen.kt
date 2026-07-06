@@ -8,7 +8,9 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,10 +35,10 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun EncyclopediaScreen(
     viewModel: EncyclopediaViewModel = koinViewModel(),
+    useDarkTheme: Boolean = true,
+    onThemeToggle: (() -> Unit)? = null,
     onBugSelected: (BugInfo) -> Unit = {}
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -46,40 +48,32 @@ fun EncyclopediaScreen(
             title = "Bách khoa côn trùng",
             subtitle = "Dữ liệu nhận diện và thông tin sinh học tham khảo.",
             leadingIcon = Icons.Rounded.GridView,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp),
+            action = {
+                if (onThemeToggle != null) {
+                    Surface(
+                        modifier = Modifier.size(44.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 3.dp
+                    ) {
+                        IconButton(onClick = onThemeToggle) {
+                            Icon(
+                                imageVector = if (useDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                                contentDescription = if (useDarkTheme) {
+                                    "Chuyển sang giao diện sáng"
+                                } else {
+                                    "Chuyển sang giao diện tối"
+                                },
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
         )
 
-        PrimaryTabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            indicator = {
-                TabRowDefaults.PrimaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
-                    width = androidx.compose.ui.unit.Dp.Unspecified,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        ) {
-            Tab(
-                selected = selectedTabIndex == 0,
-                onClick = { selectedTabIndex = 0 },
-                text = { Text("Khám phá", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.Rounded.GridView, contentDescription = null) }
-            )
-            Tab(
-                selected = selectedTabIndex == 1,
-                onClick = { selectedTabIndex = 1 },
-                text = { Text("Tra cứu", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.Rounded.Search, contentDescription = null) }
-            )
-        }
-
-        if (selectedTabIndex == 0) {
-            ExploreTab(viewModel = viewModel, onBugSelected = onBugSelected)
-        } else {
-            SearchTab(viewModel, onBugSelected)
-        }
+        ExploreTab(viewModel = viewModel, onBugSelected = onBugSelected)
     }
 }
 
@@ -106,7 +100,7 @@ fun ExploreTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            placeholder = { Text("Tìm côn trùng trong dữ liệu ứng dụng...") },
+            placeholder = { Text("Tìm côn trùng trong bách khoa ứng dụng...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
             singleLine = true,
             shape = RoundedCornerShape(14.dp)
@@ -127,6 +121,8 @@ fun ExploreTab(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(exploreList) { bug ->
+                    var failedImageUrls by remember(bug.id, bug.displayImageUrls()) { mutableStateOf<Set<String>>(emptySet()) }
+                    val imageUrl = bug.displayImageUrls(excludedUrls = failedImageUrls).firstOrNull().orEmpty()
                     Card(
                         onClick = { onBugSelected(bug) },
                         shape = RoundedCornerShape(12.dp),
@@ -135,9 +131,12 @@ fun ExploreTab(
                     ) {
                         Column {
                             BugImage(
-                                imageUrl = bug.imageUrl,
+                                imageUrl = imageUrl,
                                 contentDescription = bug.name,
                                 contentScale = ContentScale.Crop,
+                                onLoadFailed = { failedUrl ->
+                                    failedImageUrls = failedImageUrls + failedUrl
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(1f)
@@ -180,7 +179,7 @@ fun SearchTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            placeholder = { Text("Nhập tên côn trùng để tra cứu iNaturalist...") },
+            placeholder = { Text("Nhập tên côn trùng để tra cứu thêm...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
             singleLine = true,
             shape = RoundedCornerShape(14.dp)

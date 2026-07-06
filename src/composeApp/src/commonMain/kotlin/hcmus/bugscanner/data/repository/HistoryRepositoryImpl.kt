@@ -2,6 +2,7 @@ package hcmus.bugscanner.data.repository
 
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import hcmus.bugscanner.data.remote.ApiKeyPolicy
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.repository.HistoryRepository
 import io.ktor.client.HttpClient
@@ -79,7 +80,7 @@ class HistoryRepositoryImpl(
     @OptIn(ExperimentalEncodingApi::class)
     override suspend fun uploadImage(userId: String, imageBytes: ByteArray): String? {
         return try {
-            val imgbbApiKey = hcmus.bugscanner.BuildConfig.IMGBB_API_KEY
+            val imgbbApiKey = ApiKeyPolicy.requireConfigured("ImgBB", hcmus.bugscanner.BuildConfig.IMGBB_API_KEY)
             val base64Image = Base64.encode(imageBytes)
 
             val response = httpClient.submitForm(

@@ -18,6 +18,8 @@ interface ShareManager {
         bugName: String,
         scientificName: String,
         imageBytes: ByteArray? = null,
+        confidenceLabel: String = "",
+        harmfulnessLabel: String = "",
         appLink: String = "https://bugscanner-2026.web.app"
     )
 }

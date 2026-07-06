@@ -4,6 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -28,6 +32,9 @@ fun BugItemCard(
     modifier: Modifier = Modifier,
     onClick: (BugInfo) -> Unit = {}
 ) {
+    var failedImageUrls by remember(bug.id, bug.displayImageUrls()) { mutableStateOf<Set<String>>(emptySet()) }
+    val imageUrl = bug.displayImageUrls(excludedUrls = failedImageUrls).firstOrNull().orEmpty()
+
     Card(
         onClick = { onClick(bug) },
         modifier = modifier
@@ -41,9 +48,12 @@ fun BugItemCard(
     ) {
         Column {
             BugImage(
-                imageUrl = bug.imageUrl,
+                imageUrl = imageUrl,
                 contentDescription = "Hình ảnh của ${bug.name}",
                 contentScale = ContentScale.Crop,
+                onLoadFailed = { failedUrl ->
+                    failedImageUrls = failedImageUrls + failedUrl
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)

@@ -10,6 +10,13 @@ enum class ScanSource(val value: String, val displayName: String) {
     INATURALIST("inaturalist", "iNaturalist"),
     UNKNOWN("unknown", "Không rõ");
 
+    val userFacingName: String
+        get() = when (this) {
+            YOLO -> "Nhận diện trong ứng dụng"
+            INATURALIST -> "Nhận diện tham khảo"
+            UNKNOWN -> "Không rõ"
+        }
+
     companion object {
         fun fromValue(value: String): ScanSource = entries.firstOrNull { it.value == value } ?: UNKNOWN
     }
@@ -42,6 +49,7 @@ data class DetectedBugSnapshot(
  * @property description Mô tả chi tiết về côn trùng.
  * @property identification Cách nhận dạng côn trùng.
  * @property danger Mức độ nguy hiểm của côn trùng.
+ * @property harmfulnessLevel Mức gây hại chuẩn hóa.
  * @property treatment Cách xử lý/điều trị khi tiếp xúc.
  * @property wikiUrl Đường dẫn bách khoa toàn thư Wikipedia.
  */
@@ -60,6 +68,7 @@ data class ScanHistory(
     val description: String = "",
     val identification: String = "",
     val danger: String = "",
+    val harmfulnessLevel: String = HarmfulnessLevel.UNKNOWN.value,
     val treatment: String = "",
     val wikiUrl: String = ""
 )
@@ -80,6 +89,7 @@ fun ScanHistory.toBugInfo(): BugInfo {
         imageUrl = imageUrl,
         identification = identification,
         danger = danger,
+        harmfulnessLevel = harmfulnessLevel,
         treatment = treatment,
         wikiUrl = wikiUrl
     )
@@ -109,6 +119,7 @@ fun DetectedBugSnapshot.toHistory(
     description = bug.description,
     identification = bug.identification,
     danger = bug.danger,
+    harmfulnessLevel = bug.harmfulnessLevel,
     treatment = bug.treatment,
     wikiUrl = bug.wikiUrl
 )

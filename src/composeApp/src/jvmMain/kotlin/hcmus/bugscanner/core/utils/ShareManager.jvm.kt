@@ -10,14 +10,18 @@ private class JvmShareManager : ShareManager {
         bugName: String,
         scientificName: String,
         imageBytes: ByteArray?,
+        confidenceLabel: String,
+        harmfulnessLabel: String,
         appLink: String
     ) {
         val shareText = listOf(
             "Tôi vừa phát hiện ra loài: $bugName trên BugScanner.",
             "Tên khoa học: $scientificName.",
+            confidenceLabel.takeIf { it.isNotBlank() }?.let { "Độ tin cậy: $it" }.orEmpty(),
+            harmfulnessLabel.takeIf { it.isNotBlank() }?.let { "Mức gây hại: $it" }.orEmpty(),
             "",
             "Khám phá ngay tại: $appLink"
-        ).joinToString("\n")
+        ).filter { it.isNotBlank() }.joinToString("\n")
 
         runCatching {
             Toolkit.getDefaultToolkit()

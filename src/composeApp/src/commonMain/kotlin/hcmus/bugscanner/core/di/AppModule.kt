@@ -5,6 +5,7 @@ import dev.gitlive.firebase.firestore.firestore
 import hcmus.bugscanner.data.remote.GeminiApiService
 import hcmus.bugscanner.data.remote.GroqApiService
 import hcmus.bugscanner.data.remote.INaturalistApiService
+import hcmus.bugscanner.data.remote.NetworkPolicy
 import hcmus.bugscanner.data.remote.WikiApiService
 import hcmus.bugscanner.data.repository.EncyclopediaRepositoryImpl
 import hcmus.bugscanner.data.repository.HistoryRepositoryImpl
@@ -17,6 +18,7 @@ import hcmus.bugscanner.ui.history.HistoryViewModel
 import hcmus.bugscanner.ui.encyclopedia.EncyclopediaViewModel
 import hcmus.bugscanner.ui.scan.ScanFallbackViewModel
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -32,6 +34,11 @@ val appModule = module {
     // 1. Tầng Mạng: Khởi tạo HttpClient dùng chung (Singleton)
     single {
         HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = NetworkPolicy.REQUEST_TIMEOUT_MS
+                connectTimeoutMillis = NetworkPolicy.CONNECT_TIMEOUT_MS
+                socketTimeoutMillis = NetworkPolicy.SOCKET_TIMEOUT_MS
+            }
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true

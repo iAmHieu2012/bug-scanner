@@ -25,12 +25,12 @@ fun main() {
     try {
         Firebase.initialize(
             options = FirebaseOptions(
-                applicationId = "1:744753522860:web:a9559e74b6af5005801709",
-                gcmSenderId = "744753522860",
-                apiKey = "AIzaSyCqVJZdUMpnGBsk6gP6gXd0vYxwrjAh6u8",
-                projectId = "bugscanner-2026",
-                storageBucket = "bugscanner-2026.firebasestorage.app",
-                authDomain = "bugscanner-2026.firebaseapp.com"
+                applicationId = "1:302576079512:web:328d85f070b1b113c3f6ed",
+                gcmSenderId = "302576079512",
+                apiKey = "AIzaSyBFu8YwXYP6CH6Gmjji_qTGAcyotg4voe0",
+                projectId = "bugscanner-test-trung-2026",
+                storageBucket = "bugscanner-test-trung-2026.firebasestorage.app",
+                authDomain = "bugscanner-test-trung-2026.firebaseapp.com"
             )
         )
 

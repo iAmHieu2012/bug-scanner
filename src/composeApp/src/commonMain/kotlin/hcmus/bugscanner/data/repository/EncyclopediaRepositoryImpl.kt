@@ -117,9 +117,21 @@ class EncyclopediaRepositoryImpl(
                 "scientificName" to bug.scientificName,
                 "description" to bug.description,
                 "imageUrl" to bug.imageUrl,
+                "imageUrls" to bug.displayImageUrls(),
                 "identification" to bug.identification,
                 "danger" to bug.danger,
+                "harmfulnessLevel" to bug.harmfulnessLevel,
                 "treatment" to bug.treatment,
+                "affectedCrops" to bug.affectedCrops,
+                "hostPlants" to bug.hostPlants,
+                "damageSymptoms" to bug.damageSymptoms,
+                "identificationTips" to bug.identificationTips,
+                "whereToFind" to bug.whereToFind,
+                "season" to bug.season,
+                "safeActions" to bug.safeActions,
+                "ipmNotes" to bug.ipmNotes,
+                "sourceRefs" to bug.sourceRefs,
+                "searchTokens" to bug.searchTokens,
                 "wikiUrl" to bug.wikiUrl
             )
 

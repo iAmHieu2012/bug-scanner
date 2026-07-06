@@ -5,7 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,22 +18,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.FrameResult
+import hcmus.bugscanner.domain.model.ConfidencePolicy
 import hcmus.bugscanner.ml.YoloConstants
 import hcmus.bugscanner.ui.scan.ScanMode
 import hcmus.bugscanner.ui.scan.utils.getBugColor
 
 /**
  * Bảng hiển thị kết quả nhận diện côn trùng thời gian thực hoặc offline (YOLO).
- * Cung cấp chức năng xem chi tiết và kích hoạt nhận diện dự phòng (Fallback) qua mạng nếu nhận diện offline không đạt yêu cầu.
+ * Cung cấp chức năng xem chi tiết và hướng dẫn chụp lại nếu nhận diện offline không đạt yêu cầu.
  *
  * @param currentMode Chế độ quét hiện tại (LIVE hoặc tĩnh).
  * @param isScanningLive Trạng thái camera đang chạy trực tiếp.
  * @param frameResult Kết quả tọa độ phân tích AI thu được từ frame hình ảnh.
- * @param imageBytesToSave Mảng byte hình ảnh để lưu hoặc phân tích fallback.
+ * @param imageBytesToSave Mảng byte hình ảnh để lưu cùng kết quả nhận diện.
  * @param onBugClick Callback kích hoạt khi nhấn chọn một kết quả côn trùng cụ thể.
- * @param isAnalyzingFallback Trạng thái đang gọi API iNaturalist để phân tích fallback.
- * @param fallbackErrorMessage Thông báo lỗi nếu cuộc gọi fallback gặp sự cố.
- * @param onFallbackClick Callback kích hoạt phân tích fallback qua mạng.
  * @param modifier Modifier tùy chỉnh bố cục.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,9 +42,6 @@ fun DetectionPanel(
     frameResult: FrameResult?,
     imageBytesToSave: ByteArray?,
     onBugClick: (className: String, displayName: String, confidence: Float, imageBytes: ByteArray?) -> Unit,
-    isAnalyzingFallback: Boolean,
-    fallbackErrorMessage: String?,
-    onFallbackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val detectionSummary = remember(frameResult) {
@@ -108,43 +103,34 @@ fun DetectionPanel(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CameraAlt,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         text = "Không nhận diện rõ côn trùng",
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        textAlign = TextAlign.Center
                     )
-                    Button(
-                        onClick = onFallbackClick,
-                        enabled = !isAnalyzingFallback,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Hãy chụp lại gần hơn, rõ nét hơn hoặc chọn ảnh khác.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isAnalyzingFallback) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onSecondary, strokeWidth = 2.dp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Đang phân tích ảnh...")
-                        } else {
-                            Icon(Icons.Rounded.CloudUpload, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Phân tích bằng AI chuyên sâu")
-                        }
-                    }
-                    if (!fallbackErrorMessage.isNullOrBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            text = fallbackErrorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    )
                 }
             } else {
                 LazyColumn {
                     items(detectionSummary.toList()) { (name, stats) ->
                         val count = stats.first
                         val maxScore = stats.second
+                        val confidence = ConfidencePolicy.explain(maxScore)
                         val bugColor = getBugColor(name)
                         val displayVietnameseName = YoloConstants.BUG_DICTIONARY[name] ?: name
 
@@ -157,7 +143,22 @@ fun DetectionPanel(
                             ListItem(
                                 leadingContent = { Icon(Icons.Rounded.Eco, null, tint = bugColor) },
                                 headlineContent = { Text(displayVietnameseName, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                supportingContent = { Text("Độ chính xác: ${(maxScore * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 13.sp) },
+                                supportingContent = {
+                                    Column {
+                                        Text(
+                                            "Độ tin cậy: ${confidence.percentText} - ${confidence.shortLabel}",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                                            fontSize = 13.sp
+                                        )
+                                        if (maxScore < 0.5f) {
+                                            Text(
+                                                confidence.guidance,
+                                                color = MaterialTheme.colorScheme.error,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
+                                },
                                 trailingContent = { Text("x$count", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )

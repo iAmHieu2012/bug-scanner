@@ -83,7 +83,7 @@ class AuthViewModel : ViewModel() {
                 val user = result.user
                 _authState.value = AuthState.Success(user?.uid ?: "", isGuest = false)
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Lỗi đăng ký")
+                _authState.value = AuthState.Error(AuthErrorPolicy.toUserMessage(e.message, fallback = "Lỗi đăng ký"))
             }
         }
     }
@@ -122,7 +122,7 @@ class AuthViewModel : ViewModel() {
                 val user = result.user
                 _authState.value = AuthState.Success(user?.uid ?: "", isGuest = true)
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Lỗi đăng nhập ẩn danh: ${e.message}")
+                _authState.value = AuthState.Error(AuthErrorPolicy.toUserMessage(e.message, fallback = "Lỗi đăng nhập ẩn danh"))
             }
         }
     }

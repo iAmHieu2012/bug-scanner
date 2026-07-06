@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,11 +33,19 @@ fun BugImage(
     imageUrl: String,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Crop
+    contentScale: ContentScale = ContentScale.Crop,
+    onLoadFailed: (String) -> Unit = {}
 ) {
     var loadFailed by remember(imageUrl) { mutableStateOf(false) }
+    val canLoad = imageUrl.isNotBlank() && canLoadRemoteImage(imageUrl)
 
-    if (imageUrl.isBlank() || loadFailed || !canLoadRemoteImage(imageUrl)) {
+    if (imageUrl.isNotBlank() && (!canLoad || loadFailed)) {
+        LaunchedEffect(imageUrl, canLoad, loadFailed) {
+            onLoadFailed(imageUrl)
+        }
+    }
+
+    if (imageUrl.isBlank() || loadFailed || !canLoad) {
         BugImageFallback(
             contentDescription = contentDescription,
             modifier = modifier
@@ -46,7 +55,10 @@ fun BugImage(
             model = imageUrl,
             contentDescription = contentDescription,
             contentScale = contentScale,
-            onError = { loadFailed = true },
+            onError = {
+                loadFailed = true
+                onLoadFailed(imageUrl)
+            },
             modifier = modifier
         )
     }

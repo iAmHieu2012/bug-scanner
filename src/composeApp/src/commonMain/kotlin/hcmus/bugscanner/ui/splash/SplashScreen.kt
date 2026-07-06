@@ -67,6 +67,8 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 modifier = Modifier.scale(scale.value)
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = "Khám phá thế giới côn trùng",
                 style = MaterialTheme.typography.titleMedium,

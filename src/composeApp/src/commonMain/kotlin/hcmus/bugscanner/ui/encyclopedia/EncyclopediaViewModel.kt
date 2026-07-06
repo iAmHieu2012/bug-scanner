@@ -30,6 +30,8 @@ class EncyclopediaViewModel(
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
     val exploreList: StateFlow<List<BugInfo>> = _exploreList.asStateFlow()
 
+    private var cachedExploreList: List<BugInfo> = emptyList()
+
     private val _exploreSearchQuery = MutableStateFlow("")
     val exploreSearchQuery: StateFlow<String> = _exploreSearchQuery.asStateFlow()
 
@@ -56,7 +58,8 @@ class EncyclopediaViewModel(
     fun fetchExploreList() {
         viewModelScope.launch {
             _isLoading.value = true
-            val list = repository.getExploreInsects(limit = 20)
+            val list = repository.getExploreInsects(limit = 150)
+            cachedExploreList = list
             _exploreList.value = list
             _isLoading.value = false
         }
@@ -73,8 +76,15 @@ class EncyclopediaViewModel(
         exploreSearchJob = viewModelScope.launch {
             delay(500.milliseconds)
             _isLoading.value = true
-            val list = repository.getExploreInsects(searchQuery = query.trim(), limit = 20)
-            _exploreList.value = list
+            if (cachedExploreList.isEmpty()) {
+                cachedExploreList = repository.getExploreInsects(limit = 150)
+            }
+            val localMatches = SearchQueryPolicy.filterBugs(cachedExploreList, query)
+            _exploreList.value = if (localMatches.isNotEmpty() || query.isBlank()) {
+                localMatches
+            } else {
+                repository.getExploreInsects(searchQuery = query.trim(), limit = 150)
+            }
             _isLoading.value = false
         }
     }
@@ -108,9 +118,11 @@ class EncyclopediaViewModel(
                 
                 val queryToSearch = if (matchedScientificName != null) {
                     matchedScientificName
-                } else {
+                } else if (SearchQueryPolicy.shouldTranslateWithGroq(trimmedQuery)) {
                     val translated = groqApi.translateToEnglishName(trimmedQuery)
                     if (translated.isNotEmpty()) translated else trimmedQuery
+                } else {
+                    trimmedQuery
                 }
 
                 val response = iNaturalistApi.searchInsects(query = queryToSearch)

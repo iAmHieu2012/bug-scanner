@@ -46,7 +46,8 @@ class BugDetailViewModel(
 
                 if (realBug != null) {
                     _detailedBug.value = realBug.copy(
-                        imageUrl = initialBug.imageUrl.takeIf { it.isNotBlank() } ?: realBug.imageUrl
+                        imageUrl = initialBug.imageUrl.takeIf { it.isNotBlank() } ?: realBug.imageUrl,
+                        imageUrls = (initialBug.displayImageUrls() + realBug.displayImageUrls()).distinct()
                     )
                 } else {
                     val aiData = groqApi.generateBugInfo(initialBug.scientificName, initialBug.englishName)

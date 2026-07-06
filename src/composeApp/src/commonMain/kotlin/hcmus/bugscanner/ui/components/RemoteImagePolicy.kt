@@ -12,9 +12,7 @@ fun isKnownCanvasUnsafeImageUrl(imageUrl: String): Boolean {
         .substringBefore('/')
         .substringBefore(':')
         .lowercase()
-    return host == "static.inaturalist.org" ||
-        host.endsWith(".static.inaturalist.org") ||
-        host == "via.placeholder.com"
+    return host == "via.placeholder.com"
 }
 
 /**

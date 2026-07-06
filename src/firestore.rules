@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /encyclopedia/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /configs/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /scan_history/{historyId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

@@ -39,9 +39,19 @@ class WebShareManager : ShareManager {
         bugName: String,
         scientificName: String,
         imageBytes: ByteArray?,
+        confidenceLabel: String,
+        harmfulnessLabel: String,
         appLink: String
     ) {
-        val shareText = "Tôi vừa phát hiện ra loài: $bugName trên ứng dụng BugScanner. Tên khoa học: $scientificName."
+        val metadata = listOf(
+            confidenceLabel.takeIf { it.isNotBlank() }?.let { "Độ tin cậy: $it" },
+            harmfulnessLabel.takeIf { it.isNotBlank() }?.let { "Mức gây hại: $it" }
+        ).filterNotNull().joinToString(" ")
+        val shareText = listOf(
+            "Tôi vừa phát hiện ra loài: $bugName trên ứng dụng BugScanner.",
+            "Tên khoa học: $scientificName.",
+            metadata
+        ).filter { it.isNotBlank() }.joinToString(" ")
 
         try {
             val navigator: dynamic = window.navigator

@@ -22,6 +22,17 @@ class GroqApiService(private val client: HttpClient) {
 
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
+    private suspend fun postChatCompletion(payload: GroqRequest): GroqResponse {
+        val configuredApiKey = ApiKeyPolicy.requireConfigured("Groq", BuildConfig.GROQ_API_KEY)
+        return client.post("https://api.groq.com/openai/v1/chat/completions") {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $configuredApiKey")
+                append(HttpHeaders.ContentType, "application/json")
+            }
+            setBody(payload)
+        }.body()
+    }
+
     /**
      * Sinh nội dung chi tiết bằng tiếng Việt dựa trên danh pháp khoa học.
      * Ép buộc AI trả về định dạng JSON nghiêm ngặt để Parse an toàn vào hệ thống.
@@ -55,14 +66,7 @@ class GroqApiService(private val client: HttpClient) {
         )
 
         return try {
-            val response: GroqResponse = client.post("https://api.groq.com/openai/v1/chat/completions") {
-                headers {
-                    append(HttpHeaders.Authorization, "Bearer ${BuildConfig.GROQ_API_KEY}")
-                    append(HttpHeaders.ContentType, "application/json")
-                }
-                setBody(payload)
-            }.body()
-
+            val response = postChatCompletion(payload)
             val jsonString = response.choices.firstOrNull()?.message?.content ?: "{}"
             jsonParser.decodeFromString<AiBugData>(jsonString)
         } catch (e: Exception) {
@@ -91,14 +95,7 @@ class GroqApiService(private val client: HttpClient) {
         )
 
         return try {
-            val response: GroqResponse = client.post("https://api.groq.com/openai/v1/chat/completions") {
-                headers {
-                    append(HttpHeaders.Authorization, "Bearer ${BuildConfig.GROQ_API_KEY}")
-                    append(HttpHeaders.ContentType, "application/json")
-                }
-                setBody(payload)
-            }.body()
-
+            val response = postChatCompletion(payload)
             val result = response.choices.firstOrNull()?.message?.content?.trim()?.removeSurrounding("\"") ?: ""
             if (result.contains("không biết", ignoreCase = true) || result.contains("sorry", ignoreCase = true)) "" else result
         } catch (e: Exception) {
