@@ -104,13 +104,18 @@ class ScanFallbackViewModel(
                         "- Cấp bậc sinh học: $rankVN"
                     ).joinToString("\n")
 
+                    val photos = taxon.taxonPhotos?.mapNotNull { 
+                        it.photo?.mediumUrl ?: it.photo?.squareUrl 
+                    } ?: emptyList()
+
                     val bugInfo = BugInfo(
-                        id = taxon.id.toString(),
+                        id = scientificName.lowercase().replace(" ", "_"),
                         name = taxon.preferredCommonName ?: scientificName,
                         englishName = englishName,
                         scientificName = scientificName,
                         description = "",
                         imageUrl = taxon.defaultPhoto?.mediumUrl ?: taxon.defaultPhoto?.squareUrl ?: "",
+                        imageUrls = photos.take(5), // Lấy tối đa 5 ảnh
                         identification = bioStats,
                         danger = "",
                         treatment = "",

@@ -11,10 +11,11 @@ object ChatRagContextPolicy {
      * Xây dựng nội dung System Prompt cho Gemini bằng cách kết hợp câu lệnh gốc và ngữ cảnh bách khoa.
      *
      * @param basePrompt Câu lệnh hệ thống gốc (thường lấy từ cấu hình động).
+     * @param ragPrompt Câu lệnh hướng dẫn AI sử dụng RAG context (từ cấu hình động).
      * @param contextBug Thông tin chi tiết của sinh vật để AI dùng làm cơ sở tham chiếu.
      * @return Chuỗi System Prompt đã hoàn thiện để gửi cho Gemini.
      */
-    fun systemInstruction(basePrompt: String, contextBug: BugInfo?): String {
+    fun systemInstruction(basePrompt: String, ragPrompt: String, contextBug: BugInfo?): String {
         val context = contextBug?.takeIf { it.hasUsefulContext() }?.toGeminiContext()
         return if (context == null) {
             basePrompt
@@ -25,7 +26,7 @@ object ChatRagContextPolicy {
                 appendLine("Ngữ cảnh từ cơ sở dữ liệu BugScanner:")
                 appendLine(context)
                 appendLine()
-                append("Ưu tiên sử dụng ngữ cảnh trên khi trả lời câu hỏi về loài này. Nếu thông tin trong ngữ cảnh chưa đủ, hãy nói rõ phần nào cần kiểm chứng thêm thay vì bịa thêm dữ kiện. Hãy chuyển nội dung nguồn thành lời tư vấn đơn giản, không lặp lại văn bản kỹ thuật.")
+                append(ragPrompt)
             }
         }
     }
@@ -51,7 +52,7 @@ object ChatRagContextPolicy {
             "Mức độ gây hại" to danger,
             "Nhóm trong ứng dụng" to HarmfulnessLevel.fromValue(harmfulnessLevel).label,
             "Việc nên làm" to listOf(treatment, safeActions.joinClean(), ipmNotes.joinClean()).joinClean(),
-            "Nguồn tham khảo" to sourceRefs.joinClean().ifBlank { wikiUrl }
+            "Bách khoa (Wiki)" to wikiUrl
         )
 
         return lines

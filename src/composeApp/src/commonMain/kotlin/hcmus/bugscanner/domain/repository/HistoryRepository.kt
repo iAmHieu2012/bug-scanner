@@ -23,6 +23,14 @@ interface HistoryRepository {
     suspend fun getUserHistory(userId: String): List<ScanHistory>
 
     /**
+     * Xóa một bản ghi lịch sử dựa trên ID của nó.
+     *
+     * @param historyId Mã định danh duy nhất của bản ghi lịch sử.
+     * @return `true` nếu xóa thành công, ngược lại `false`.
+     */
+    suspend fun deleteHistory(historyId: String): Boolean
+
+    /**
      * Tải mảng byte của hình ảnh lên hệ thống lưu trữ Cloud.
      *
      * @param userId Mã định danh người dùng thực hiện tải ảnh.

@@ -24,7 +24,6 @@ package hcmus.bugscanner.domain.model
  * @property season Thời điểm/điều kiện thường xuất hiện nếu có dữ liệu.
  * @property safeActions Việc nên làm an toàn, không thay thế tư vấn chuyên gia.
  * @property ipmNotes Ghi chú quản lý dịch hại tổng hợp từ nguồn đáng tin.
- * @property sourceRefs Danh sách nguồn tham khảo dùng để xây dựng hồ sơ.
  * @property searchTokens Từ khóa tìm kiếm bổ sung đã chuẩn hóa/curate.
  * @property wikiUrl Đường dẫn đến bài viết Wikipedia (nếu có, mặc định là chuỗi rỗng).
  */
@@ -48,7 +47,6 @@ data class BugInfo(
     val season: String = "",
     val safeActions: List<String> = emptyList(),
     val ipmNotes: List<String> = emptyList(),
-    val sourceRefs: List<String> = emptyList(),
     val searchTokens: List<String> = emptyList(),
     val wikiUrl: String = ""
 ) {
@@ -92,7 +90,6 @@ data class BugInfo(
             season = "",
             safeActions = emptyList(),
             ipmNotes = emptyList(),
-            sourceRefs = emptyList(),
             searchTokens = emptyList(),
             wikiUrl = ""
         )

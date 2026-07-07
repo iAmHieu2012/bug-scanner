@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.ui.theme.ThemeMode
 import hcmus.bugscanner.domain.model.DetectedBugSnapshot
 import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.domain.model.toBugInfo
@@ -45,10 +46,10 @@ enum class AppTab { SCAN, HISTORY, WIKI, CHATBOT, PROFILE, ADMIN }
  * @param initialTab Tab ban đầu khi mở màn hình, mặc định là tab quét (AppTab.SCAN).
  * @param onTabChanged Callback kích hoạt khi người dùng chuyển tab.
  * @param isLoggedIn Trạng thái đăng nhập của người dùng.
- * @param isAdmin Cờ báo hiệu quyền Admin của người dùng.
- * @param useDarkTheme Cờ báo hiệu đang sử dụng giao diện Tối (Dark mode).
- * @param onThemeToggle Callback kích hoạt khi người dùng chuyển đổi Sáng/Tối.
- * @param onAuthAction Callback xử lý hành động xác thực (Đăng nhập/Đăng xuất).
+ * @param isAdmin Cho biết người dùng có quyền Admin hay không để hiển thị chức năng quản trị.
+ * @param themeMode Chế độ giao diện (System, Light, Dark).
+ * @param onThemeChange Callback kích hoạt khi người dùng chuyển đổi chế độ giao diện.
+ * @param onAuthAction Callback xử lý các thao tác liên quan đến tài khoản (Đăng nhập/Đăng xuất).
  * @param onShareClick Callback xử lý chia sẻ thông tin côn trùng.
  * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
  * @param historyViewModel ViewModel quản lý lịch sử nhận diện côn trùng.
@@ -61,8 +62,8 @@ fun HomeScreen(
     onTabChanged: (AppTab) -> Unit = {},
     isLoggedIn: Boolean,
     isAdmin: Boolean = false,
-    useDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
+    themeMode: ThemeMode,
+    onThemeChange: (ThemeMode) -> Unit,
     onAuthAction: () -> Unit,
     onShareClick: (BugInfo, ByteArray?, Float) -> Unit,
     scanTabContent: @Composable (onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
@@ -171,8 +172,8 @@ fun HomeScreen(
                             currentTab = tab,
                             isLoggedIn = isLoggedIn,
                             isAdmin = isAdmin,
-                            useDarkTheme = useDarkTheme,
-                            onThemeToggle = onThemeToggle,
+                            themeMode = themeMode,
+                            onThemeChange = onThemeChange,
                             onAuthAction = onAuthAction,
                             scanTabContent = scanTabContent,
                             historyViewModel = historyViewModel,
@@ -245,8 +246,8 @@ fun HomeScreen(
                             currentTab = tab,
                             isLoggedIn = isLoggedIn,
                             isAdmin = isAdmin,
-                            useDarkTheme = useDarkTheme,
-                            onThemeToggle = onThemeToggle,
+                            themeMode = themeMode,
+                            onThemeChange = onThemeChange,
                             onAuthAction = onAuthAction,
                             scanTabContent = scanTabContent,
                             historyViewModel = historyViewModel,
@@ -279,10 +280,10 @@ fun HomeScreen(
  *
  * @param currentTab Tab hiện tại đang hiển thị.
  * @param isLoggedIn Trạng thái đăng nhập của người dùng.
- * @param isAdmin Cờ báo hiệu quyền Admin của người dùng.
- * @param useDarkTheme Cờ báo hiệu trạng thái giao diện hiện tại.
- * @param onThemeToggle Callback xử lý chuyển đổi giao diện Sáng/Tối.
- * @param onAuthAction Callback xử lý hành động xác thực.
+ * @param isAdmin Cờ báo quyền Admin.
+ * @param themeMode Chế độ giao diện hiện tại.
+ * @param onThemeChange Callback xử lý chuyển đổi giao diện Sáng/Tối/Hệ thống.
+ * @param onAuthAction Callback xử lý đăng nhập/xuất.ác thực.
  * @param scanTabContent Nội dung Composable hiển thị riêng cho tab quét.
  * @param historyViewModel ViewModel quản lý dữ liệu lịch sử.
  * @param onSnapshotSelected Callback khi một snapshot côn trùng được lựa chọn (ví dụ: sau khi quét hoặc từ lịch sử).
@@ -299,8 +300,8 @@ private fun HomeContent(
     currentTab: AppTab,
     isLoggedIn: Boolean,
     isAdmin: Boolean,
-    useDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
+    themeMode: ThemeMode,
+    onThemeChange: (ThemeMode) -> Unit,
     onAuthAction: () -> Unit,
     scanTabContent: @Composable (onDetectedBugClick: (DetectedBugSnapshot) -> Unit) -> Unit,
     historyViewModel: HistoryViewModel,
@@ -358,8 +359,8 @@ private fun HomeContent(
         }
         AppTab.PROFILE -> {
             hcmus.bugscanner.ui.profile.ProfileScreen(
-                useDarkTheme = useDarkTheme,
-                onThemeToggle = onThemeToggle,
+                themeMode = themeMode,
+                onThemeChange = onThemeChange,
                 onNavigateToAdmin = onNavigateToAdmin,
                 onAuthAction = onAuthAction
             )

@@ -199,7 +199,9 @@ class AdminRepositoryImpl(
                 "geminiModel" to config.geminiModel,
                 "geminiSystemPrompt" to config.geminiSystemPrompt,
                 "groqModel" to config.groqModel,
-                "groqSystemPrompt" to config.groqSystemPrompt
+                "groqSystemPrompt" to config.groqSystemPrompt,
+                "groqCrowdsourcingPrompt" to config.groqCrowdsourcingPrompt,
+                "geminiRagPrompt" to config.geminiRagPrompt
             )
             appConfigCollection.document("current").set(data)
             true

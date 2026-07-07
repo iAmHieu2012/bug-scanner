@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -116,7 +117,11 @@ fun HistoryScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(historyList) { item: ScanHistory ->
-                                HistoryItemCard(item, onClick = { onItemClick(item) })
+                                HistoryItemCard(
+                                    item = item,
+                                    onClick = { onItemClick(item) },
+                                    onDeleteClick = { historyViewModel.deleteHistory(item.id) }
+                                )
                             }
                         }
                     } else {
@@ -125,7 +130,11 @@ fun HistoryScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(historyList) { item: ScanHistory ->
-                                HistoryItemCard(item, onClick = { onItemClick(item) })
+                                HistoryItemCard(
+                                    item = item,
+                                    onClick = { onItemClick(item) },
+                                    onDeleteClick = { historyViewModel.deleteHistory(item.id) }
+                                )
                             }
                         }
                     }
@@ -140,10 +149,11 @@ fun HistoryScreen(
  *
  * @param item Khối dữ liệu chứa thông tin của một lần nhận diện.
  * @param onClick Hàm kích hoạt khi nhấn vào thẻ để xem chi tiết.
+ * @param onDeleteClick Hàm kích hoạt khi nhấn vào nút xóa.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
+fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit, onDeleteClick: () -> Unit = {}) {
     val dateString = formatTimestamp(item.timestamp)
     val confidence = ConfidencePolicy.explain(item.confidence)
     val harmfulness = HarmfulnessLevel.fromValue(item.harmfulnessLevel)
@@ -206,11 +216,20 @@ fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
                 }
             }
 
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = "Xem chi tiết",
-                tint = MaterialTheme.colorScheme.outlineVariant
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = "Xóa lịch sử",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = "Xem chi tiết",
+                    tint = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
         }
     }
 }

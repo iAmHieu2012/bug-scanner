@@ -146,7 +146,7 @@ class ChatViewModel(
                 val config = appConfigProvider.getConfig()
 
                 val requestBody = GeminiRequest(
-                    systemInstruction = Instruction(parts = GeminiPart(text = ChatRagContextPolicy.systemInstruction(config.geminiSystemPrompt, activeBugContext))),
+                    systemInstruction = Instruction(parts = GeminiPart(text = ChatRagContextPolicy.systemInstruction(config.geminiSystemPrompt, config.geminiRagPrompt, activeBugContext))),
                     contents = chatHistory.takeLast(8)
                 )
 

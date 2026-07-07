@@ -71,34 +71,9 @@ class GroqApiService(
     suspend fun generateBugInfo(scientificName: String, englishName: String): AiBugData {
         val config = appConfigProvider.getConfig()
 
-        val prompt = """
-            Cung cấp thông tin sinh học và nông nghiệp chi tiết bằng tiếng Việt cho loài côn trùng/sinh vật có tên khoa học là "$scientificName" (Tên tiếng Anh: "$englishName").
-            
-            QUY TẮC BẮT BUỘC:
-            1. Trả về đúng định dạng JSON hợp lệ, KHÔNG chứa đoạn text nào nằm ngoài JSON.
-            2. Tuyệt đối không được bỏ sót key nào.
-            3. Đối với các mảng (Array), hãy liệt kê MỌI thông tin có thể (từ 3 đến 10 phần tử tùy loại), KHÔNG giới hạn số lượng.
-            4. Nếu không có dữ liệu thực tế cho một mảng, hãy trả về mảng rỗng [].
-            5. TUYỆT ĐỐI KHÔNG ghi kèm tên khoa học (tiếng Latin) vào trong mảng `affectedCrops` và `hostPlants`. Chỉ ghi tên gọi thông thường bằng tiếng Việt (Ví dụ: "Lúa", "Ngô" - KHÔNG ghi "Lúa (Oryza sativa)").
-            
-            CẤU TRÚC JSON YÊU CẦU:
-            {
-                "nameVi": "string (Tên tiếng Việt phổ biến nhất)",
-                "description": "string (Mô tả chi tiết sinh học, tập tính, vòng đời)",
-                "identification": "string (Đặc điểm nhận dạng hình thái)",
-                "danger": "string (Chỉ chọn 1: Nguy hiểm, An toàn, hoặc Theo dõi)",
-                "treatment": "string (Biện pháp xử lý hoặc phòng trừ chi tiết)",
-                "affectedCrops": ["string", "string", "..."], // Toàn bộ cây trồng bị ảnh hưởng
-                "hostPlants": ["string", "string", "..."], // Toàn bộ cây ký chủ
-                "damageSymptoms": ["string", "string", "..."], // Dấu hiệu gây hại có thể quan sát
-                "identificationTips": ["string", "string", "..."], // Mẹo nhận biết nhanh ngoài thực địa
-                "whereToFind": ["string", "string", "..."], // Vị trí thường trú ngụ (VD: chồi non, mặt dưới lá)
-                "season": "string (Mùa vụ hoặc điều kiện thời tiết xuất hiện)",
-                "safeActions": ["string", "string", "..."], // Hành động xử lý an toàn nên làm ngay
-                "ipmNotes": ["string", "string", "..."], // Lưu ý về Quản lý dịch hại tổng hợp (IPM)
-                "searchTokens": ["string", "string", "..."] // Rất nhiều từ khóa, từ đồng nghĩa để tìm kiếm
-            }
-        """.trimIndent()
+        val prompt = config.groqCrowdsourcingPrompt
+            .replace("{SCIENTIFIC_NAME}", scientificName)
+            .replace("{ENGLISH_NAME}", englishName)
 
         val payload = GroqRequest(
             model = config.groqModel,

@@ -83,6 +83,16 @@ data class GroqChoice(
  * @property identification Đặc điểm nhận dạng hình thái.
  * @property danger Mức độ nguy hại đối với mùa màng hoặc con người (Nguy hiểm, An toàn, Theo dõi).
  * @property treatment Biện pháp xử lý, phòng ngừa hoặc sơ cứu khuyên dùng.
+ * @property affectedCrops Danh sách cây trồng thường gặp hoặc dễ bị ảnh hưởng.
+ * @property hostPlants Danh sách cây ký chủ được ghi nhận.
+ * @property damageSymptoms Danh sách dấu hiệu gây hại người dùng có thể quan sát.
+ * @property identificationTips Danh sách mẹo nhận biết bằng ngôn ngữ đơn giản.
+ * @property whereToFind Vị trí thường thấy trên cây hoặc ngoài môi trường.
+ * @property season Thời điểm/điều kiện thường xuất hiện.
+ * @property safeActions Danh sách hành động an toàn khi tiếp xúc.
+ * @property ipmNotes Ghi chú quản lý dịch hại tổng hợp (IPM).
+ * @property searchTokens Danh sách từ khóa tìm kiếm bổ sung.
+ * @property harmfulnessLevel Cấp độ gây hại chuẩn hóa (VD: crop_pest, human_pest, harmless).
  */
 @Serializable
 data class AiBugData(
@@ -99,5 +109,6 @@ data class AiBugData(
     val season: String = "",
     val safeActions: List<String> = emptyList(),
     val ipmNotes: List<String> = emptyList(),
-    val searchTokens: List<String> = emptyList()
+    val searchTokens: List<String> = emptyList(),
+    val harmfulnessLevel: String = "unknown"
 )

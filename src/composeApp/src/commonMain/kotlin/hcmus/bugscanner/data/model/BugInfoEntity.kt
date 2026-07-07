@@ -26,7 +26,6 @@ import kotlinx.serialization.Serializable
  * @property season Thời điểm/điều kiện thường xuất hiện nếu có dữ liệu.
  * @property safeActions Việc nên làm an toàn, không thay thế tư vấn chuyên gia.
  * @property ipmNotes Ghi chú quản lý dịch hại tổng hợp từ nguồn đáng tin.
- * @property sourceRefs Danh sách nguồn tham khảo dùng để xây dựng hồ sơ.
  * @property searchTokens Từ khóa tìm kiếm bổ sung đã chuẩn hóa/curate.
  * @property wikiUrl Đường dẫn đến bài viết Wikipedia (nếu có).
  */
@@ -51,7 +50,6 @@ data class BugInfoEntity(
     val season: String = "",
     val safeActions: List<String>? = null,
     val ipmNotes: List<String>? = null,
-    val sourceRefs: List<String>? = null,
     val searchTokens: List<String>? = null,
     val wikiUrl: String = ""
 )
@@ -83,7 +81,6 @@ fun BugInfoEntity.toDomain(): BugInfo {
         season = this.season,
         safeActions = this.safeActions ?: emptyList(),
         ipmNotes = this.ipmNotes ?: emptyList(),
-        sourceRefs = this.sourceRefs ?: emptyList(),
         searchTokens = this.searchTokens ?: emptyList(),
         wikiUrl = this.wikiUrl
     )

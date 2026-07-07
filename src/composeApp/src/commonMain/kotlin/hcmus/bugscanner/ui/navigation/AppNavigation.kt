@@ -18,6 +18,9 @@ import hcmus.bugscanner.ui.theme.AppTheme
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import hcmus.bugscanner.ui.theme.ThemeMode
+
 /**
  * Component quản lý luồng điều hướng chính, trạng thái đăng nhập và cấp quyền của ứng dụng.
  * Hoạt động như một Router trung tâm quyết định việc render màn hình dựa trên AuthState.
@@ -36,7 +39,12 @@ fun AppNavigation(
     onTabChanged: (AppTab) -> Unit = {},
     authViewModel: AuthViewModel = koinViewModel()
 ) {
-    var useDarkTheme by remember { mutableStateOf(true) }
+    var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
+    val useDarkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
 
     AppTheme(useDarkTheme = useDarkTheme) {
         var showSplash by remember { mutableStateOf(true) }
@@ -67,8 +75,8 @@ fun AppNavigation(
                         onTabChanged = onTabChanged,
                         isLoggedIn = !state.isGuest,
                         isAdmin = state.isAdmin,
-                        useDarkTheme = useDarkTheme,
-                        onThemeToggle = { useDarkTheme = !useDarkTheme },
+                        themeMode = themeMode,
+                        onThemeChange = { themeMode = it },
                         onAuthAction = {
                             authViewModel.signOut()
                         },

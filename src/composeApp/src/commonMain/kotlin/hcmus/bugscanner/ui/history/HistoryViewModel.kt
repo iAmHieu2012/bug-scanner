@@ -11,6 +11,7 @@ import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.domain.model.toHistory
 import hcmus.bugscanner.domain.repository.HistoryRepository
+import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,13 +19,13 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel chịu trách nhiệm quản lý trạng thái hiển thị lịch sử và kết nối với Firebase.
- * Quản lý luồng dữ liệu hai chiều: Kéo danh sách về (Fetch) và Đẩy dữ liệu + hình ảnh lên (Save/Upload).
- * Người dùng dưới quyền Khách (Anonymous) sẽ bị từ chối quyền lưu trữ.
  *
  * @param repository Repository chịu trách nhiệm thao tác dữ liệu lịch sử (lưu trữ và tải hình ảnh).
+ * @param encyclopediaRepository Repository để lấy thông tin bách khoa toàn thư.
  */
 class HistoryViewModel(
-    private val repository: HistoryRepository
+    private val repository: HistoryRepository,
+    private val encyclopediaRepository: EncyclopediaRepository
 ) : ViewModel() {
 
     private val _historyList = MutableStateFlow<List<ScanHistory>>(emptyList())
@@ -78,7 +79,14 @@ class HistoryViewModel(
                     }
                 }
 
-                val newHistory = snapshot.toHistory(
+                val realBug = encyclopediaRepository.getBugByScientificName(snapshot.bug.scientificName)
+                val finalSnapshot = if (realBug != null) {
+                    snapshot.copy(bug = realBug)
+                } else {
+                    snapshot
+                }
+
+                val newHistory = finalSnapshot.toHistory(
                     userId = currentUser.uid,
                     timestamp = getCurrentTimeMillis(),
                     uploadedImageUrl = uploadedUrl
@@ -129,6 +137,23 @@ class HistoryViewModel(
                 source = ScanSource.UNKNOWN
             )
         )
+    }
+
+    /**
+     * Xóa một bản ghi lịch sử của người dùng.
+     *
+     * @param historyId Mã bản ghi cần xóa.
+     */
+    fun deleteHistory(historyId: String) {
+        viewModelScope.launch {
+            val success = repository.deleteHistory(historyId)
+            if (success) {
+                _historyList.value = _historyList.value.filter { it.id != historyId }
+                _saveMessage.value = "Đã xóa bản ghi thành công."
+            } else {
+                _saveMessage.value = "Không thể xóa bản ghi. Vui lòng thử lại sau."
+            }
+        }
     }
 
     /**

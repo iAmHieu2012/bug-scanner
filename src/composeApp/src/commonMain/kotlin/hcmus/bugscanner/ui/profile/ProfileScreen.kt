@@ -21,19 +21,21 @@ import hcmus.bugscanner.ui.auth.AuthViewModel
 import hcmus.bugscanner.ui.components.ScreenHeader
 import org.koin.compose.viewmodel.koinViewModel
 
+import hcmus.bugscanner.ui.theme.ThemeMode
+
 /**
  * Màn hình Hồ sơ (Profile) hiển thị thông tin tài khoản, thông tin ứng dụng và chức năng quản trị (nếu là Admin).
  *
- * @param useDarkTheme Trạng thái giao diện sáng/tối hiện tại.
- * @param onThemeToggle Callback kích hoạt chuyển đổi giao diện sáng/tối.
+ * @param themeMode Chế độ giao diện (Hệ thống, Sáng, Tối).
+ * @param onThemeChange Callback kích hoạt chuyển đổi giao diện sáng/tối.
  * @param onNavigateToAdmin Callback chuyển hướng sang màn hình Quản trị (chỉ dành cho Admin).
  * @param onAuthAction Callback xử lý hành động xác thực (Đăng nhập).
  * @param viewModel ViewModel quản lý trạng thái xác thực.
  */
 @Composable
 fun ProfileScreen(
-    useDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
+    themeMode: ThemeMode,
+    onThemeChange: (ThemeMode) -> Unit,
     onNavigateToAdmin: () -> Unit,
     onAuthAction: () -> Unit,
     viewModel: AuthViewModel = koinViewModel()
@@ -204,20 +206,44 @@ fun ProfileScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = if (useDarkTheme) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                            imageVector = when (themeMode) {
+                                ThemeMode.SYSTEM -> Icons.Rounded.SettingsBrightness
+                                ThemeMode.LIGHT -> Icons.Rounded.LightMode
+                                ThemeMode.DARK -> Icons.Rounded.DarkMode
+                            },
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("Chế độ tối", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                            Text("Giảm độ sáng, tiết kiệm pin", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Chế độ giao diện", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text("Điều chỉnh độ sáng để dễ nhìn hơn", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Switch(
-                        checked = useDarkTheme,
-                        onCheckedChange = { onThemeToggle() }
-                    )
+                    
+                    var expanded by remember { mutableStateOf(false) }
+                    val themeLabel = when (themeMode) {
+                        ThemeMode.SYSTEM -> "Hệ thống"
+                        ThemeMode.LIGHT -> "Sáng"
+                        ThemeMode.DARK -> "Tối"
+                    }
+                    
+                    Box {
+                        OutlinedButton(
+                            onClick = { expanded = true },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text(themeLabel)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.Rounded.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            DropdownMenuItem(text = { Text("Hệ thống") }, onClick = { onThemeChange(ThemeMode.SYSTEM); expanded = false })
+                            DropdownMenuItem(text = { Text("Sáng") }, onClick = { onThemeChange(ThemeMode.LIGHT); expanded = false })
+                            DropdownMenuItem(text = { Text("Tối") }, onClick = { onThemeChange(ThemeMode.DARK); expanded = false })
+                        }
+                    }
                 }
             }
         }

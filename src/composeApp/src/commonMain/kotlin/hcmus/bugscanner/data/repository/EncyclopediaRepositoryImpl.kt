@@ -124,7 +124,7 @@ class EncyclopediaRepositoryImpl(
      */
     override suspend fun saveBugToFirebase(bug: BugInfo): Boolean {
         return try {
-            val docId = bug.scientificName.ifBlank { bug.id }.replace(" ", "_")
+            val docId = bug.scientificName.ifBlank { bug.id }.lowercase().replace(" ", "_")
 
             val bugEntity = BugInfoEntity(
                 id = bug.id,
@@ -146,7 +146,6 @@ class EncyclopediaRepositoryImpl(
                 season = bug.season,
                 safeActions = bug.safeActions,
                 ipmNotes = bug.ipmNotes,
-                sourceRefs = bug.sourceRefs,
                 searchTokens = bug.searchTokens,
                 wikiUrl = bug.wikiUrl
             )

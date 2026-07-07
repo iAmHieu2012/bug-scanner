@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
@@ -190,8 +191,10 @@ fun ExploreTab(
     onEditRequest: (BugInfo) -> Unit,
     onAskAI: (String) -> Unit
 ) {
-    val exploreList by viewModel.exploreList.collectAsState()
+    val exploreList by viewModel.filteredExploreList.collectAsState()
     val searchQuery by viewModel.exploreSearchQuery.collectAsState()
+    val selectedHarmfulness by viewModel.selectedHarmfulnessFilter.collectAsState()
+    val showOnlyYolo by viewModel.showOnlyYoloDetectable.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -206,6 +209,50 @@ fun ExploreTab(
             singleLine = true,
             shape = RoundedCornerShape(14.dp)
         )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            var expanded by remember { mutableStateOf(false) }
+            val options = listOf("Tất cả" to "Tất cả") + hcmus.bugscanner.domain.model.HarmfulnessLevel.entries.map { it.value to it.shortLabel }
+            val currentLabel = options.firstOrNull { it.first == selectedHarmfulness }?.second ?: "Lọc cấp độ"
+
+            Box {
+                OutlinedButton(
+                    onClick = { expanded = true },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(currentLabel)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(Icons.Rounded.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    options.forEach { (value, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = { 
+                                viewModel.selectedHarmfulnessFilter.value = value
+                                expanded = false 
+                            }
+                        )
+                    }
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Chỉ YOLO", style = MaterialTheme.typography.labelMedium)
+                Checkbox(
+                    checked = showOnlyYolo,
+                    onCheckedChange = { viewModel.showOnlyYoloDetectable.value = it },
+                    modifier = Modifier.scale(0.8f)
+                )
+            }
+        }
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

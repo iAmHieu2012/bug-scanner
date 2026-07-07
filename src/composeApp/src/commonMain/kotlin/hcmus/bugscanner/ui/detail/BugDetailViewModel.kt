@@ -51,6 +51,10 @@ class BugDetailViewModel(
                 } else {
                     val aiData = groqApi.generateBugInfo(initialBug.scientificName, initialBug.englishName)
 
+                    if (aiData.description.contains("Lỗi trích xuất dữ liệu")) {
+                        throw Exception("AI generated malformed JSON")
+                    }
+
                     val completeBug = initialBug.copy(
                         name = aiData.nameVi.ifBlank { initialBug.scientificName },
                         description = aiData.description,
@@ -65,7 +69,8 @@ class BugDetailViewModel(
                         season = aiData.season,
                         safeActions = aiData.safeActions,
                         ipmNotes = aiData.ipmNotes,
-                        searchTokens = aiData.searchTokens
+                        searchTokens = aiData.searchTokens,
+                        harmfulnessLevel = aiData.harmfulnessLevel
                     )
 
                     _detailedBug.value = completeBug

@@ -322,8 +322,10 @@ private fun StatCard(title: String, count: Int, icon: ImageVector) {
 private fun ConfigSection(appConfig: AppConfig, onSave: (AppConfig) -> Unit) {
     var geminiModel by remember(appConfig) { mutableStateOf(appConfig.geminiModel) }
     var geminiPrompt by remember(appConfig) { mutableStateOf(appConfig.geminiSystemPrompt) }
+    var geminiRag by remember(appConfig) { mutableStateOf(appConfig.geminiRagPrompt) }
     var groqModel by remember(appConfig) { mutableStateOf(appConfig.groqModel) }
     var groqPrompt by remember(appConfig) { mutableStateOf(appConfig.groqSystemPrompt) }
+    var groqCrowdsourcing by remember(appConfig) { mutableStateOf(appConfig.groqCrowdsourcingPrompt) }
 
 
     Column(
@@ -337,7 +339,8 @@ private fun ConfigSection(appConfig: AppConfig, onSave: (AppConfig) -> Unit) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Gemini AI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 OutlinedTextField(value = geminiModel, onValueChange = { geminiModel = it }, label = { Text("Tên Model") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(value = geminiPrompt, onValueChange = { geminiPrompt = it }, label = { Text("System Prompt") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(value = geminiPrompt, onValueChange = { geminiPrompt = it }, label = { Text("System Prompt (Chatbot)") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(value = geminiRag, onValueChange = { geminiRag = it }, label = { Text("RAG Prompt (Ngữ cảnh Bách khoa)") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             }
         }
 
@@ -345,7 +348,8 @@ private fun ConfigSection(appConfig: AppConfig, onSave: (AppConfig) -> Unit) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Groq AI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 OutlinedTextField(value = groqModel, onValueChange = { groqModel = it }, label = { Text("Tên Model") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(value = groqPrompt, onValueChange = { groqPrompt = it }, label = { Text("System Prompt") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(value = groqPrompt, onValueChange = { groqPrompt = it }, label = { Text("System Prompt (Dịch thuật)") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(value = groqCrowdsourcing, onValueChange = { groqCrowdsourcing = it }, label = { Text("Crowdsourcing Prompt (Cào dữ liệu JSON)") }, modifier = Modifier.fillMaxWidth(), minLines = 5)
             }
         }
 
@@ -357,8 +361,10 @@ private fun ConfigSection(appConfig: AppConfig, onSave: (AppConfig) -> Unit) {
                     AppConfig(
                         geminiModel = geminiModel,
                         geminiSystemPrompt = geminiPrompt,
+                        geminiRagPrompt = geminiRag,
                         groqModel = groqModel,
-                        groqSystemPrompt = groqPrompt
+                        groqSystemPrompt = groqPrompt,
+                        groqCrowdsourcingPrompt = groqCrowdsourcing
                     )
                 )
             },

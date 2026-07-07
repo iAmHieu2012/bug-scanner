@@ -11,7 +11,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import hcmus.bugscanner.ml.YoloConstants
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -28,6 +32,32 @@ class EncyclopediaViewModel(
 ) : ViewModel() {
 
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
+
+    val selectedHarmfulnessFilter = MutableStateFlow<String?>("Tất cả")
+    val showOnlyYoloDetectable = MutableStateFlow(false)
+
+    val filteredExploreList: StateFlow<List<BugInfo>> = combine(
+        _exploreList,
+        selectedHarmfulnessFilter,
+        showOnlyYoloDetectable
+    ) { list, harmfulness, yoloOnly ->
+        var result = list
+        if (harmfulness != null && harmfulness != "Tất cả") {
+            result = result.filter { it.harmfulnessLevel == harmfulness }
+        }
+        if (yoloOnly) {
+            result = result.filter { bug ->
+                val lowerScientificName = bug.scientificName.lowercase()
+                YoloConstants.LABELS.any { it.lowercase() == lowerScientificName }
+            }
+        }
+        result
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
     val exploreList: StateFlow<List<BugInfo>> = _exploreList.asStateFlow()
 
     private val _exploreSearchQuery = MutableStateFlow("")
@@ -187,8 +217,12 @@ class EncyclopediaViewModel(
                                 "• Tên quốc tế (Tiếng Anh): ${taxon.englishCommonName ?: "Chưa cập nhật"}\n" +
                                 "• Cấp bậc sinh học: $rankVN"
 
+                        val photos = taxon.taxonPhotos?.mapNotNull { 
+                            it.photo?.mediumUrl ?: it.photo?.squareUrl 
+                        } ?: emptyList()
+
                         BugInfo(
-                            id = taxon.id.toString(),
+                            id = taxon.name.lowercase().replace(" ", "_"),
                             name = commonName.replaceFirstChar { it.uppercase() },
                             englishName = taxon.englishCommonName ?: "",
                             scientificName = taxon.name,
@@ -196,6 +230,7 @@ class EncyclopediaViewModel(
                             imageUrl = taxon.defaultPhoto?.mediumUrl
                                 ?: taxon.defaultPhoto?.squareUrl
                                 ?: "",
+                            imageUrls = photos.take(5), // Lấy tối đa 5 ảnh
                             identification = bioStats,
                             danger = "",
                             treatment = "",
