@@ -58,7 +58,8 @@ class AndroidShareManager(private val context: Context) : ShareManager {
                     val cachePath = File(context.externalCacheDir ?: context.cacheDir, "shared_images")
                     cachePath.mkdirs()
 
-                    val file = File(cachePath, "bug_scanned_image.jpg")
+                    val timestamp = System.currentTimeMillis()
+                    val file = File(cachePath, "bug_scanned_image_$timestamp.jpg")
                     FileOutputStream(file).use { stream ->
                         stream.write(imageBytes)
                     }
@@ -69,7 +70,7 @@ class AndroidShareManager(private val context: Context) : ShareManager {
                     type = "image/jpeg"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     putExtra(Intent.EXTRA_TEXT, shareText)
-                    clipData = ClipData.newRawUri("", uri)
+                    clipData = ClipData("BugScanner Image", arrayOf("image/jpeg"), ClipData.Item(uri))
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 } catch (e: Exception) {
                     e.printStackTrace()

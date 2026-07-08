@@ -21,6 +21,9 @@ import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.foundation.isSystemInDarkTheme
 import hcmus.bugscanner.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.readBytes
 
 /**
  * Component quản lý luồng điều hướng chính, trạng thái đăng nhập và cấp quyền của ứng dụng.
@@ -54,6 +57,8 @@ fun AppNavigation(
         var showAuthScreen by remember { mutableStateOf(false) }
         val shareManager = rememberShareManager()
         val encyclopediaRepository: EncyclopediaRepository = koinInject()
+        val httpClient: HttpClient = koinInject()
+        val coroutineScope = rememberCoroutineScope()
 
         LaunchedEffect(authState) {
             if (authState is AuthState.Success) {
@@ -97,18 +102,35 @@ fun AppNavigation(
                     }
                 },
                 onShareClick = { bug, imageBytes, confidence ->
-                    shareManager.shareBugInfo(
-                        bugName = bug.name,
-                        scientificName = bug.scientificName,
-                        imageBytes = imageBytes,
-                        confidenceLabel = if (confidence > 0f) {
-                            val confidenceInfo = ConfidencePolicy.explain(confidence)
-                            "${confidenceInfo.shortLabel} ${confidenceInfo.percentText}"
-                        } else {
-                            ""
-                        },
-                        harmfulnessLabel = HarmfulnessLevel.fromValue(bug.harmfulnessLevel).label
-                    )
+                    val shareAction = { bytes: ByteArray? ->
+                        shareManager.shareBugInfo(
+                            bugName = bug.name,
+                            scientificName = bug.scientificName,
+                            imageBytes = bytes,
+                            confidenceLabel = if (confidence > 0f) {
+                                val confidenceInfo = ConfidencePolicy.explain(confidence)
+                                "${confidenceInfo.shortLabel} ${confidenceInfo.percentText}"
+                            } else {
+                                ""
+                            },
+                            harmfulnessLabel = HarmfulnessLevel.fromValue(bug.harmfulnessLevel).label
+                        )
+                    }
+
+                    if (imageBytes != null) {
+                        shareAction(imageBytes)
+                    } else if (bug.imageUrl.isNotBlank()) {
+                        coroutineScope.launch {
+                            try {
+                                val bytes = httpClient.get(bug.imageUrl).readBytes()
+                                shareAction(bytes)
+                            } catch (e: Exception) {
+                                shareAction(null)
+                            }
+                        }
+                    } else {
+                        shareAction(null)
+                    }
                 },
                 scanTabContent = { onDetected ->
                     ScanScreen(

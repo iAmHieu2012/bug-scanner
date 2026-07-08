@@ -512,7 +512,7 @@
         "description": "Bướm phượng (Papilio xuthus) thường được chú ý bởi màu sắc lộng lẫy, nhưng sâu non của chúng lại là loài ăn lá phàm tục chuyên gây hại trên các cây họ cam chanh. Sâu gặm khuyết lá từ mép vào, khi lớn chúng có thể nhai trụi cả cành non. Dù thiệt hại trên cây lớn không quá nghiêm trọng, nhưng với cây ươm giống hoặc cây con non nớt, chúng có thể cắn cụt ngọn làm cây còi cọc.",
         "id": "asian_swallowtail",
         "englishName": "Asian swallowtail",
-        "harmfulnessLevel": "crop_pest",
+        "harmfulnessLevel": "low_risk",
         "searchTokens": [
             "Bướm phượng",
             "Papilio xuthus",
@@ -1809,7 +1809,7 @@
         "description": "Bướm trắng (Pieris canidia / Pieris rapae) là hình ảnh quen thuộc trên các ruộng rau họ thập tự. Bướm mẹ đẻ trứng rải rác trên lá. Sâu non (sâu xanh bướm trắng) có sức ăn tàn phá, gặm thủng lỗ chỗ phiến lá tạo thành các mảng khuyết lớn, nham nhở. Sâu lớn còn đục vào trong lõi bắp cải, su hào, vứt lại lượng lớn phân xanh ướt làm thối rữa rau từ bên trong.",
         "id": "cabbage_butterfly",
         "englishName": "Cabbage butterfly",
-        "harmfulnessLevel": "crop_pest",
+        "harmfulnessLevel": "low_risk",
         "searchTokens": [
             "Bướm trắng",
             "Pieris canidia",
@@ -1857,7 +1857,7 @@
         ],
         "treatment": "Cực kỳ hiệu quả và an toàn khi sử dụng chế phẩm sinh học vi khuẩn Bt (Bacillus thuringiensis) hoặc virus NPV phun khi sâu còn nhỏ. Nếu mật độ sâu quá lớn có thể dùng các gốc hóa học như Indoxacarb, Emamectin benzoate, Lufenuron có pha thêm chất bám dính do lá bắp cải trơn trượt.",
         "scientificName": "Pieris canidia",
-        "danger": "Nguy hiểm",
+        "danger": "Theo dõi",
         "ipmNotes": [
             "Sử dụng bẫy lưới hoặc vợt thủ công để bắt bướm mẹ đang bay lượn",
             "Khuyến khích duy trì quần thể ong Cotesia glomerata (một loài ong ký sinh đẻ trứng vào sâu non rất lợi hại)",
@@ -3151,7 +3151,7 @@
         "description": "Muỗi nhuế là nhóm côn trùng tạo mụn lồi (túi mật) trên cây trồng. Muỗi cái trưởng thành bay chập choạng và đẻ trứng vào các mô tế bào thực vật non nớt. Dòi nở ra chui vào trong mô, tiết hóa chất kích thích cây tạo ra các nốt sưng (túi mật) bọc kín dòi bên trong, làm biến dạng chồi non, hoa và gân lá.",
         "id": "gall_midge",
         "englishName": "Gall midge",
-        "harmfulnessLevel": "crop_pest",
+        "harmfulnessLevel": "low_risk",
         "searchTokens": [
             "Dasineura",
             "Muỗi nhuế",
@@ -3202,7 +3202,7 @@
         ],
         "treatment": "Cắt tỉa và tiêu hủy ngay phần chồi non, lá non, nụ hoa có nốt sưng để diệt dòi non bên trong. Thu gom lá rụng, hoa rụng đem đốt hoặc chôn sâu. Dùng bẫy ánh sáng vàng thu hút trưởng thành ban đêm. Phun thuốc trừ sâu có tính nội hấp lưu dẫn vào giai đoạn cây bung đọt/hoa nếu phát hiện muỗi trưởng thành.",
         "scientificName": "Dasineura sp.",
-        "danger": "Nguy hiểm",
+        "danger": "Theo dõi",
         "ipmNotes": [
             "Thuốc trừ sâu tiếp xúc hầu như vô tác dụng khi dòi đã chui vào trong túi mật",
             "Phải kết hợp biện pháp cắt tỉa thủ công với phun thuốc khi trưởng thành đang bay",
@@ -3643,7 +3643,7 @@
         "description": "Châu chấu (Locustoidea) là nhóm côn trùng ăn lá đa thực cực kỳ phàm ăn, sở hữu đôi chân sau to khỏe để nhảy xa. Ở điều kiện bình thường, chúng sống phân tán. Nhưng khi thời tiết khô hạn kéo dài, một số loài có khả năng chuyển sang pha tụ tập, hình thành các bầy đàn khổng lồ càn quét xơ xác mọi loại thảm thực vật, hoa màu trên đường di chuyển của chúng.",
         "id": "grasshopper",
         "englishName": "Grasshopper",
-        "harmfulnessLevel": "crop_pest",
+        "harmfulnessLevel": "low_risk",
         "searchTokens": [
             "Châu chấu",
             "Locustoidea",
@@ -3689,7 +3689,7 @@
         ],
         "treatment": "Cần diệt ngay khi châu chấu non mới nở (chưa có cánh bay) đang tập trung ở các bờ bãi. Có thể rải bả độc (cám gạo trộn thuốc trừ sâu) hoặc phun thuốc hóa học tiếp xúc/vị độc mạnh (Fenitrothion, Fipronil). Ở mật độ thấp, có thể dùng vợt bắt. Áp dụng nấm sinh học Metarhizium (nấm xanh) để gây bệnh dịch lan truyền cho cả đàn.",
         "scientificName": "Locustoidea",
-        "danger": "Nguy hiểm",
+        "danger": "Theo dõi",
         "ipmNotes": [
             "Theo dõi chặt chẽ và khoanh vùng phun diệt dứt điểm ngay từ lúc châu chấu còn là ấu trùng nhảy, không để chúng mọc cánh phát tán",
             "Khuyến khích nuôi thả vịt, gà ra đồng sau vụ gặt để chúng lùng sục ăn châu chấu non",
@@ -5055,7 +5055,7 @@
         "description": "Dế nhũi (Gryllotalpidae) là loài côn trùng đa thực, sống chủ yếu dưới mặt đất. Chúng có tập tính đào hang và cắn phá rễ, thân ngầm của các loại cây non, gây thiệt hại nặng nề cho giai đoạn ươm giống và gieo trồng sớm. Dế nhũi hoạt động mạnh vào ban đêm, ban ngày ẩn nấp sâu trong các đường hầm chằng chịt dưới lòng đất.",
         "id": "mole_cricket",
         "englishName": "Mole cricket",
-        "harmfulnessLevel": "crop_pest",
+        "harmfulnessLevel": "low_risk",
         "searchTokens": [
             "Dế nhũi",
             "Gryllotalpidae",
@@ -5102,7 +5102,7 @@
         ],
         "treatment": "Sử dụng bả độc (trộn cám gạo rang thơm với thuốc trừ sâu gốc rễ như Diazinon, Chlorpyrifos) rải quanh gốc cây hoặc dọc luống vào chiều tối. Có thể dùng các loại thuốc dạng hạt rải xuống đất hoặc tưới vào gốc cây. Dùng bẫy đèn để thu hút và tiêu diệt dế trưởng thành.",
         "scientificName": "Gryllotalpidae",
-        "danger": "Nguy hiểm",
+        "danger": "Theo dõi",
         "ipmNotes": [
             "Thường xuyên thăm ruộng, vườn ươm vào giai đoạn cây non",
             "Bảo vệ và phát triển các loài thiên địch tự nhiên như ếch nhái, kiến ăn thịt, chim chóc",

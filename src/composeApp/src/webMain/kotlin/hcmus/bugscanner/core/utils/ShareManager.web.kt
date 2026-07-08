@@ -65,9 +65,10 @@ class WebShareManager : ShareManager {
                     // Ép kiểu ByteArray sang Int8Array trực tiếp không qua trung gian (0-copy)
                     val int8Array = imageBytes.unsafeCast<Int8Array>()
 
-                    // Dùng constructor chuẩn của Kotlin JS (tự động có 'new' ngầm định trong JS)
+                    // Thêm timestamp để tránh lỗi cache của Zalo/Messenger khi nhận file từ Chrome/Safari
+                    val timestamp = kotlin.js.Date.now().toLong()
                     val fileOpts = js("{ type: 'image/jpeg' }").unsafeCast<org.w3c.files.FilePropertyBag>()
-                    val file = org.w3c.files.File(arrayOf(int8Array), "bug_scanned.jpg", fileOpts)
+                    val file = org.w3c.files.File(arrayOf(int8Array), "bug_scanned_$timestamp.jpg", fileOpts)
 
                     val filesArray = arrayOf(file)
 
