@@ -62,12 +62,12 @@ fun ChatScreen(
     var prompt by remember { mutableStateOf("") }
     var imageToSend by remember { mutableStateOf<ByteArray?>(null) }
     var urlToSend by remember { mutableStateOf<String?>(null) }
-    var lastAutoSentPrompt by remember { mutableStateOf<String?>(null) }
-    var activeBugContext by remember { mutableStateOf<BugInfo?>(null) }
+    val activeBugContext by viewModel.activeBugContext.collectAsState()
+    var showContextBadge by remember { mutableStateOf(false) }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
     val listState = rememberLazyListState()
-    val shouldShowSuggestions = messages.size <= 1 && !isTyping
+    val shouldShowSuggestions = (messages.size <= 1 || showContextBadge) && !isTyping
 
     val scanProvider = LocalPlatformScanProvider.current
     val imagePicker = scanProvider.rememberImagePickerHelper(
@@ -90,22 +90,29 @@ fun ChatScreen(
     fun submitPrompt(text: String = prompt) {
         val cleanPrompt = text.trim()
         if ((cleanPrompt.isNotEmpty() || imageToSend != null || urlToSend != null) && !isTyping) {
-            viewModel.sendMessage(cleanPrompt, imageToSend, urlToSend, activeBugContext)
+            viewModel.sendMessage(cleanPrompt, imageToSend, urlToSend)
             prompt = ""
             imageToSend = null
             urlToSend = null
+            showContextBadge = false
         }
     }
 
     LaunchedEffect(initialPrompt, initialImageBytes, initialImageUrl, initialBugContext) {
         if (initialBugContext != null) {
-            activeBugContext = initialBugContext
+            viewModel.setActiveContext(initialBugContext)
+            showContextBadge = true
             prompt = ""
         }
         val cleanPrompt = initialPrompt?.trim()
-        if (!cleanPrompt.isNullOrEmpty() && cleanPrompt != lastAutoSentPrompt) {
-            lastAutoSentPrompt = cleanPrompt
-            viewModel.sendMessage(cleanPrompt.orEmpty(), initialImageBytes, initialImageUrl, initialBugContext)
+        if (!cleanPrompt.isNullOrEmpty()) {
+            prompt = cleanPrompt
+        }
+        if (initialImageBytes != null) {
+            imageToSend = initialImageBytes
+        }
+        if (initialImageUrl != null) {
+            urlToSend = initialImageUrl
         }
     }
 
@@ -128,7 +135,13 @@ fun ChatScreen(
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
             ) {
                 IconButton(
-                    onClick = { viewModel.clearConversation() },
+                    onClick = { 
+                        viewModel.clearConversation()
+                        showContextBadge = false
+                        prompt = ""
+                        imageToSend = null
+                        urlToSend = null
+                    },
                     enabled = messages.isNotEmpty()
                 ) {
                     Icon(
@@ -301,7 +314,6 @@ private fun ChatInput(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .imePadding()
             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
         shape = RoundedCornerShape(32.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),

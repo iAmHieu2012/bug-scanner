@@ -111,8 +111,13 @@ fun HomeScreen(
             onBackClick = { selectedSnapshot = null },
             onAskChatbotClick = { prompt, detailedBug ->
                 initialChatPrompt = prompt.takeIf { it.isNotBlank() }
-                initialChatImage = null
-                initialChatImageUrl = null
+                if (snapshotToShow.source != hcmus.bugscanner.domain.model.ScanSource.UNKNOWN) {
+                    initialChatImage = snapshotToShow.imageBytes
+                    initialChatImageUrl = if (snapshotToShow.imageBytes == null) detailedBug.imageUrl else null
+                } else {
+                    initialChatImage = null
+                    initialChatImageUrl = null
+                }
                 initialChatBugContext = detailedBug
                 selectedSnapshot = null
                 currentTab = AppTab.CHATBOT

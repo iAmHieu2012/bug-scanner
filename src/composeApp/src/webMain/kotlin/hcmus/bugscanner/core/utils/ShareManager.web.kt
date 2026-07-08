@@ -3,7 +3,7 @@ package hcmus.bugscanner.core.utils
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import kotlinx.browser.window
-import org.khronos.webgl.Uint8Array
+import org.khronos.webgl.Int8Array
 
 /**
  * Khai báo Interface an toàn để Kotlin có thể giao tiếp với Object Share của JavaScript.
@@ -62,11 +62,12 @@ class WebShareManager : ShareManager {
                 shareData.url = appLink
 
                 if (imageBytes != null && navigator.canShare != undefined) {
-                    val uint8Array = Uint8Array(imageBytes.toTypedArray())
+                    // Ép kiểu ByteArray sang Int8Array trực tiếp không qua trung gian (0-copy)
+                    val int8Array = imageBytes.unsafeCast<Int8Array>()
 
-                    val fileOpts = createJsObject()
-                    fileOpts.type = "image/jpeg"
-                    val file = window.asDynamic().File(arrayOf(uint8Array), "bug_scanned.jpg", fileOpts)
+                    // Dùng constructor chuẩn của Kotlin JS (tự động có 'new' ngầm định trong JS)
+                    val fileOpts = js("{ type: 'image/jpeg' }").unsafeCast<org.w3c.files.FilePropertyBag>()
+                    val file = org.w3c.files.File(arrayOf(int8Array), "bug_scanned.jpg", fileOpts)
 
                     val filesArray = arrayOf(file)
 

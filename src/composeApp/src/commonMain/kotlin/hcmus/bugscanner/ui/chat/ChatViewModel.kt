@@ -70,14 +70,39 @@ class ChatViewModel(
     val isTyping: StateFlow<Boolean> = _isTyping.asStateFlow()
 
     private val chatHistory = mutableListOf<GeminiContent>()
-    private var activeBugContext: BugInfo? = null
+    private val _activeBugContext = MutableStateFlow<BugInfo?>(null)
+    val activeBugContext: StateFlow<BugInfo?> = _activeBugContext.asStateFlow()
+
+    /**
+     * Nạp ngữ cảnh sinh vật từ các màn hình khác vào bộ nhớ của AI.
+     * Tự động phân giải thêm hình ảnh từ CSDL nếu cần.
+     */
+    fun setActiveContext(bug: BugInfo?) {
+        if (bug == null) {
+            _activeBugContext.value = null
+            return
+        }
+        
+        if (bug.scientificName.isNotBlank() && bug.scientificName == _activeBugContext.value?.scientificName) {
+            return
+        }
+
+        chatHistory.clear()
+        _messages.value = listOf(greetingMessage)
+        _isTyping.value = false
+        _activeBugContext.value = bug
+
+        viewModelScope.launch {
+            _activeBugContext.value = ChatContextResolver.resolve(encyclopediaRepository, bug)
+        }
+    }
 
     /**
      * Xóa sạch lịch sử cuộc trò chuyện hiện tại và thiết lập lại tin nhắn chào mừng.
      */
     fun clearConversation() {
         chatHistory.clear()
-        activeBugContext = null
+        _activeBugContext.value = null
         _messages.value = listOf(greetingMessage)
         _isTyping.value = false
     }
@@ -89,9 +114,9 @@ class ChatViewModel(
      * @param text Nội dung tin nhắn người dùng nhập vào.
      * @param imageBytes Dữ liệu mảng byte của hình ảnh đính kèm (nếu upload từ máy).
      * @param imageUrl Đường dẫn URL của hình ảnh đính kèm (nếu chọn từ Lịch sử/Wiki).
-     * @param bugContext Dữ liệu bách khoa từ Firestore hoặc màn hình chi tiết để Gemini dùng làm ngữ cảnh.
+     * @param imageUrl Đường dẫn URL của hình ảnh đính kèm (nếu chọn từ Lịch sử/Wiki).
      */
-    fun sendMessage(text: String, imageBytes: ByteArray? = null, imageUrl: String? = null, bugContext: BugInfo? = null) {
+    fun sendMessage(text: String, imageBytes: ByteArray? = null, imageUrl: String? = null) {
         if (text.isBlank() && imageBytes == null && imageUrl == null) return
 
         val cleanText = text.trim()
@@ -125,8 +150,14 @@ class ChatViewModel(
 
                 val userParts = mutableListOf<GeminiPart>()
 
-                if (cleanText.isNotBlank()) {
-                    userParts.add(GeminiPart(text = cleanText))
+                val currentContext = _activeBugContext.value
+
+                val contextHint = if (currentContext != null && chatHistory.isEmpty()) {
+                    "Đang nói về loài [${currentContext.name.ifBlank { currentContext.scientificName }}]: "
+                } else ""
+
+                if (cleanText.isNotBlank() || contextHint.isNotBlank()) {
+                    userParts.add(GeminiPart(text = contextHint + cleanText))
                 }
 
                 if (finalBytes != null) {
@@ -140,14 +171,16 @@ class ChatViewModel(
                     userParts.add(GeminiPart(inlineData = GeminiInlineData(mimeType = mimeType, data = base64String)))
                 }
 
-                activeBugContext = ChatContextResolver.resolve(encyclopediaRepository, bugContext) ?: activeBugContext
+                if (chatHistory.lastOrNull()?.role == "user") {
+                    chatHistory.removeLast()
+                }
                 chatHistory.add(GeminiContent(role = "user", parts = userParts))
 
                 val config = appConfigProvider.getConfig()
 
                 val requestBody = GeminiRequest(
-                    systemInstruction = Instruction(parts = GeminiPart(text = ChatRagContextPolicy.systemInstruction(config.geminiSystemPrompt, config.geminiRagPrompt, activeBugContext))),
-                    contents = chatHistory.takeLast(8)
+                    systemInstruction = Instruction(parts = GeminiPart(text = ChatRagContextPolicy.systemInstruction(config.geminiSystemPrompt, config.geminiRagPrompt, currentContext))),
+                    contents = chatHistory.takeLast(7)
                 )
 
                 val response = geminiApi.generateContent(requestBody)
