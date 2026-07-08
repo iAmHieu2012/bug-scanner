@@ -20,6 +20,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import hcmus.bugscanner.ui.theme.ThemeMode
+import kotlinx.coroutines.launch
 
 /**
  * Component quản lý luồng điều hướng chính, trạng thái đăng nhập và cấp quyền của ứng dụng.
@@ -50,12 +51,19 @@ fun AppNavigation(
         var showSplash by remember { mutableStateOf(true) }
         var isStartup by remember { mutableStateOf(true) }
         val authState by authViewModel.authState.collectAsState()
+        var showAuthScreen by remember { mutableStateOf(false) }
         val shareManager = rememberShareManager()
         val encyclopediaRepository: EncyclopediaRepository = koinInject()
 
         LaunchedEffect(authState) {
             if (authState is AuthState.Success) {
-                encyclopediaRepository.prefetchDatabase()
+                showAuthScreen = false
+                launch { encyclopediaRepository.prefetchDatabase() }
+            }
+            if (authState is AuthState.Unauthenticated) {
+                if (isStartup) {
+                    showAuthScreen = true
+                }
             }
             if (authState is AuthState.Success || authState is AuthState.Unauthenticated || authState is AuthState.Error) {
                 isStartup = false
@@ -66,46 +74,49 @@ fun AppNavigation(
             SplashScreen(onSplashFinished = {
                 showSplash = false
             })
+        } else if (showAuthScreen) {
+            AuthScreen(
+                windowSizeClass = windowSizeClass,
+                onSkipAuth = { showAuthScreen = false }
+            )
         } else {
-            when (val state = authState) {
-                is AuthState.Success -> {
-                    HomeScreen(
-                        layoutSize = layoutSize,
-                        initialTab = initialTab,
-                        onTabChanged = onTabChanged,
-                        isLoggedIn = !state.isGuest,
-                        isAdmin = state.isAdmin,
-                        themeMode = themeMode,
-                        onThemeChange = { themeMode = it },
-                        onAuthAction = {
-                            authViewModel.signOut()
+            val state = authState as? AuthState.Success
+            HomeScreen(
+                layoutSize = layoutSize,
+                initialTab = initialTab,
+                onTabChanged = onTabChanged,
+                isLoggedIn = state != null,
+                isAdmin = state?.isAdmin == true,
+                themeMode = themeMode,
+                onThemeChange = { themeMode = it },
+                onAuthAction = {
+                    if (state != null) {
+                        authViewModel.signOut()
+                    } else {
+                        showAuthScreen = true
+                    }
+                },
+                onShareClick = { bug, imageBytes, confidence ->
+                    shareManager.shareBugInfo(
+                        bugName = bug.name,
+                        scientificName = bug.scientificName,
+                        imageBytes = imageBytes,
+                        confidenceLabel = if (confidence > 0f) {
+                            val confidenceInfo = ConfidencePolicy.explain(confidence)
+                            "${confidenceInfo.shortLabel} ${confidenceInfo.percentText}"
+                        } else {
+                            ""
                         },
-                        onShareClick = { bug, imageBytes, confidence ->
-                            shareManager.shareBugInfo(
-                                bugName = bug.name,
-                                scientificName = bug.scientificName,
-                                imageBytes = imageBytes,
-                                confidenceLabel = if (confidence > 0f) {
-                                    val confidenceInfo = ConfidencePolicy.explain(confidence)
-                                    "${confidenceInfo.shortLabel} ${confidenceInfo.percentText}"
-                                } else {
-                                    ""
-                                },
-                                harmfulnessLabel = HarmfulnessLevel.fromValue(bug.harmfulnessLevel).label
-                            )
-                        },
-                        scanTabContent = { onDetected ->
-                            ScanScreen(
-                                onDetectedBugClick = onDetected,
-                                onNavigateToHistory = { onTabChanged(hcmus.bugscanner.ui.home.AppTab.HISTORY) }
-                            )
-                        }
+                        harmfulnessLabel = HarmfulnessLevel.fromValue(bug.harmfulnessLevel).label
+                    )
+                },
+                scanTabContent = { onDetected ->
+                    ScanScreen(
+                        onDetectedBugClick = onDetected,
+                        onNavigateToHistory = { onTabChanged(hcmus.bugscanner.ui.home.AppTab.HISTORY) }
                     )
                 }
-                else -> {
-                    AuthScreen(windowSizeClass = windowSizeClass)
-                }
-            }
+            )
         }
     }
 }

@@ -38,11 +38,13 @@ import org.koin.compose.viewmodel.koinViewModel
  *
  * @param windowSizeClass Dữ liệu phân loại kích thước màn hình hiện tại do App Navigation truyền xuống.
  * @param authViewModel ViewModel quản lý logic gọi API xác thực Firebase.
+ * @param onSkipAuth Callback xử lý khi người dùng chọn bỏ qua đăng nhập.
  */
 @Composable
 fun AuthScreen(
     windowSizeClass: WindowSizeClass,
-    authViewModel: AuthViewModel = koinViewModel()
+    authViewModel: AuthViewModel = koinViewModel(),
+    onSkipAuth: () -> Unit
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
@@ -131,7 +133,7 @@ fun AuthScreen(
                         isLoginMode = !isLoginMode
                     },
                     onActionClick = ::submitAuth,
-                    onGuestClick = { authViewModel.signInAnonymously() }
+                    onSkipAuth = onSkipAuth
                 )
             }
         }
@@ -168,7 +170,7 @@ fun AuthScreen(
                         isLoginMode = !isLoginMode
                     },
                     onActionClick = ::submitAuth,
-                    onGuestClick = { authViewModel.signInAnonymously() }
+                    onSkipAuth = onSkipAuth
                 )
             }
         }
@@ -209,7 +211,7 @@ private fun AuthForm(
     onPasswordVisibilityToggle: () -> Unit,
     onToggleMode: () -> Unit,
     onActionClick: () -> Unit,
-    onGuestClick: () -> Unit
+    onSkipAuth: () -> Unit
 ) {
     val errorMessage = validationMessage ?: (authState as? AuthState.Error)?.message
 
@@ -347,10 +349,10 @@ private fun AuthForm(
         }
 
         TextButton(
-            onClick = onGuestClick,
+            onClick = onSkipAuth,
             enabled = authState !is AuthState.Loading
         ) {
-            Text("Tiếp tục mà không cần đăng nhập", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Dùng thử không cần tài khoản", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

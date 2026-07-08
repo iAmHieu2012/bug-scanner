@@ -16,6 +16,22 @@ class EncyclopediaRepositoryImpl(
     db: FirebaseFirestore
 ) : EncyclopediaRepository {
     private val encyclopediaCollection = db.collection("encyclopedia")
+    private var localFallbackCache: List<BugInfo>? = null
+
+    @OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+    private suspend fun getFallbackData(): List<BugInfo> {
+        if (localFallbackCache != null) return localFallbackCache!!
+        return try {
+            val bytes = bugscanner.composeapp.generated.resources.Res.readBytes("files/backup_encyclopedia.json")
+            val jsonString = bytes.decodeToString()
+            val entities = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.decodeFromString<List<hcmus.bugscanner.data.model.BugInfoEntity>>(jsonString)
+            localFallbackCache = entities.map { it.toDomain() }
+            localFallbackCache!!
+        } catch (e: Exception) {
+            println("Lỗi đọc file backup JSON offline: ${e.message}")
+            emptyList()
+        }
+    }
 
     /**
      * Lấy danh sách các loài côn trùng từ Firestore.
@@ -50,14 +66,32 @@ class EncyclopediaRepositoryImpl(
                     results.addAll(snapshot.documents.map { it.data<BugInfoEntity>().toDomain() })
                 }
                 
-                results.distinctBy { it.id }.take(limit)
+                val finalResults = results.distinctBy { it.id }.take(limit)
+                if (finalResults.isEmpty()) {
+                    return getFallbackData().filter { 
+                        it.name.contains(searchQuery, ignoreCase = true) || 
+                        it.scientificName.contains(searchQuery, ignoreCase = true) 
+                    }.take(limit)
+                }
+                return finalResults
             } else {
                 val snapshot = encyclopediaCollection.orderBy("name").limit(limit).get()
-                snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
+                val finalResults = snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
+                if (finalResults.isEmpty()) {
+                    return getFallbackData().take(limit)
+                }
+                return finalResults
             }
         } catch (e: Exception) {
-            println("Lỗi tải danh sách Khám phá: ${e.message}")
-            emptyList()
+            println("Lỗi tải danh sách Khám phá (Rớt mạng hoặc Firebase lỗi), dùng Fallback: ${e.message}")
+            val fallback = getFallbackData()
+            if (searchQuery.isNotBlank()) {
+                return fallback.filter { 
+                    it.name.contains(searchQuery, ignoreCase = true) || 
+                    it.scientificName.contains(searchQuery, ignoreCase = true) 
+                }.take(limit)
+            }
+            return fallback.take(limit)
         }
     }
 

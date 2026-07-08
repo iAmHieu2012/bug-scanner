@@ -63,34 +63,48 @@ class AuthViewModel(
             auth.authStateChanged.collect { firebaseUser ->
                 if (firebaseUser != null) {
                     _authState.value = AuthState.Loading
-                    val isBanned = try { adminRepository.isBanned(firebaseUser.uid) } catch (_: Exception) { false }
-                    if (isBanned) {
-                        try { auth.signOut() } catch (_: Exception) { }
-                        _authState.value = AuthState.Error("Tài khoản của bạn đã bị khóa vi phạm chính sách.")
-                        return@collect
-                    }
-
-                    val isAdmin = try { adminRepository.isAdmin(firebaseUser.uid) } catch (_: Exception) { false }
-                    val profileDoc = try { adminRepository.getUserProfile(firebaseUser.uid) } catch (_: Exception) { null }
-                    
-                    try {
-                        adminRepository.saveUserProfile(
-                            UserProfile(
-                                uid = firebaseUser.uid,
-                                email = firebaseUser.email ?: "",
-                                isAnonymous = firebaseUser.isAnonymous,
-                                lastLoginAt = TimeUtils.getCurrentTimeMillis(),
-                                isBanned = false,
-                                displayName = profileDoc?.displayName ?: firebaseUser.displayName ?: ""
-                            )
-                        )
-                    } catch (_: Exception) { }
+                    // Mở khóa UI ngay lập tức với dữ liệu cache (Offline-First)
                     _authState.value = AuthState.Success(
                         uid = firebaseUser.uid,
                         isGuest = firebaseUser.isAnonymous,
-                        isAdmin = isAdmin,
-                        displayName = profileDoc?.displayName?.takeIf { it.isNotBlank() } ?: firebaseUser.displayName
+                        isAdmin = false, // Sẽ update sau khi chạy ngầm
+                        displayName = firebaseUser.displayName
                     )
+
+                    // Chạy ngầm việc kiểm tra Admin, Banned và Lưu profile
+                    launch {
+                        val isBanned = try { adminRepository.isBanned(firebaseUser.uid) } catch (_: Exception) { false }
+                        if (isBanned) {
+                            try { auth.signOut() } catch (_: Exception) { }
+                            _authState.value = AuthState.Error("Tài khoản của bạn đã bị khóa vi phạm chính sách.")
+                            return@launch
+                        }
+
+                        val isAdmin = try { adminRepository.isAdmin(firebaseUser.uid) } catch (_: Exception) { false }
+                        val profileDoc = try { adminRepository.getUserProfile(firebaseUser.uid) } catch (_: Exception) { null }
+                        
+                        try {
+                            adminRepository.saveUserProfile(
+                                UserProfile(
+                                    uid = firebaseUser.uid,
+                                    email = firebaseUser.email ?: "",
+                                    isAnonymous = firebaseUser.isAnonymous,
+                                    lastLoginAt = TimeUtils.getCurrentTimeMillis(),
+                                    isBanned = false,
+                                    displayName = profileDoc?.displayName ?: firebaseUser.displayName ?: ""
+                                )
+                            )
+                        } catch (_: Exception) { }
+                        
+                        // Cập nhật lại UI nếu có quyền Admin hoặc Tên hiển thị mới
+                        val currentState = _authState.value
+                        if (currentState is AuthState.Success) {
+                            _authState.value = currentState.copy(
+                                isAdmin = isAdmin,
+                                displayName = profileDoc?.displayName?.takeIf { it.isNotBlank() } ?: currentState.displayName
+                            )
+                        }
+                    }
                 } else {
                     _authState.value = AuthState.Unauthenticated
                 }
@@ -159,19 +173,7 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * Đăng nhập dưới quyền Khách (Anonymous) mà không cần tạo tài khoản.
-     */
-    fun signInAnonymously() {
-        _authState.value = AuthState.Loading
-        viewModelScope.launch {
-            try {
-                auth.signInAnonymously()
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(translateError(e, "Lỗi đăng nhập ẩn danh"))
-            }
-        }
-    }
+
 
     /**
      * Chấm dứt phiên đăng nhập hiện tại, xóa Token và đẩy trạng thái UI về `Unauthenticated`.
