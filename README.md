@@ -1,12 +1,14 @@
 # 🐛 BugScanner
 
+*Read this in other languages: [English](README.md) | [Tiếng Việt](README_vi.md)*
+
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-blue?logo=kotlin)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=jetpackcompose)
 ![TensorFlow Lite](https://img.shields.io/badge/TensorFlow-Lite-FF6F00?logo=tensorflow)
 ![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20Web-lightgray)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 
-BugScanner is a full-stack, multiplatform insect detection and classification ecosystem built with **Kotlin Multiplatform (KMP)** and **Compose Multiplatform**. It goes beyond a simple identification tool — it combines on-device edge AI inference, cloud-based fallback identification, an LLM-powered chatbot, a self-expanding Firestore encyclopedia, and a **comprehensive Admin Dashboard** into a single, unified application for **Android** and **Web**.
+BugScanner is a full-stack, multiplatform insect detection and agricultural ecosystem built with **Kotlin Multiplatform (KMP)** and **Compose Multiplatform**. It goes far beyond a simple identification tool — it introduces a production-ready architecture combining **on-device Edge AI**, **Cloud Fallback**, **Offline-First Data Synchronization**, and a **self-expanding LLM-powered Encyclopedia**.
 
 ## 🔗 Access & Downloads
 
@@ -15,33 +17,27 @@ BugScanner is a full-stack, multiplatform insect detection and classification ec
 
 *Note: The Android package is distributed through GitHub Releases via an automated CI/CD pipeline. Android may ask you to allow installation from unknown sources before installing.*
 
-## ⚙️ How It Works
+## ⚙️ Hybrid Detection Engine
 
-BugScanner uses a **Hybrid Detection Engine** with two tiers to ensure speed, offline capability, and high accuracy:
+BugScanner utilizes a two-tier detection architecture to guarantee high accuracy without compromising real-time performance or offline availability:
 
-1. **On-Device Inference (YOLO11s):** A quantized YOLO11s model runs locally on the device CPU/GPU via TensorFlow Lite (Android) or TensorFlow.js (Web). This provides real-time bounding box detection and species classification with near-zero latency, requiring no network connection.
-2. **Cloud Fallback (iNaturalist API):** When the local model's confidence is low or the species falls outside its training set, the app automatically escalates the image to the iNaturalist Computer Vision API — a database of over 100,000 species — for deep analysis.
+1. **On-Device Inference (YOLO11s):** A quantized YOLO11s model runs completely locally via TensorFlow Lite (Android) and **LiteRT Web (WASM)**. This provides real-time bounding box detection with zero latency and requires strictly no internet connection.
+2. **Cloud Fallback (iNaturalist API):** If the local YOLO model yields low confidence or cannot identify a rare species, the app dynamically routes the image to the iNaturalist Computer Vision API (a database of 100,000+ species) for a deep, cloud-based analysis.
 
-## ✨ Key Features
+## ✨ Highlight Features & Architecture
 
-* **📷 Real-Time Camera Detection:** Live YOLO inference on the camera feed with freeze-frame capture for high-confidence results.
-* **📁 Gallery Image Scanning:** Single-pass inference on static images picked from device storage.
-* **☁️ Cloud Fallback Identification:** Automatic escalation to the iNaturalist CV API when local confidence is insufficient.
-* **📚 Dynamic Insect Encyclopedia:** A Firestore-backed database that auto-expands. New species discovered by users are written back automatically. Fully cached for offline support.
-* **🔍 Hybrid Intelligent Search:** The Encyclopedia features a 3-tier smart search engine:
-  1. Instant local database (Firebase) lookup.
+* **📚 AI-Generated Encyclopedia (Crowdsourcing):** The app autonomously expands its own database! When a new insect is scanned via Cloud Fallback, the app triggers **Groq (`gpt-oss-120b`)** to generate a comprehensive biological article (Treatment, Host Plants, Danger level) and automatically writes it back to Firebase for future users.
+* **📊 Offline-First Scan History:** Engineered for remote agricultural areas with unstable internet. Scans are aggressively cached in local storage (`SharedPreferences`/Web Storage) when offline, and automatically synced to the cloud (via Firestore and IMGBB) the moment network connectivity is restored.
+* **💬 Context-Aware AI Chatbot (Gemini):** An integrated assistant powered by Google Gemini. It utilizes **RAG (Retrieval-Augmented Generation)** to automatically read the current insect's encyclopedia entry before chatting with you. Web users can paste images directly (`Ctrl+V`) into the chat seamlessly.
+* **🔍 Hybrid Intelligent Search:** The Encyclopedia leverages an advanced 3-tier search engine:
+  1. Instant local database lookup using a highly optimized Firestore prefix-search trick (`\uf8ff`).
   2. Direct high-speed Scientific Name search via iNaturalist API.
-  3. AI-powered translation fallback (Groq LLaMA-3) for Vietnamese common names.
-  *Includes a toggle to force strict Scientific Name searches.*
-* **💬 BugScanner AI Chatbot:** Context-aware assistant powered by Google Gemini and Groq (LLaMA 3), with biological data pre-injected into the system prompt.
-* **📊 Scan History:** Persistent scan records with lightweight cloud image hosting via IMGBB.
-* **🔐 Secure Authentication:** User login and account management handled seamlessly via Firebase Authentication.
-* **📱 Adaptive UI & Native Sharing:** Automatically switches between Bottom Navigation Bar (mobile) and Navigation Rail (desktop/web). Implements native sharing via Intents (Android) and Web Share API (Web).
-* **🛡️ Secure Admin Dashboard:** A dedicated role-based control panel for administrators to:
-  * View system-wide analytics (Total Users, Total Scans, Top Insects).
-  * Manage Users (View profiles, ban/unban users).
-  * Edit the Encyclopedia (Add, edit, or delete insect records).
-  * Dynamically configure AI Models and Prompts (Gemini & Groq) in real-time via Firestore `app_config`.
+  3. Contextual Translation Fallback: Uses Groq AI to translate Vietnamese common names into English before querying international databases.
+* **🛡️ Secure Admin Dashboard:** A dedicated role-based CMS allowing administrators to:
+  * View system-wide analytics using **zero-dependency native Canvas charts** (optimized for KMP size and performance).
+  * Manage users and ban accounts in real-time.
+  * Dynamically configure AI Models and Prompts via Firestore `app_config` (allowing instant model upgrades without app updates).
+* **📱 Adaptive UI & State-Driven Routing:** Automatically adapts layouts between Mobile (Bottom Bar) and Tablet/Desktop (Navigation Rail). Features custom state-driven routing without heavy navigation libraries.
 
 ## 🛠️ Tech Stack
 
@@ -49,20 +45,17 @@ BugScanner uses a **Hybrid Detection Engine** with two tiers to ensure speed, of
 | ----------- | ------------ |
 | **Language** | Kotlin 2.x |
 | **UI Framework** | Jetpack Compose Multiplatform |
-| **Architecture** | MVVM + Clean Architecture + Repository pattern |
+| **Architecture** | Clean Architecture (Domain/Data/UI) + MVVM |
 | **Dependency Injection** | Koin |
-| **Navigation** | Voyager |
 | **ML (Android)** | TensorFlow Lite with GPU delegate (YOLO11s) |
-| **ML (Web)** | TensorFlow.js via Kotlin/JS bridge |
-| **AI Chatbot** | Google Gemini API (`gemini-1.5-flash`) + Groq (LLaMA 3) |
-| **External APIs** | iNaturalist Computer Vision API, IMGBB API |
+| **ML (Web)** | LiteRT Web (TFLite WASM) via Kotlin/JS bridge |
+| **AI Engines** | Google Gemini (`gemini-2.5-flash`) + Groq (`gpt-oss-120b`) |
 | **Backend & Auth** | Firebase Firestore, Firebase Authentication |
 | **Camera** | AndroidX CameraX (`ImageAnalysis`) / WebRTC `getUserMedia` |
-| **Build System** | Gradle with Kotlin DSL + Version Catalogs |
 
 ## 📐 Architecture Overview
 
-BugScanner follows a strict **MVVM (Model-View-ViewModel)** pattern with a clean separation between shared business logic and platform-specific implementations using KMP's `expect`/`actual` mechanism.
+BugScanner strictly adheres to **Clean Architecture** principles, effectively separating shared business logic from platform-specific APIs using KMP's `expect`/`actual` paradigm.
 
 ```mermaid
 graph TD
@@ -75,14 +68,14 @@ graph TD
 
     subgraph "Platform Layer"
         AND["androidMain: CameraX + TFLite"]
-        WEB["jsMain: WebRTC + TF.js"]
+        WEB["jsMain: WebRTC + LiteRT Web"]
     end
 
     subgraph "External Services"
         FIREBASE["Firebase Auth + Firestore"]
         INAT["iNaturalist CV API"]
         GEMINI["Gemini API"]
-        GROQ["Groq / LLaMA 3"]
+        GROQ["Groq / gpt-oss-120b"]
         IMGBB["IMGBB Image Hosting"]
     end
 
@@ -96,31 +89,6 @@ graph TD
     REPO --> IMGBB
 
 ```
-
-### Detection Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant ScanScreen
-    participant YoloDetector
-    participant iNaturalistAPI
-
-    User->>ScanScreen: Point camera at insect
-    ScanScreen->>YoloDetector: processFrame(ByteArray)
-    YoloDetector-->>ScanScreen: BBoxes + Labels + Confidence
-
-    alt Confidence is high
-        ScanScreen->>User: Show result immediately
-    else Confidence is low
-        User->>ScanScreen: Trigger "Deep Scan"
-        ScanScreen->>iNaturalistAPI: identifyImageByVision(bytes)
-        iNaturalistAPI-->>ScanScreen: Species result (Insecta class)
-        ScanScreen->>User: Show enriched result
-    end
-```
-
----
 
 ## 📁 Project Structure
 
@@ -157,7 +125,6 @@ bug-scanner/
 ```bash
 git clone <repository-url>
 cd bug-scanner/src
-
 ```
 
 ### 2. Configure API Keys
@@ -169,7 +136,6 @@ GEMINI_API_KEY=your_gemini_api_key
 GROQ_API_KEY=your_groq_api_key
 IMGBB_API_KEY=your_imgbb_api_key
 INATURALIST_API_TOKEN=your_inaturalist_jwt_token
-
 ```
 
 ### 3. Place Required Assets
@@ -190,7 +156,6 @@ Ensure the following files are placed in their respective directories before bui
 
 # Install directly to a connected device or emulator
 ./gradlew :composeApp:installDebug
-
 ```
 
 #### 🌐 Web
@@ -202,17 +167,7 @@ Ensure the following files are placed in their respective directories before bui
 
 # Build for production
 ./gradlew :composeApp:jsBrowserDistribution
-
 ```
-
-## 💻 Development Guide
-
-Adding a new feature involves standard MVVM/Clean Architecture steps:
-
-1. **Domain:** Define the model in `commonMain/domain/model/`.
-2. **Data:** Create or update a repository in `commonMain/data/repository/`.
-3. **Presentation:** Build a ViewModel in `commonMain/ui/<feature>/` and design the UI components.
-4. **Platform-Specifics:** Use `expect`/`actual` for features requiring native APIs (e.g., file pickers, sensors).
 
 ## ⚠️ Known Limitations & Bugs
 
@@ -233,15 +188,6 @@ GitHub Actions are configured in `.github/workflows/` to handle a complete multi
 * **Debug Builds (`android-build.yml`):** Automatically compiles a debug `.apk` artifact on every push to the main branch for continuous testing.
 * **Firebase Hosting Deployment:** Automatic Kotlin/JS builds and staging/production deployments for Web.
 * **iNaturalist Token Rotation:** A scheduled `cron` job running a Python script to automatically fetch and update the JWT token in GitHub Secrets before expiration.
-
-## 📚 Resources
-
-* [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/)
-* [Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform)
-* [TensorFlow Lite](https://www.tensorflow.org/lite) | [TensorFlow.js](https://www.tensorflow.org/js)
-* [Ultralytics YOLO](https://docs.ultralytics.com/)
-* [Firebase Documentation](https://firebase.google.com/docs)
-* [iNaturalist API](https://api.inaturalist.org/v1/docs/)
 
 ## 📄 License & 🎓 Credits
 
