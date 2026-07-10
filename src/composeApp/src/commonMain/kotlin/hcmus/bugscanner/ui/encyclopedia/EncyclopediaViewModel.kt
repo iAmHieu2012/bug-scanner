@@ -33,6 +33,8 @@ class EncyclopediaViewModel(
 
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
 
+    val selectedTabIndex = MutableStateFlow(0)
+
     val selectedHarmfulnessFilter = MutableStateFlow<String?>("Tất cả")
     val showOnlyYoloDetectable = MutableStateFlow(false)
 
@@ -54,7 +56,7 @@ class EncyclopediaViewModel(
         result
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = emptyList()
     )
 
@@ -244,6 +246,7 @@ class EncyclopediaViewModel(
             } catch (e: Exception) {
                 _searchResults.value = emptyList()
                 println("EncyclopediaVM Search error: ${e.message}")
+            } finally {
                 _isLoading.value = false
             }
         }
