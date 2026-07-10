@@ -3,7 +3,7 @@ package hcmus.bugscanner.ui.navigation
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
 import hcmus.bugscanner.domain.model.ConfidencePolicy
-import hcmus.bugscanner.domain.model.HarmfulnessPolicy
+import hcmus.bugscanner.domain.model.HarmfulnessLevel
 import hcmus.bugscanner.ui.auth.AuthScreen
 import hcmus.bugscanner.ui.auth.AuthViewModel
 import hcmus.bugscanner.ui.auth.AuthState
@@ -17,6 +17,13 @@ import hcmus.bugscanner.core.utils.rememberShareManager
 import hcmus.bugscanner.ui.theme.AppTheme
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import hcmus.bugscanner.ui.theme.ThemeMode
+import kotlinx.coroutines.launch
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.readBytes
 
 /**
  * Component quản lý luồng điều hướng chính, trạng thái đăng nhập và cấp quyền của ứng dụng.
@@ -36,64 +43,102 @@ fun AppNavigation(
     onTabChanged: (AppTab) -> Unit = {},
     authViewModel: AuthViewModel = koinViewModel()
 ) {
-    var useDarkTheme by remember { mutableStateOf(true) }
+    var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
+    val useDarkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
 
     AppTheme(useDarkTheme = useDarkTheme) {
         var showSplash by remember { mutableStateOf(true) }
+        var isStartup by remember { mutableStateOf(true) }
         val authState by authViewModel.authState.collectAsState()
+        var showAuthScreen by remember { mutableStateOf(false) }
         val shareManager = rememberShareManager()
         val encyclopediaRepository: EncyclopediaRepository = koinInject()
+        val httpClient: HttpClient = koinInject()
+        val coroutineScope = rememberCoroutineScope()
 
         LaunchedEffect(authState) {
             if (authState is AuthState.Success) {
-                encyclopediaRepository.prefetchDatabase()
+                showAuthScreen = false
+                launch { encyclopediaRepository.prefetchDatabase() }
+            }
+            if (authState is AuthState.Unauthenticated) {
+                if (isStartup) {
+                    showAuthScreen = true
+                }
+            }
+            if (authState is AuthState.Success || authState is AuthState.Unauthenticated || authState is AuthState.Error) {
+                isStartup = false
             }
         }
 
-        if (showSplash) {
+        if (showSplash || (isStartup && authState !is AuthState.Error)) {
             SplashScreen(onSplashFinished = {
                 showSplash = false
             })
+        } else if (showAuthScreen) {
+            AuthScreen(
+                windowSizeClass = windowSizeClass,
+                onSkipAuth = { authViewModel.signInAnonymously() }
+            )
         } else {
-            when (val state = authState) {
-                is AuthState.Success -> {
-                    HomeScreen(
-                        layoutSize = layoutSize,
-                        initialTab = initialTab,
-                        onTabChanged = onTabChanged,
-                        isLoggedIn = !state.isGuest,
-                        useDarkTheme = useDarkTheme,
-                        onThemeToggle = { useDarkTheme = !useDarkTheme },
-                        onAuthAction = {
-                            authViewModel.signOut()
-                        },
-                        onShareClick = { bug, imageBytes, confidence ->
-                            shareManager.shareBugInfo(
-                                bugName = bug.name,
-                                scientificName = bug.scientificName,
-                                imageBytes = imageBytes,
-                                confidenceLabel = if (confidence > 0f) {
-                                    val confidenceInfo = ConfidencePolicy.explain(confidence)
-                                    "${confidenceInfo.shortLabel} ${confidenceInfo.percentText}"
-                                } else {
-                                    ""
-                                },
-                                harmfulnessLabel = HarmfulnessPolicy.fromValue(bug.harmfulnessLevel).label
-                            )
-                        },
-                        scanTabContent = { isLog, onAuth, onDetected ->
-                            ScanScreen(
-                                isLoggedIn = isLog,
-                                onAuthAction = onAuth,
-                                onDetectedBugClick = onDetected
-                            )
+            val state = authState as? AuthState.Success
+            HomeScreen(
+                layoutSize = layoutSize,
+                initialTab = initialTab,
+                onTabChanged = onTabChanged,
+                isLoggedIn = state != null,
+                isAdmin = state?.isAdmin == true,
+                themeMode = themeMode,
+                onThemeChange = { themeMode = it },
+                onAuthAction = {
+                    if (state != null) {
+                        authViewModel.signOut()
+                    } else {
+                        showAuthScreen = true
+                    }
+                },
+                onShareClick = { bug, imageBytes, confidence ->
+                    val shareAction = { bytes: ByteArray? ->
+                        shareManager.shareBugInfo(
+                            bugName = bug.name,
+                            scientificName = bug.scientificName,
+                            imageBytes = bytes,
+                            confidenceLabel = if (confidence > 0f) {
+                                val confidenceInfo = ConfidencePolicy.explain(confidence)
+                                "${confidenceInfo.shortLabel} ${confidenceInfo.percentText}"
+                            } else {
+                                ""
+                            },
+                            harmfulnessLabel = HarmfulnessLevel.fromValue(bug.harmfulnessLevel).label
+                        )
+                    }
+
+                    if (imageBytes != null) {
+                        shareAction(imageBytes)
+                    } else if (bug.imageUrl.isNotBlank()) {
+                        coroutineScope.launch {
+                            try {
+                                val bytes = httpClient.get(bug.imageUrl).readBytes()
+                                shareAction(bytes)
+                            } catch (e: Exception) {
+                                shareAction(null)
+                            }
                         }
+                    } else {
+                        shareAction(null)
+                    }
+                },
+                scanTabContent = { onDetected ->
+                    ScanScreen(
+                        onDetectedBugClick = onDetected,
+                        onNavigateToHistory = { onTabChanged(hcmus.bugscanner.ui.home.AppTab.HISTORY) }
                     )
                 }
-                else -> {
-                    AuthScreen(windowSizeClass = windowSizeClass)
-                }
-            }
+            )
         }
     }
 }

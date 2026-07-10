@@ -7,6 +7,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 /**
+ * Các tùy chọn cho chế độ giao diện Sáng/Tối.
+ */
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK
+}
+
+/**
  * Cấu hình hệ thống màu sắc cho giao diện Sáng (Light Mode).
  */
 private val LightColorScheme = lightColorScheme(

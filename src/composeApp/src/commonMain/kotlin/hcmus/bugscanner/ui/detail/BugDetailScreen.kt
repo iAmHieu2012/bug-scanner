@@ -28,7 +28,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.model.ConfidencePolicy
-import hcmus.bugscanner.domain.model.HarmfulnessPolicy
+import hcmus.bugscanner.domain.model.HarmfulnessLevel
 import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.ui.components.BugImage
 import org.koin.compose.viewmodel.koinViewModel
@@ -235,7 +235,7 @@ private fun BugDetailContent(
     isLoading: Boolean
 ) {
     val confidenceInfo = ConfidencePolicy.explain(confidence)
-    val harmfulness = HarmfulnessPolicy.fromValue(detailedBug.harmfulnessLevel)
+    val harmfulness = HarmfulnessLevel.fromValue(detailedBug.harmfulnessLevel)
 
     Row(
         modifier = Modifier.fillMaxWidth(),

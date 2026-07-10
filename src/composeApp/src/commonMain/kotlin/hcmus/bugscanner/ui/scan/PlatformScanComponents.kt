@@ -121,6 +121,13 @@ interface PlatformScanProvider {
         onGranted: @Composable () -> Unit,
         onDenied: @Composable (onRequestPermission: () -> Unit) -> Unit
     )
+
+    /**
+     * Đăng ký trình xử lý bắt sự kiện dán ảnh từ clipboard.
+     * Mặc định không làm gì cả, chỉ hiện thực trên các nền tảng có hỗ trợ.
+     */
+    @Composable
+    fun registerClipboardImagePasteHandler(onImageBytesPasted: (ByteArray) -> Unit) {}
 }
 
 /**

@@ -33,6 +33,8 @@ class WebShareManager : ShareManager {
      * @param bugName Tên phổ thông của côn trùng.
      * @param scientificName Tên khoa học của côn trùng.
      * @param imageBytes Mảng byte của hình ảnh (nếu có).
+     * @param confidenceLabel Độ tin cậy của kết quả nhận diện.
+     * @param harmfulnessLabel Mức độ gây hại của côn trùng.
      * @param appLink Đường dẫn tải app hoặc trang web.
      */
     override fun shareBugInfo(
@@ -65,9 +67,11 @@ class WebShareManager : ShareManager {
                 if (imageBytes != null && navigator.canShare != undefined) {
                     val uint8Array = Uint8Array(imageBytes.toTypedArray())
 
+                    // Thêm timestamp để tránh lỗi cache của Zalo/Messenger khi nhận file từ Chrome/Safari
+                    val timestamp = kotlin.js.Date.now().toLong()
                     val fileOpts = createJsObject()
                     fileOpts.type = "image/jpeg"
-                    val file = window.asDynamic().File(arrayOf(uint8Array), "bug_scanned.jpg", fileOpts)
+                    val file = window.asDynamic().File(arrayOf(uint8Array), "bug_scanned_$timestamp.jpg", fileOpts)
 
                     val filesArray = arrayOf(file)
 

@@ -26,7 +26,6 @@ import kotlinx.serialization.Serializable
  * @property season Thời điểm/điều kiện thường xuất hiện nếu có dữ liệu.
  * @property safeActions Việc nên làm an toàn, không thay thế tư vấn chuyên gia.
  * @property ipmNotes Ghi chú quản lý dịch hại tổng hợp từ nguồn đáng tin.
- * @property sourceRefs Danh sách nguồn tham khảo dùng để xây dựng hồ sơ.
  * @property searchTokens Từ khóa tìm kiếm bổ sung đã chuẩn hóa/curate.
  * @property wikiUrl Đường dẫn đến bài viết Wikipedia (nếu có).
  */
@@ -38,21 +37,21 @@ data class BugInfoEntity(
     val scientificName: String = "",
     val description: String = "",
     val imageUrl: String = "",
-    val imageUrls: List<String> = emptyList(),
+    val imageUrls: List<String>? = null,
     val identification: String = "",
     val danger: String = "",
     val harmfulnessLevel: String = "crop_pest",
     val treatment: String = "",
-    val affectedCrops: List<String> = emptyList(),
-    val hostPlants: List<String> = emptyList(),
-    val damageSymptoms: List<String> = emptyList(),
-    val identificationTips: List<String> = emptyList(),
-    val whereToFind: List<String> = emptyList(),
+    val affectedCrops: List<String>? = null,
+    val hostPlants: List<String>? = null,
+    val damageSymptoms: List<String>? = null,
+    val identificationTips: List<String>? = null,
+    val whereToFind: List<String>? = null,
     val season: String = "",
-    val safeActions: List<String> = emptyList(),
-    val ipmNotes: List<String> = emptyList(),
-    val sourceRefs: List<String> = emptyList(),
-    val searchTokens: List<String> = emptyList(),
+    val safeActions: List<String>? = null,
+    val ipmNotes: List<String>? = null,
+    val sourceRefs: List<String>? = null,
+    val searchTokens: List<String>? = null,
     val wikiUrl: String = ""
 )
 
@@ -70,21 +69,21 @@ fun BugInfoEntity.toDomain(): BugInfo {
         scientificName = this.scientificName,
         description = this.description,
         imageUrl = this.imageUrl,
-        imageUrls = this.imageUrls,
+        imageUrls = this.imageUrls ?: emptyList(),
         identification = this.identification,
         danger = this.danger,
         harmfulnessLevel = this.harmfulnessLevel,
         treatment = this.treatment,
-        affectedCrops = this.affectedCrops,
-        hostPlants = this.hostPlants,
-        damageSymptoms = this.damageSymptoms,
-        identificationTips = this.identificationTips,
-        whereToFind = this.whereToFind,
+        affectedCrops = this.affectedCrops ?: emptyList(),
+        hostPlants = this.hostPlants ?: emptyList(),
+        damageSymptoms = this.damageSymptoms ?: emptyList(),
+        identificationTips = this.identificationTips ?: emptyList(),
+        whereToFind = this.whereToFind ?: emptyList(),
         season = this.season,
-        safeActions = this.safeActions,
-        ipmNotes = this.ipmNotes,
-        sourceRefs = this.sourceRefs,
-        searchTokens = this.searchTokens,
+        safeActions = this.safeActions ?: emptyList(),
+        ipmNotes = this.ipmNotes ?: emptyList(),
+        sourceRefs = this.sourceRefs ?: emptyList(),
+        searchTokens = this.searchTokens ?: emptyList(),
         wikiUrl = this.wikiUrl
     )
 }

@@ -1,6 +1,7 @@
 package hcmus.bugscanner.data.remote
 
 import hcmus.bugscanner.BuildConfig
+import hcmus.bugscanner.core.config.AppConfigProvider
 import hcmus.bugscanner.domain.model.AiBugData
 import hcmus.bugscanner.domain.model.GroqRequest
 import hcmus.bugscanner.domain.model.GroqMessage
@@ -13,15 +14,27 @@ import io.ktor.http.*
 import kotlinx.serialization.json.Json
 
 /**
- * Dịch vụ giao tiếp với hệ thống Groq AI (Llama 3).
+ * Dịch vụ giao tiếp với hệ thống Groq AI (Llama).
  * Đảm nhận nhiệm vụ dịch thuật tự nhiên và phát sinh dữ liệu chuyên ngành nông nghiệp.
+ * Tên mô hình và lệnh hệ thống (System Prompt) được đọc động từ cấu hình Firestore `app_config`.
  *
  * @property client HTTP Client cấu hình sẵn của Ktor.
+ * @property appConfigProvider Bộ cung cấp cấu hình ứng dụng để đọc tên mô hình và prompt.
  */
-class GroqApiService(private val client: HttpClient) {
+class GroqApiService(
+    private val client: HttpClient,
+    private val appConfigProvider: AppConfigProvider
+) {
 
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
+    /**
+     * Hàm nội bộ để gửi request dạng Chat Completion tới API Groq.
+     * Tự động đính kèm API Key thông qua ApiKeyPolicy.
+     *
+     * @param payload Nội dung request gửi cho Groq AI.
+     * @return [GroqResponse] chứa kết quả phản hồi thô.
+     */
     private suspend fun postChatCompletion(payload: GroqRequest): GroqResponse {
         val configuredApiKey = ApiKeyPolicy.requireConfigured("Groq", BuildConfig.GROQ_API_KEY)
         return client.post("https://api.groq.com/openai/v1/chat/completions") {
@@ -34,6 +47,21 @@ class GroqApiService(private val client: HttpClient) {
     }
 
     /**
+     * Tiền xử lý kết quả trả về từ các mô hình Reasoning (vd: DeepSeek-R1, Qwen-Reasoning)
+     * bằng cách loại bỏ toàn bộ phần nội dung nằm trong cặp thẻ <think>...</think>.
+     *
+     * @param text Chuỗi kết quả thô từ AI.
+     * @return Chuỗi văn bản đã được làm sạch thẻ suy luận.
+     */
+    private fun cleanReasoningOutput(text: String): String {
+        var cleanText = text
+        if (cleanText.contains("<think>")) {
+            cleanText = cleanText.replace(Regex("<think>[\\s\\S]*?</think>"), "")
+        }
+        return cleanText.trim()
+    }
+
+    /**
      * Sinh nội dung chi tiết bằng tiếng Việt dựa trên danh pháp khoa học.
      * Ép buộc AI trả về định dạng JSON nghiêm ngặt để Parse an toàn vào hệ thống.
      *
@@ -42,23 +70,16 @@ class GroqApiService(private val client: HttpClient) {
      * @return [AiBugData] Dữ liệu JSON đã được giải mã.
      */
     suspend fun generateBugInfo(scientificName: String, englishName: String): AiBugData {
-        val prompt = """
-            Cung cấp thông tin sinh học và nông nghiệp bằng tiếng Việt cho loài côn trùng có tên khoa học là "$scientificName" (Tên tiếng Anh: "$englishName").
-            
-            BẮT BUỘC TRẢ VỀ CHUẨN JSON VỚI 5 KEY NÀY, KHÔNG ĐƯỢC CHỨA BẤT KỲ TEXT NÀO KHÁC:
-            {
-                "nameVi": "Tên gọi tiếng Việt phổ biến nhất (hoặc dịch chuẩn sang tiếng Việt).",
-                "description": "Mô tả sinh học, tập tính, vòng đời (3-4 câu).",
-                "identification": "Đặc điểm nhận dạng hình thái.",
-                "danger": "Chọn đúng 1 từ: Nguy hiểm, An toàn, hoặc Theo dõi.",
-                "treatment": "Biện pháp xử lý hoặc phòng trừ."
-            }
-        """.trimIndent()
+        val config = appConfigProvider.getConfig()
+
+        val prompt = config.groqCrowdsourcingPrompt
+            .replace("{SCIENTIFIC_NAME}", scientificName)
+            .replace("{ENGLISH_NAME}", englishName)
 
         val payload = GroqRequest(
-            model = "llama-3.3-70b-versatile",
+            model = config.groqModel,
             messages = listOf(
-                GroqMessage(role = "system", content = "You are a professional agricultural assistant. You must output ONLY valid JSON without Markdown."),
+                GroqMessage(role = "system", content = config.groqSystemPrompt),
                 GroqMessage(role = "user", content = prompt)
             ),
             responseFormat = GroqResponseFormat(type = "json_object"),
@@ -67,21 +88,34 @@ class GroqApiService(private val client: HttpClient) {
 
         return try {
             val response = postChatCompletion(payload)
-            val jsonString = response.choices.firstOrNull()?.message?.content ?: "{}"
+            var jsonString = response.choices.firstOrNull()?.message?.content ?: "{}"
+            jsonString = cleanReasoningOutput(jsonString)
+            val startIndex = jsonString.indexOf('{')
+            val endIndex = jsonString.lastIndexOf('}')
+            if (startIndex != -1 && endIndex != -1 && endIndex >= startIndex) {
+                jsonString = jsonString.substring(startIndex, endIndex + 1)
+            }
+            
+            println("[GROQ] Hoàn thành phân tích JSON cho '$scientificName'!")
             jsonParser.decodeFromString<AiBugData>(jsonString)
         } catch (e: Exception) {
-            println("Lỗi trích xuất dữ liệu từ Groq AI: ${e.message}")
+            println("❌ [GROQ] Lỗi trích xuất dữ liệu: ${e.message}")
             AiBugData(nameVi = scientificName, description = "Lỗi trích xuất dữ liệu từ AI.")
         }
     }
 
     /**
-     * Dịch tên côn trùng từ Tiếng Việt sang Tên Tiếng Anh thông dụng (English common name) sử dụng model Llama 3.1 8B Instant.
+     * Dịch tên côn trùng từ Tiếng Việt sang Tên Tiếng Anh thông dụng (English common name) sử dụng Groq AI.
      * Tránh việc AI trả về tên khoa học quá chi tiết làm hẹp phạm vi tìm kiếm.
+     *
+     * @param vietnameseName Tên gọi bằng tiếng Việt.
+     * @return Tên gọi bằng tiếng Anh tương ứng.
      */
     suspend fun translateToEnglishName(vietnameseName: String): String {
+        val config = appConfigProvider.getConfig()
+
         val payload = GroqRequest(
-            model = "llama-3.3-70b-versatile",
+            model = config.groqModel,
             messages = listOf(
                 GroqMessage(role = "system", content = "You are a specialized biology translator. You translate Vietnamese insect/animal names to their English common name. ONLY output the English name. No explanation, no quotes, no original text."),
                 GroqMessage(role = "user", content = "Ong bắp cày"),
@@ -96,10 +130,14 @@ class GroqApiService(private val client: HttpClient) {
 
         return try {
             val response = postChatCompletion(payload)
-            val result = response.choices.firstOrNull()?.message?.content?.trim()?.removeSurrounding("\"") ?: ""
-            if (result.contains("không biết", ignoreCase = true) || result.contains("sorry", ignoreCase = true)) "" else result
+            val rawResult = response.choices.firstOrNull()?.message?.content ?: ""
+            val result = cleanReasoningOutput(rawResult).removeSurrounding("\"")
+            val finalTranslated = if (result.contains("không biết", ignoreCase = true) || result.contains("sorry", ignoreCase = true)) "" else result
+            
+            println("[GROQ] Đã dịch '$vietnameseName' -> '$finalTranslated' bằng model ${config.groqModel}")
+            finalTranslated
         } catch (e: Exception) {
-            println("Lỗi dịch tên khoa học bằng Groq: ${e.message}")
+            println("[GROQ] Lỗi dịch tên khoa học: ${e.message}")
             ""
         }
     }

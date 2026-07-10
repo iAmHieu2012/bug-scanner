@@ -29,8 +29,12 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import hcmus.bugscanner.domain.model.AppConfig
 import hcmus.bugscanner.domain.model.BugInfo
+import hcmus.bugscanner.ui.components.ScreenHeader
+import kotlinx.coroutines.launch
 import hcmus.bugscanner.ui.chat.components.ChatBubble
 import hcmus.bugscanner.ui.chat.components.TypingIndicator
 import hcmus.bugscanner.ui.scan.LocalPlatformScanProvider
@@ -44,6 +48,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param initialPrompt Câu hỏi mẫu truyền vào từ màn hình khác (tuỳ chọn).
  * @param initialImageBytes Hình ảnh đính kèm dạng mảng Byte truyền vào từ màn hình Scan (tuỳ chọn).
  * @param initialImageUrl Hình ảnh đính kèm dạng URL truyền vào từ màn hình Lịch sử / Bách khoa (tuỳ chọn).
+ * @param initialBugContext Dữ liệu bách khoa toàn thư truyền vào để làm ngữ cảnh tham chiếu cho AI (tuỳ chọn).
  * @param viewModel ViewModel quản lý logic gọi API Gemini và duy trì trạng thái lịch sử đoạn chat.
  */
 @Composable
@@ -57,12 +62,12 @@ fun ChatScreen(
     var prompt by remember { mutableStateOf("") }
     var imageToSend by remember { mutableStateOf<ByteArray?>(null) }
     var urlToSend by remember { mutableStateOf<String?>(null) }
-    var lastAutoSentPrompt by remember { mutableStateOf<String?>(null) }
-    var activeBugContext by remember { mutableStateOf<BugInfo?>(null) }
+    val activeBugContext by viewModel.activeBugContext.collectAsState()
+    var showContextBadge by remember { mutableStateOf(false) }
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
     val listState = rememberLazyListState()
-    val shouldShowSuggestions = messages.size <= 1 && !isTyping
+    val shouldShowSuggestions = (messages.size <= 1 || showContextBadge) && !isTyping
 
     val scanProvider = LocalPlatformScanProvider.current
     val imagePicker = scanProvider.rememberImagePickerHelper(
@@ -77,7 +82,7 @@ fun ChatScreen(
         }
     )
 
-    scanProvider.RegisterClipboardImagePasteHandler { bytes ->
+    scanProvider.registerClipboardImagePasteHandler { bytes: ByteArray? ->
         imageToSend = bytes
         urlToSend = null
     }
@@ -85,22 +90,29 @@ fun ChatScreen(
     fun submitPrompt(text: String = prompt) {
         val cleanPrompt = text.trim()
         if ((cleanPrompt.isNotEmpty() || imageToSend != null || urlToSend != null) && !isTyping) {
-            viewModel.sendMessage(cleanPrompt, imageToSend, urlToSend, activeBugContext)
+            viewModel.sendMessage(cleanPrompt, imageToSend, urlToSend)
             prompt = ""
             imageToSend = null
             urlToSend = null
+            showContextBadge = false
         }
     }
 
     LaunchedEffect(initialPrompt, initialImageBytes, initialImageUrl, initialBugContext) {
         if (initialBugContext != null) {
-            activeBugContext = initialBugContext
+            viewModel.setActiveContext(initialBugContext)
+            showContextBadge = true
             prompt = ""
         }
         val cleanPrompt = initialPrompt?.trim()
-        if (!cleanPrompt.isNullOrEmpty() && cleanPrompt != lastAutoSentPrompt) {
-            lastAutoSentPrompt = cleanPrompt
-            viewModel.sendMessage(cleanPrompt.orEmpty(), initialImageBytes, initialImageUrl, initialBugContext)
+        if (!cleanPrompt.isNullOrEmpty()) {
+            prompt = cleanPrompt
+        }
+        if (initialImageBytes != null) {
+            imageToSend = initialImageBytes
+        }
+        if (initialImageUrl != null) {
+            urlToSend = initialImageUrl
         }
     }
 
@@ -111,27 +123,51 @@ fun ChatScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.TopCenter
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .widthIn(max = 900.dp)
-        ) {
-            ChatHeader(
-                canClear = messages.size > 1 || isTyping,
-                onClearClick = { viewModel.clearConversation() }
-            )
+        ScreenHeader(
+                title = "Trợ lý BugScanner",
+                subtitle = "Hỏi về nhận diện, đặc điểm và cách xử lý côn trùng.",
+                leadingIcon = Icons.Rounded.SmartToy,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
+            ) {
+                IconButton(
+                    onClick = { 
+                        viewModel.clearConversation()
+                        showContextBadge = false
+                        prompt = ""
+                        imageToSend = null
+                        urlToSend = null
+                    },
+                    enabled = messages.isNotEmpty()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteSweep,
+                        contentDescription = "Xóa cuộc trò chuyện",
+                        tint = if (messages.isNotEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
+            }
 
-            LazyColumn(
-                state = listState,
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
+                    .fillMaxHeight()
+                    .widthIn(max = 900.dp)
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -179,6 +215,13 @@ fun ChatScreen(
     }
 }
 
+}
+
+/**
+ * Component hiển thị thẻ thông báo rằng đang có ngữ cảnh bách khoa được đính kèm vào cuộc trò chuyện.
+ *
+ * @param bug Dữ liệu sinh vật đang được dùng làm ngữ cảnh tham chiếu.
+ */
 @Composable
 private fun ActiveBugContextCard(bug: BugInfo) {
     Surface(
@@ -203,62 +246,14 @@ private fun ActiveBugContextCard(bug: BugInfo) {
     }
 }
 
-/**
- * Component hiển thị phần đầu (header) của màn hình Chat.
- *
- * @param canClear Trạng thái cho biết cuộc trò chuyện có thể xóa được hay không.
- * @param onClearClick Callback kích hoạt khi người dùng nhấn nút xóa cuộc trò chuyện.
- */
-@Composable
-private fun ChatHeader(
-    canClear: Boolean,
-    onClearClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.SmartToy,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Trợ lý BugScanner",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Hỏi về nhận diện, đặc điểm và cách xử lý côn trùng.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        IconButton(onClick = onClearClick, enabled = canClear) {
-            Icon(
-                imageVector = Icons.Rounded.DeleteSweep,
-                contentDescription = "Xóa cuộc trò chuyện",
-                tint = if (canClear) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outlineVariant
-            )
-        }
-    }
-}
+
 
 /**
  * Hiển thị danh sách các gợi ý câu hỏi nhanh dưới dạng chip để người dùng lựa chọn.
  *
+ * @param bugContext Ngữ cảnh sinh vật hiện tại dùng để cá nhân hóa gợi ý.
  * @param onPromptClick Callback kích hoạt khi người dùng nhấn chọn một câu gợi ý.
+ * @param modifier Tùy chỉnh giao diện bên ngoài.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

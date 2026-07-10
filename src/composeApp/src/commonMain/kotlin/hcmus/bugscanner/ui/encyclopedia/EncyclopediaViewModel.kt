@@ -11,7 +11,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import hcmus.bugscanner.ml.YoloConstants
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -28,9 +32,33 @@ class EncyclopediaViewModel(
 ) : ViewModel() {
 
     private val _exploreList = MutableStateFlow<List<BugInfo>>(emptyList())
-    val exploreList: StateFlow<List<BugInfo>> = _exploreList.asStateFlow()
 
-    private var cachedExploreList: List<BugInfo> = emptyList()
+    val selectedHarmfulnessFilter = MutableStateFlow<String?>("Tất cả")
+    val showOnlyYoloDetectable = MutableStateFlow(false)
+
+    val filteredExploreList: StateFlow<List<BugInfo>> = combine(
+        _exploreList,
+        selectedHarmfulnessFilter,
+        showOnlyYoloDetectable
+    ) { list, harmfulness, yoloOnly ->
+        var result = list
+        if (harmfulness != null && harmfulness != "Tất cả") {
+            result = result.filter { it.harmfulnessLevel == harmfulness }
+        }
+        if (yoloOnly) {
+            result = result.filter { bug ->
+                val lowerScientificName = bug.scientificName.lowercase()
+                YoloConstants.LABELS.any { it.lowercase() == lowerScientificName }
+            }
+        }
+        result
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    val exploreList: StateFlow<List<BugInfo>> = _exploreList.asStateFlow()
 
     private val _exploreSearchQuery = MutableStateFlow("")
     val exploreSearchQuery: StateFlow<String> = _exploreSearchQuery.asStateFlow()
@@ -46,22 +74,45 @@ class EncyclopediaViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _statusMessage = MutableStateFlow<String?>(null)
+    val statusMessage: StateFlow<String?> = _statusMessage.asStateFlow()
+
     private var searchJob: Job? = null
 
     init {
         fetchExploreList()
     }
 
+    private var currentLimit = 30
+    private var hasMoreExplore = true
+
     /**
      * Tải danh sách mặc định các loài côn trùng từ Firebase để hiển thị ở Tab Khám phá.
      */
     fun fetchExploreList() {
+        currentLimit = 30
+        hasMoreExplore = true
         viewModelScope.launch {
             _isLoading.value = true
-            val list = repository.getExploreInsects(limit = 150)
-            cachedExploreList = list
+            val list = repository.getExploreInsects(limit = currentLimit)
             _exploreList.value = list
             _isLoading.value = false
+        }
+    }
+
+    /**
+     * Tải thêm dữ liệu khi cuộn xuống cuối màn hình (Pagination).
+     */
+    fun loadMoreExploreInsects() {
+        if (!hasMoreExplore || _isLoading.value) return
+        currentLimit += 30
+        viewModelScope.launch {
+            // Không set _isLoading = true ở đây để tránh chớp màn hình, chỉ tải ngầm thêm dữ liệu
+            val list = repository.getExploreInsects(searchQuery = _exploreSearchQuery.value.trim(), limit = currentLimit)
+            if (list.size <= _exploreList.value.size) {
+                hasMoreExplore = false
+            }
+            _exploreList.value = list
         }
     }
 
@@ -72,29 +123,40 @@ class EncyclopediaViewModel(
      */
     fun onExploreSearchQueryChange(query: String) {
         _exploreSearchQuery.value = query
+        currentLimit = 30
+        hasMoreExplore = true
         exploreSearchJob?.cancel()
         exploreSearchJob = viewModelScope.launch {
             delay(500.milliseconds)
             _isLoading.value = true
-            if (cachedExploreList.isEmpty()) {
-                cachedExploreList = repository.getExploreInsects(limit = 150)
-            }
-            val localMatches = SearchQueryPolicy.filterBugs(cachedExploreList, query)
-            _exploreList.value = if (localMatches.isNotEmpty() || query.isBlank()) {
-                localMatches
-            } else {
-                repository.getExploreInsects(searchQuery = query.trim(), limit = 150)
-            }
+            val list = repository.getExploreInsects(searchQuery = query.trim(), limit = currentLimit)
+            _exploreList.value = list
             _isLoading.value = false
+        }
+    }
+
+    private val _isScientificSearch = MutableStateFlow(false)
+    
+    val isScientificSearch: StateFlow<Boolean> = _isScientificSearch.asStateFlow()
+
+    /**
+     * Bật hoặc tắt chế độ tra cứu bằng Tên khoa học.
+     * Nếu có sẵn từ khóa hợp lệ đang được nhập, hệ thống sẽ tự động tra cứu lại ngay lập tức.
+     *
+     * @param enabled True nếu muốn bật, False nếu muốn tắt.
+     */
+    fun toggleScientificSearch(enabled: Boolean) {
+        _isScientificSearch.value = enabled
+        if (_searchQuery.value.trim().length >= 2) {
+            searchInsects(_searchQuery.value)
         }
     }
 
     /**
      * Gửi truy vấn tìm kiếm sinh vật học đến API iNaturalist.
-     * Tự động tra cứu tên khoa học thông qua dữ liệu nội bộ (Firebase cache)
-     * hoặc dịch sang Tên Tiếng Anh thông qua Groq API (nếu tìm bằng tiếng Việt)
-     * trước khi gửi yêu cầu lên iNaturalist để mở rộng phạm vi tìm kiếm.
-     * Tự động format, dịch thuật cấp bậc phân loại và bóc tách dữ liệu JSON để trả về danh sách [BugInfo] chuẩn hóa.
+     * Hỗ trợ 2 chế độ:
+     * - Tên khoa học: Tra cứu trực tiếp iNaturalist, không qua dịch thuật.
+     * - Tên phổ thông (Tiếng Việt): Dịch qua AI trước khi tra cứu.
      *
      * @param query Từ khóa tìm kiếm do người dùng nhập.
      */
@@ -113,20 +175,23 @@ class EncyclopediaViewModel(
             delay(500.milliseconds)
             _isLoading.value = true
             try {
-                val cachedBugs = repository.getExploreInsects(searchQuery = trimmedQuery, limit = 1)
-                val matchedScientificName = cachedBugs.firstOrNull()?.scientificName
-                
-                val queryToSearch = if (matchedScientificName != null) {
-                    matchedScientificName
-                } else if (SearchQueryPolicy.shouldTranslateWithGroq(trimmedQuery)) {
-                    val translated = groqApi.translateToEnglishName(trimmedQuery)
-                    if (translated.isNotEmpty()) translated else trimmedQuery
-                } else {
-                    trimmedQuery
-                }
+                var results = emptyList<hcmus.bugscanner.domain.model.INaturalistTaxon>()
 
-                val response = iNaturalistApi.searchInsects(query = queryToSearch)
-                val results = response.results
+                if (_isScientificSearch.value) {
+                    results = iNaturalistApi.searchInsects(query = trimmedQuery).results
+                } else {
+                    val cachedBugs = repository.getExploreInsects(searchQuery = trimmedQuery, limit = 1)
+                    val matchedScientificName = cachedBugs.firstOrNull()?.scientificName
+                    
+                    val queryToSearch = if (matchedScientificName != null) {
+                        matchedScientificName
+                    } else {
+                        val translated = groqApi.translateToEnglishName(trimmedQuery)
+                        if (translated.isNotEmpty()) translated else trimmedQuery
+                    }
+
+                    results = iNaturalistApi.searchInsects(query = queryToSearch).results
+                }
 
                 if (results.isNotEmpty()) {
                     val bugs = results.map { taxon ->
@@ -152,8 +217,12 @@ class EncyclopediaViewModel(
                                 "• Tên quốc tế (Tiếng Anh): ${taxon.englishCommonName ?: "Chưa cập nhật"}\n" +
                                 "• Cấp bậc sinh học: $rankVN"
 
+                        val photos = taxon.taxonPhotos?.mapNotNull { 
+                            it.photo?.mediumUrl ?: it.photo?.squareUrl 
+                        } ?: emptyList()
+
                         BugInfo(
-                            id = taxon.id.toString(),
+                            id = taxon.name.lowercase().replace(" ", "_"),
                             name = commonName.replaceFirstChar { it.uppercase() },
                             englishName = taxon.englishCommonName ?: "",
                             scientificName = taxon.name,
@@ -161,6 +230,7 @@ class EncyclopediaViewModel(
                             imageUrl = taxon.defaultPhoto?.mediumUrl
                                 ?: taxon.defaultPhoto?.squareUrl
                                 ?: "",
+                            imageUrls = photos.take(5), // Lấy tối đa 5 ảnh
                             identification = bioStats,
                             danger = "",
                             treatment = "",
@@ -174,9 +244,58 @@ class EncyclopediaViewModel(
             } catch (e: Exception) {
                 _searchResults.value = emptyList()
                 println("EncyclopediaVM Search error: ${e.message}")
-            } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * Xóa thông báo trạng thái hiện tại.
+     */
+    fun clearStatusMessage() {
+        _statusMessage.value = null
+    }
+
+    /**
+     * Lưu bài viết côn trùng lên Bách khoa toàn thư.
+     * Dành riêng cho quyền Admin.
+     *
+     * @param bug Đối tượng côn trùng cần lưu.
+     */
+    fun saveBugEntry(bug: BugInfo) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            val success = repository.saveBugToFirebase(bug)
+            if (success) {
+                _statusMessage.value = "Đã lưu bài viết thành công!"
+                // Tải lại danh sách sau khi lưu
+                fetchExploreList()
+            } else {
+                _statusMessage.value = "Lỗi khi lưu bài viết."
+            }
+            _isLoading.value = false
+        }
+    }
+
+    /**
+     * Xóa một bài viết côn trùng khỏi Bách khoa toàn thư.
+     * Dành riêng cho quyền Admin.
+     *
+     * @param bug Đối tượng côn trùng cần xóa.
+     */
+    fun deleteBugEntry(bug: BugInfo) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            val docId = bug.scientificName.ifBlank { bug.id }.replace(" ", "_")
+            val success = repository.deleteBugEntry(docId)
+            if (success) {
+                _statusMessage.value = "Đã xóa bài viết khỏi bách khoa."
+                // Cập nhật danh sách trên RAM thay vì gọi API tải lại
+                _exploreList.value = _exploreList.value.filter { it.scientificName != bug.scientificName }
+            } else {
+                _statusMessage.value = "Lỗi khi xóa bài viết."
+            }
+            _isLoading.value = false
         }
     }
 }

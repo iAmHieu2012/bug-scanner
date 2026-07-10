@@ -9,11 +9,29 @@ import hcmus.bugscanner.domain.repository.EncyclopediaRepository
 /**
  * Lớp thực thi (Implementation) quản lý giao tiếp với cơ sở dữ liệu Bách khoa toàn thư.
  * Sử dụng Firebase Firestore kết hợp thư viện KMP GitLive để đồng bộ đa nền tảng.
+ *
+ * @param db Đối tượng Firestore dùng để kết nối và truy vấn dữ liệu.
  */
 class EncyclopediaRepositoryImpl(
     db: FirebaseFirestore
 ) : EncyclopediaRepository {
     private val encyclopediaCollection = db.collection("encyclopedia")
+    private var localFallbackCache: List<BugInfo>? = null
+
+    @OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+    private suspend fun getFallbackData(): List<BugInfo> {
+        if (localFallbackCache != null) return localFallbackCache!!
+        return try {
+            val bytes = bugscanner.composeapp.generated.resources.Res.readBytes("files/backup_encyclopedia.json")
+            val jsonString = bytes.decodeToString()
+            val entities = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.decodeFromString<List<hcmus.bugscanner.data.model.BugInfoEntity>>(jsonString)
+            localFallbackCache = entities.map { it.toDomain() }
+            localFallbackCache!!
+        } catch (e: Exception) {
+            println("Lỗi đọc file backup JSON offline: ${e.message}")
+            emptyList()
+        }
+    }
 
     /**
      * Lấy danh sách các loài côn trùng từ Firestore.
@@ -25,23 +43,55 @@ class EncyclopediaRepositoryImpl(
      */
     override suspend fun getExploreInsects(searchQuery: String, limit: Int): List<BugInfo> {
         return try {
-            val query = if (searchQuery.isNotBlank()) {
+            if (searchQuery.isNotBlank()) {
                 val searchStr = searchQuery.trim()
-                encyclopediaCollection
-                    .orderBy("name")
-                    .startAtFieldValues { add(searchStr) }
-                    .endAtFieldValues { add(searchStr + "\uf8ff") }
-                    .limit(limit)
+                val lowerStr = searchStr.lowercase()
+                val capitalizedStr = lowerStr.replaceFirstChar { it.uppercase() }
+                val titleCaseStr = lowerStr.split(" ").joinToString(" ") { word ->
+                    word.replaceFirstChar { it.uppercase() }
+                }
+                
+                val searchVariations = setOf(searchStr, lowerStr, capitalizedStr, titleCaseStr)
+                val results = mutableListOf<BugInfo>()
+                
+                for (variation in searchVariations) {
+                    if (results.size >= limit) break
+                    val snapshot = encyclopediaCollection
+                        .orderBy("name")
+                        .startAtFieldValues { add(variation) }
+                        .endAtFieldValues { add(variation + "\uf8ff") }
+                        .limit(limit)
+                        .get()
+                        
+                    results.addAll(snapshot.documents.map { it.data<BugInfoEntity>().toDomain() })
+                }
+                
+                val finalResults = results.distinctBy { it.id }.take(limit)
+                if (finalResults.isEmpty()) {
+                    return getFallbackData().filter { 
+                        it.name.contains(searchQuery, ignoreCase = true) || 
+                        it.scientificName.contains(searchQuery, ignoreCase = true) 
+                    }.take(limit)
+                }
+                return finalResults
             } else {
-                encyclopediaCollection.orderBy("name").limit(limit)
+                val snapshot = encyclopediaCollection.orderBy("name").limit(limit).get()
+                val finalResults = snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
+                if (finalResults.isEmpty()) {
+                    return getFallbackData().take(limit)
+                }
+                return finalResults
             }
-
-            val snapshot = query.get()
-            // Firebase KMP gọi .data() để parse trực tiếp ra Object
-            snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
         } catch (e: Exception) {
-            println("Lỗi tải danh sách Khám phá: ${e.message}")
-            emptyList()
+            println("Lỗi tải danh sách Khám phá (Rớt mạng hoặc Firebase lỗi), dùng Fallback: ${e.message}")
+            val fallback = getFallbackData()
+            if (searchQuery.isNotBlank()) {
+                return fallback.filter { 
+                    it.name.contains(searchQuery, ignoreCase = true) || 
+                    it.scientificName.contains(searchQuery, ignoreCase = true) 
+                }.take(limit)
+            }
+            return fallback.take(limit)
         }
     }
 
@@ -108,37 +158,52 @@ class EncyclopediaRepositoryImpl(
      */
     override suspend fun saveBugToFirebase(bug: BugInfo): Boolean {
         return try {
-            val docId = bug.scientificName.ifBlank { bug.id }.replace(" ", "_")
+            val docId = bug.scientificName.ifBlank { bug.id }.lowercase().replace(" ", "_")
 
-            val bugData = mapOf(
-                "id" to bug.id,
-                "name" to bug.name,
-                "englishName" to bug.englishName,
-                "scientificName" to bug.scientificName,
-                "description" to bug.description,
-                "imageUrl" to bug.imageUrl,
-                "imageUrls" to bug.displayImageUrls(),
-                "identification" to bug.identification,
-                "danger" to bug.danger,
-                "harmfulnessLevel" to bug.harmfulnessLevel,
-                "treatment" to bug.treatment,
-                "affectedCrops" to bug.affectedCrops,
-                "hostPlants" to bug.hostPlants,
-                "damageSymptoms" to bug.damageSymptoms,
-                "identificationTips" to bug.identificationTips,
-                "whereToFind" to bug.whereToFind,
-                "season" to bug.season,
-                "safeActions" to bug.safeActions,
-                "ipmNotes" to bug.ipmNotes,
-                "sourceRefs" to bug.sourceRefs,
-                "searchTokens" to bug.searchTokens,
-                "wikiUrl" to bug.wikiUrl
+            val bugEntity = BugInfoEntity(
+                id = bug.id,
+                name = bug.name,
+                englishName = bug.englishName,
+                scientificName = bug.scientificName,
+                description = bug.description,
+                imageUrl = bug.imageUrl,
+                imageUrls = bug.displayImageUrls(),
+                identification = bug.identification,
+                danger = bug.danger,
+                harmfulnessLevel = bug.harmfulnessLevel,
+                treatment = bug.treatment,
+                affectedCrops = bug.affectedCrops,
+                hostPlants = bug.hostPlants,
+                damageSymptoms = bug.damageSymptoms,
+                identificationTips = bug.identificationTips,
+                whereToFind = bug.whereToFind,
+                season = bug.season,
+                safeActions = bug.safeActions,
+                ipmNotes = bug.ipmNotes,
+                sourceRefs = bug.sourceRefs,
+                searchTokens = bug.searchTokens,
+                wikiUrl = bug.wikiUrl
             )
 
-            encyclopediaCollection.document(docId).set(bugData)
+            encyclopediaCollection.document(docId).set(bugEntity)
             true
         } catch (e: Exception) {
             println("Lỗi khi lưu dữ liệu lên Firebase: ${e.message}")
+            false
+        }
+    }
+    /**
+     * Xóa một mục trong Bách khoa toàn thư dựa trên Document ID.
+     *
+     * @param docId Document ID của mục cần xóa.
+     * @return `true` nếu xóa thành công, ngược lại `false`.
+     */
+    override suspend fun deleteBugEntry(docId: String): Boolean {
+        return try {
+            encyclopediaCollection.document(docId).delete()
+            true
+        } catch (e: Exception) {
+            println("Lỗi xóa mục Bách khoa toàn thư: ${e.message}")
             false
         }
     }

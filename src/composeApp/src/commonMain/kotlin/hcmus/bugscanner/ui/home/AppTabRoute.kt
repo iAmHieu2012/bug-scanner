@@ -10,6 +10,8 @@ fun AppTab.toHashRoute(): String = when (this) {
     AppTab.HISTORY -> "#/history"
     AppTab.WIKI -> "#/encyclopedia"
     AppTab.CHATBOT -> "#/chat"
+    AppTab.ADMIN -> "#/admin"
+    AppTab.PROFILE -> "#/profile"
 }
 
 /**
@@ -22,5 +24,7 @@ fun appTabFromHash(hash: String): AppTab = when (hash.trim().lowercase()) {
     "#/history" -> AppTab.HISTORY
     "#/encyclopedia" -> AppTab.WIKI
     "#/chat" -> AppTab.CHATBOT
+    "#/admin" -> AppTab.ADMIN
+    "#/profile" -> AppTab.PROFILE
     else -> AppTab.SCAN
 }

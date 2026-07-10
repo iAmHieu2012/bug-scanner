@@ -12,12 +12,14 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,19 +34,22 @@ import org.koin.compose.viewmodel.koinViewModel
  * Màn hình xác thực người dùng (Đăng nhập / Đăng ký).
  * Áp dụng mô hình Responsive Layout tự động điều chỉnh dựa trên [WindowSizeClass]:
  * - Màn hình hẹp (Mobile): Hiển thị Form canh giữa toàn màn hình.
- * - Màn hình rộng (Tablet ngang, Web, Desktop): Hiển thị form canh giữa để tập trung vào thao tác đăng nhập.
+ * - Màn hình rộng (Tablet ngang, Web, Desktop): Hiển thị giao diện Split-Screen (Banner minh họa bên trái, Form nhập liệu bên phải).
  *
  * @param windowSizeClass Dữ liệu phân loại kích thước màn hình hiện tại do App Navigation truyền xuống.
  * @param authViewModel ViewModel quản lý logic gọi API xác thực Firebase.
+ * @param onSkipAuth Callback xử lý khi người dùng chọn bỏ qua đăng nhập.
  */
 @Composable
 fun AuthScreen(
     windowSizeClass: WindowSizeClass,
-    authViewModel: AuthViewModel = koinViewModel()
+    authViewModel: AuthViewModel = koinViewModel(),
+    onSkipAuth: () -> Unit
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var displayName by remember { mutableStateOf("") }
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var isPasswordVisible by remember { mutableStateOf(false) }
 
@@ -60,7 +65,7 @@ fun AuthScreen(
 
         validationMessage = null
         if (isLoginMode) authViewModel.signInWithEmail(email.trim(), password)
-        else authViewModel.signUpWithEmail(email.trim(), password)
+        else authViewModel.signUpWithEmail(email.trim(), password, displayName.trim())
     }
 
     fun updateEmail(value: String) {
@@ -74,29 +79,63 @@ fun AuthScreen(
     }
 
     if (isWideScreen) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            contentAlignment = Alignment.Center
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            AuthForm(
-                isLoginMode = isLoginMode,
-                email = email,
-                password = password,
-                authState = authState,
-                validationMessage = validationMessage,
-                isPasswordVisible = isPasswordVisible,
-                onEmailChange = ::updateEmail,
-                onPasswordChange = ::updatePassword,
-                onPasswordVisibilityToggle = { isPasswordVisible = !isPasswordVisible },
-                onToggleMode = {
-                    validationMessage = null
-                    isLoginMode = !isLoginMode
-                },
-                onActionClick = ::submitAuth,
-                onGuestClick = { authViewModel.signInAnonymously() }
-            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(24.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        imageVector = AppIcon.IconBugscanner,
+                        contentDescription = "App Logo Large",
+                        modifier = Modifier.size(120.dp).padding(bottom = 24.dp)
+                    )
+                    Text(
+                        text = "BugScanner",
+                        style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "Bách khoa toàn thư côn trùng trong tầm tay bạn.",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                AuthForm(
+                    isLoginMode = isLoginMode,
+                    email = email,
+                    password = password,
+                    displayName = displayName,
+                    authState = authState,
+                    validationMessage = validationMessage,
+                    isPasswordVisible = isPasswordVisible,
+                    onEmailChange = ::updateEmail,
+                    onPasswordChange = ::updatePassword,
+                    onDisplayNameChange = { displayName = it },
+                    onPasswordVisibilityToggle = { isPasswordVisible = !isPasswordVisible },
+                    onToggleMode = {
+                        validationMessage = null
+                        isLoginMode = !isLoginMode
+                    },
+                    onActionClick = ::submitAuth,
+                    onSkipAuth = onSkipAuth
+                )
+            }
         }
     } else {
         Box(
@@ -118,18 +157,20 @@ fun AuthScreen(
                     isLoginMode = isLoginMode,
                     email = email,
                     password = password,
+                    displayName = displayName,
                     authState = authState,
                     validationMessage = validationMessage,
                     isPasswordVisible = isPasswordVisible,
                     onEmailChange = ::updateEmail,
                     onPasswordChange = ::updatePassword,
+                    onDisplayNameChange = { displayName = it },
                     onPasswordVisibilityToggle = { isPasswordVisible = !isPasswordVisible },
                     onToggleMode = {
                         validationMessage = null
                         isLoginMode = !isLoginMode
                     },
                     onActionClick = ::submitAuth,
-                    onGuestClick = { authViewModel.signInAnonymously() }
+                    onSkipAuth = onSkipAuth
                 )
             }
         }
@@ -143,11 +184,13 @@ fun AuthScreen(
  * @param isLoginMode Cờ xác định form đang ở chế độ Đăng nhập (true) hay Đăng ký (false).
  * @param email Giá trị text hiện tại của trường nhập Email.
  * @param password Giá trị text hiện tại của trường nhập Mật khẩu.
+ * @param displayName Giá trị text hiện tại của trường nhập Tên hiển thị (chỉ dùng khi Đăng ký).
  * @param authState Trạng thái xử lý mạng hiện tại để hiển thị Loading hoặc Lỗi từ Firebase.
  * @param validationMessage Thông báo lỗi kiểm tra định dạng tại local.
  * @param isPasswordVisible Trạng thái ẩn/hiện mật khẩu.
  * @param onEmailChange Callback khi người dùng gõ vào trường Email.
  * @param onPasswordChange Callback khi người dùng gõ vào trường Mật khẩu.
+ * @param onDisplayNameChange Callback khi người dùng gõ vào trường Tên hiển thị.
  * @param onPasswordVisibilityToggle Callback khi thay đổi ẩn/hiện mật khẩu.
  * @param onToggleMode Callback chuyển đổi qua lại giữa chế độ Đăng nhập và Đăng ký.
  * @param onActionClick Callback kích hoạt hành động gọi API đăng nhập/đăng ký.
@@ -158,15 +201,17 @@ private fun AuthForm(
     isLoginMode: Boolean,
     email: String,
     password: String,
+    displayName: String,
     authState: AuthState,
     validationMessage: String?,
     isPasswordVisible: Boolean,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
+    onDisplayNameChange: (String) -> Unit,
     onPasswordVisibilityToggle: () -> Unit,
     onToggleMode: () -> Unit,
     onActionClick: () -> Unit,
-    onGuestClick: () -> Unit
+    onSkipAuth: () -> Unit
 ) {
     val errorMessage = validationMessage ?: (authState as? AuthState.Error)?.message
 
@@ -196,9 +241,6 @@ private fun AuthForm(
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground
         )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
         Text(
             text = "Khám phá thế giới côn trùng ngay hôm nay",
             style = MaterialTheme.typography.bodyMedium,
@@ -220,6 +262,23 @@ private fun AuthForm(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
                 )
             }
+        }
+
+        if (!isLoginMode) {
+            OutlinedTextField(
+                value = displayName,
+                onValueChange = onDisplayNameChange,
+                label = { Text("Tên hiển thị") },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(modifier = Modifier.height(14.dp))
         }
 
         OutlinedTextField(
@@ -290,10 +349,10 @@ private fun AuthForm(
         }
 
         TextButton(
-            onClick = onGuestClick,
+            onClick = onSkipAuth,
             enabled = authState !is AuthState.Loading
         ) {
-            Text("Tiếp tục mà không cần đăng nhập", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Dùng thử không cần tài khoản", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

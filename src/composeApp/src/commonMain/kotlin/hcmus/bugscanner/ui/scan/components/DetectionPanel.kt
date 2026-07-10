@@ -41,6 +41,9 @@ fun DetectionPanel(
     isScanningLive: Boolean,
     frameResult: FrameResult?,
     imageBytesToSave: ByteArray?,
+    isAnalyzingFallback: Boolean = false,
+    fallbackErrorMessage: String? = null,
+    onFallbackClick: () -> Unit = {},
     onBugClick: (className: String, displayName: String, confidence: Float, imageBytes: ByteArray?) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -124,6 +127,31 @@ fun DetectionPanel(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onFallbackClick,
+                        enabled = !isAnalyzingFallback
+                    ) {
+                        if (isAnalyzingFallback) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text("Tra cứu iNaturalist")
+                    }
+                    fallbackErrorMessage?.takeIf { it.isNotBlank() }?.let { message ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             } else {
                 LazyColumn {

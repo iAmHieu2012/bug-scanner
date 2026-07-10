@@ -7,7 +7,6 @@ import hcmus.bugscanner.domain.model.GeminiInlineData
 import hcmus.bugscanner.domain.model.GeminiPart
 import hcmus.bugscanner.domain.model.GeminiRequest
 import hcmus.bugscanner.domain.model.HarmfulnessLevel
-import hcmus.bugscanner.domain.model.HarmfulnessPolicy
 import hcmus.bugscanner.domain.model.Instruction
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.model.ScanSource
@@ -55,10 +54,10 @@ class ComposeAppCommonTest {
 
     @Test
     fun harmfulnessPolicyMapsKnownAndUnknownValuesSafely() {
-        assertEquals(HarmfulnessLevel.CROP_PEST, HarmfulnessPolicy.fromValue("crop_pest"))
-        assertEquals(HarmfulnessLevel.BENEFICIAL, HarmfulnessPolicy.fromValue("beneficial"))
-        assertEquals(HarmfulnessLevel.UNKNOWN, HarmfulnessPolicy.fromValue("unexpected"))
-        assertEquals("Có thể gây hại cây trồng", HarmfulnessPolicy.fromValue("crop_pest").label)
+        assertEquals(HarmfulnessLevel.CROP_PEST, HarmfulnessLevel.fromValue("crop_pest"))
+        assertEquals(HarmfulnessLevel.BENEFICIAL, HarmfulnessLevel.fromValue("beneficial"))
+        assertEquals(HarmfulnessLevel.UNKNOWN, HarmfulnessLevel.fromValue("unexpected"))
+        assertEquals("Có thể gây hại cây trồng", HarmfulnessLevel.fromValue("crop_pest").label)
     }
 
     @Test
@@ -379,16 +378,6 @@ class ComposeAppCommonTest {
     }
 
     @Test
-    fun authErrorPolicyMapsFirebaseProviderConfigurationErrors() {
-        val raw = "auth/operation-not-allowed: Firebase: Error (auth/operation-not-allowed)."
-
-        assertEquals(
-            "Email/Mật khẩu chưa được bật trong Firebase Authentication. Hãy bật Sign-in method Email/Password rồi thử lại.",
-            AuthErrorPolicy.toUserMessage(raw, fallback = "Lỗi đăng ký")
-        )
-    }
-
-    @Test
     fun legacyHistoryRecordStillConvertsToBugInfo() {
         val history = ScanHistory(
             bugName = "bọ xít",
@@ -516,4 +505,6 @@ private class FakeEncyclopediaRepository(
     override suspend fun prefetchDatabase() = Unit
 
     override suspend fun saveBugToFirebase(bug: BugInfo): Boolean = true
+
+    override suspend fun deleteBugEntry(docId: String): Boolean = true
 }

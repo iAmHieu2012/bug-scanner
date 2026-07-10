@@ -12,13 +12,14 @@ import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
-import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.image.ops.Rot90Op
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
@@ -37,7 +38,7 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
 
     private var imageProcessor: ImageProcessor? = null
     private var lastRotation = -1
-    private val tensorImage = TensorImage(DataType.FLOAT32)
+    private val tensorImage = TensorImage(DataType.UINT8)
 
     private lateinit var outputBuffer: TensorBuffer
 
@@ -90,7 +91,6 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
                 imageProcessor = ImageProcessor.Builder()
                     .add(Rot90Op(rotationDegrees / 90))
                     .add(ResizeOp(YoloConstants.INPUT_SIZE, YoloConstants.INPUT_SIZE, ResizeOp.ResizeMethod.BILINEAR))
-                    .add(NormalizeOp(0f, 255f))
                     .build()
             }
             val isRotated = rotationDegrees % 180 != 0
@@ -100,7 +100,9 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
             tensorImage.load(inputBitmap)
             val processedImage = imageProcessor!!.process(tensorImage)
 
-            interpreter?.run(processedImage.buffer, outputBuffer.buffer.rewind())
+            val nchwBuffer = convertBitmapToNchwBuffer(processedImage.bitmap)
+
+            interpreter?.run(nchwBuffer, outputBuffer.buffer.rewind())
 
             val results = parseYoloOutput(outputBuffer.floatArray)
             Log.d("YOLO_DEBUG", "Số vật thể: ${results.size}")
@@ -109,6 +111,36 @@ class YoloDetector(context: Context, modelPath: String = YoloConstants.MODEL_PAT
         } catch (e: Exception) {
             Log.e("YOLO_ERROR", "Crash logic AI: ${e.message}", e)
         }
+    }
+
+    /**
+     * Chuyển đổi Bitmap sang định dạng NCHW (1x3xHxW) ByteBuffer để tương thích với model LiteRT mới.
+     */
+    private fun convertBitmapToNchwBuffer(bitmap: Bitmap): ByteBuffer {
+        val width = bitmap.width
+        val height = bitmap.height
+        val byteBuffer = ByteBuffer.allocateDirect(1 * 3 * width * height * 4)
+        byteBuffer.order(ByteOrder.nativeOrder())
+
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        val floatBuffer = byteBuffer.asFloatBuffer()
+
+        // NCHW: Red channel
+        for (pixel in pixels) {
+            floatBuffer.put(((pixel shr 16) and 0xFF) / 255.0f)
+        }
+        // NCHW: Green channel
+        for (pixel in pixels) {
+            floatBuffer.put(((pixel shr 8) and 0xFF) / 255.0f)
+        }
+        // NCHW: Blue channel
+        for (pixel in pixels) {
+            floatBuffer.put((pixel and 0xFF) / 255.0f)
+        }
+
+        return byteBuffer
     }
 
     /**

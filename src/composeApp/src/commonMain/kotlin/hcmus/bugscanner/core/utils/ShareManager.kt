@@ -12,6 +12,8 @@ interface ShareManager {
      * @param bugName Tên phổ thông của côn trùng.
      * @param scientificName Tên khoa học của côn trùng.
      * @param imageBytes Mảng byte của hình ảnh (nếu có).
+     * @param confidenceLabel Độ tin cậy của kết quả nhận diện.
+     * @param harmfulnessLabel Mức độ gây hại của côn trùng.
      * @param appLink Đường dẫn tải app hoặc trang web.
      */
     fun shareBugInfo(

@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Login
-import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +20,7 @@ import hcmus.bugscanner.domain.model.BugInfo
 import hcmus.bugscanner.domain.model.DetectedBugSnapshot
 import hcmus.bugscanner.domain.model.FrameResult
 import hcmus.bugscanner.domain.model.ScanSource
+import hcmus.bugscanner.ui.components.ScreenHeader
 import hcmus.bugscanner.ui.layout.AdaptiveLayoutSize
 import hcmus.bugscanner.ui.layout.classifyAdaptiveWidth
 import hcmus.bugscanner.ui.scan.components.DetectionPanel
@@ -31,19 +30,17 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Màn hình trung tâm xử lý toàn bộ chức năng quét và nhận diện AI của ứng dụng.
- * Quản lý vòng đời của Camera và điều phối dữ liệu giữa UI với mô hình YOLO offline.
+ * Quản lý vòng đời của Camera, điều phối dữ liệu giữa UI, mô hình YOLO Offline và API iNaturalist.
  * Hỗ trợ tự động điều chỉnh bố cục (Adaptive Layout) thông qua [BoxWithConstraints].
  *
- * @param isLoggedIn Trạng thái xác thực hiện tại để hiển thị nút đăng nhập/đăng xuất.
- * @param onAuthAction Callback xử lý khi người dùng nhấn nút xác thực.
  * @param onDetectedBugClick Callback chuyển hướng sang màn hình Chi tiết khi nhận diện thành công (kèm dữ liệu sinh học và mảng byte hình ảnh).
- * @param fallbackViewModel ViewModel đóng gói kết quả YOLO thành dữ liệu điều hướng chi tiết.
+ * @param onNavigateToHistory Callback chuyển hướng sang màn hình lịch sử.
+ * @param fallbackViewModel ViewModel quản lý luồng gọi mạng dự phòng để phân tích AI chuyên sâu.
  */
 @Composable
 fun ScanScreen(
-    isLoggedIn: Boolean,
-    onAuthAction: () -> Unit,
     onDetectedBugClick: (DetectedBugSnapshot) -> Unit,
+    onNavigateToHistory: () -> Unit,
     fallbackViewModel: ScanFallbackViewModel = koinViewModel()
 ) {
     val platformProvider = LocalPlatformScanProvider.current
@@ -58,6 +55,8 @@ fun ScanScreen(
     var cameraSessionKey by remember { mutableLongStateOf(0L) }
     var runtimeStatus by remember { mutableStateOf<ScanRuntimeStatus>(ScanRuntimeStatus.Idle) }
 
+    val isAnalyzingFallback by fallbackViewModel.isAnalyzing.collectAsState()
+    val fallbackErrorMessage by fallbackViewModel.errorMessage.collectAsState()
     val scanEvent by fallbackViewModel.scanEvent.collectAsState()
 
     LaunchedEffect(scanEvent) {
@@ -78,21 +77,19 @@ fun ScanScreen(
     )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        val previewShape = RoundedCornerShape(32.dp)
-
         if (classifyAdaptiveWidth(maxWidth.value) == AdaptiveLayoutSize.EXPANDED) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    ScanScreenHeader(isLoggedIn, onAuthAction)
+                    ScanScreenHeader()
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .border(2.dp, Color.White, previewShape)
-                            .clip(previewShape)
+                            .clip(RoundedCornerShape(32.dp))
+                            .border(2.dp, Color.White, RoundedCornerShape(32.dp))
                             .background(Color.Black)
                     ) {
                         ScanContent(
@@ -138,6 +135,13 @@ fun ScanScreen(
                         isScanningLive = isScanningLive,
                         frameResult = frameResult,
                         imageBytesToSave = capturedImageBytes,
+                        isAnalyzingFallback = isAnalyzingFallback,
+                        fallbackErrorMessage = fallbackErrorMessage,
+                        onFallbackClick = {
+                            capturedImageBytes?.let { bytes ->
+                                fallbackViewModel.analyzeFallbackImage(bytes)
+                            }
+                        },
                         onBugClick = { className, displayName, confidence, bytes ->
                             fallbackViewModel.handleYoloDetection(className, displayName, confidence, bytes)
                         },
@@ -147,15 +151,15 @@ fun ScanScreen(
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                ScanScreenHeader(isLoggedIn, onAuthAction)
+                ScanScreenHeader()
 
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .border(2.dp, Color.White, previewShape)
-                        .clip(previewShape)
+                        .clip(RoundedCornerShape(32.dp))
+                        .border(2.dp, Color.White, RoundedCornerShape(32.dp))
                         .background(Color.Black)
                 ) {
                     ScanContent(
@@ -199,6 +203,13 @@ fun ScanScreen(
                     isScanningLive = isScanningLive,
                     frameResult = frameResult,
                     imageBytesToSave = capturedImageBytes,
+                    isAnalyzingFallback = isAnalyzingFallback,
+                    fallbackErrorMessage = fallbackErrorMessage,
+                    onFallbackClick = {
+                        capturedImageBytes?.let { bytes ->
+                            fallbackViewModel.analyzeFallbackImage(bytes)
+                        }
+                    },
                     onBugClick = { className, displayName, confidence, bytes ->
                         fallbackViewModel.handleYoloDetection(className, displayName, confidence, bytes)
                     },
@@ -210,43 +221,15 @@ fun ScanScreen(
 }
 
 /**
- * Component hiển thị tiêu đề, lời chào và nút điều hướng tài khoản ở phần trên cùng của màn hình.
- *
- * @param isLoggedIn Trạng thái đăng nhập để cấu hình biểu tượng và chức năng của nút bấm.
- * @param onAuthAction Callback xử lý sự kiện đăng nhập / đăng xuất.
+ * Component hiển thị tiêu đề, lời chào ở phần trên cùng của màn hình.
  */
 @Composable
-private fun ScanScreenHeader(isLoggedIn: Boolean, onAuthAction: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            if (isLoggedIn) {
-                Text(
-                    text = stringResource(Res.string.scan_greeting_msg),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                text = stringResource(Res.string.scan_what_to_find),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
-        IconButton(
-            onClick = onAuthAction,
-            modifier = Modifier.background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
-        ) {
-            Icon(
-                imageVector = if (isLoggedIn) Icons.AutoMirrored.Rounded.Logout else Icons.AutoMirrored.Rounded.Login,
-                contentDescription = if (isLoggedIn) stringResource(Res.string.action_logout) else stringResource(Res.string.action_login),
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-    }
+private fun ScanScreenHeader() {
+    ScreenHeader(
+        title = stringResource(Res.string.scan_what_to_find),
+        subtitle = stringResource(Res.string.scan_greeting_msg),
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
+    )
 }
 
 /**
@@ -389,38 +372,24 @@ private fun ScanRuntimeNotice(
 
     val canRetry = status is ScanRuntimeStatus.PermissionDenied || status is ScanRuntimeStatus.Unsupported || status is ScanRuntimeStatus.Error
     Surface(
-        modifier = modifier
-            .padding(12.dp)
-            .widthIn(max = 560.dp)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(14.dp)
-            ),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 6.dp,
-        shadowElevation = 8.dp
+        modifier = modifier.padding(12.dp).widthIn(max = 520.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Black.copy(alpha = 0.72f),
+        contentColor = Color.White
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (status is ScanRuntimeStatus.LoadingModel || status == ScanRuntimeStatus.RequestingCamera) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
             } else {
-                Icon(
-                    Icons.Rounded.Info,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
+                Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp))
             }
             Spacer(Modifier.width(8.dp))
             Text(message, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
             if (canRetry) {
-                TextButton(onClick = onRetry) { Text("Thử lại") }
+                TextButton(onClick = onRetry) { Text("Thử lại", color = Color.White) }
             }
         }
     }
@@ -450,9 +419,9 @@ private fun ScanControlButtons(
 ) {
     Row(
         modifier = alignmentModifier
-            .wrapContentWidth()
-            .padding(bottom = 72.dp),
-        horizontalArrangement = Arrangement.spacedBy(22.dp, Alignment.CenterHorizontally),
+            .fillMaxWidth()
+            .padding(bottom = 24.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
@@ -481,8 +450,8 @@ private fun ScanControlButtons(
             },
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = if (isFrozenOrStatic) MaterialTheme.colorScheme.primary else Color.White,
+                contentColor = if (isFrozenOrStatic) MaterialTheme.colorScheme.onPrimary else Color.Black
             ),
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier
@@ -506,7 +475,7 @@ private fun ScanControlButtons(
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.5f))
         ) {
-            Icon(Icons.Rounded.Replay, contentDescription = "Quét lại", tint = Color.White)
+            Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới", tint = Color.White)
         }
     }
 }

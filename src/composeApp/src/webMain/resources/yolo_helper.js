@@ -2,8 +2,10 @@ const TFJS_VERSION = "4.22.0";
 const TFJS_URL = `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@${TFJS_VERSION}/dist/tf.min.js`;
 const TFJS_WASM_URL = `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@${TFJS_VERSION}/dist/tf-backend-wasm.min.js`;
 const TFJS_WASM_PATH = `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@${TFJS_VERSION}/dist/`;
+const TFJS_WEBGPU_URL = `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@${TFJS_VERSION}/dist/tf-backend-webgpu.min.js`;
 
 window.yoloModel = null;
+window.litertCore = null;
 window.yoloRuntime = null;
 window.yoloInitPromise = null;
 
@@ -23,34 +25,44 @@ function loadScriptOnce(id, src) {
 async function initializeYoloRuntime() {
     try {
         await loadScriptOnce("bugscanner-tfjs", TFJS_URL);
+        await loadScriptOnce("bugscanner-tfjs-webgpu", TFJS_WEBGPU_URL);
 
         let backend = "none";
         let liveDetectionSupported = false;
         try {
-            const webGlReady = await tf.setBackend("webgl");
+            await tf.setBackend("webgpu");
             await tf.ready();
-            if (webGlReady && tf.getBackend() === "webgl") {
-                backend = "webgl";
+            if (tf.getBackend() === "webgpu") {
+                backend = "webgpu";
                 liveDetectionSupported = true;
             }
         } catch (error) {
-            console.warn("WebGL backend không khả dụng, chuyển sang WASM.", error);
+            console.warn("WebGPU backend không khả dụng, chuyển sang WASM.", error);
         }
 
-        if (backend !== "webgl") {
+        if (backend !== "webgpu") {
             await loadScriptOnce("bugscanner-tfjs-wasm", TFJS_WASM_URL);
             if (tf.wasm?.setWasmPaths) tf.wasm.setWasmPaths(TFJS_WASM_PATH);
-            const wasmReady = await tf.setBackend("wasm");
+            await tf.setBackend("wasm");
             await tf.ready();
-            if (!wasmReady || tf.getBackend() !== "wasm") {
+            if (tf.getBackend() !== "wasm") {
                 throw new Error("Không có backend TensorFlow.js phù hợp.");
             }
             backend = "wasm";
         }
 
-        window.yoloModel = await tf.loadGraphModel("best_web_model/model.json");
+        // Import LiteRT JS (chỉ dùng core, bỏ tfjs-interop để tránh lỗi khởi tạo kép)
+        const litertCore = await import('https://esm.sh/@litertjs/core');
+        
+        await litertCore.loadLiteRt('https://cdn.jsdelivr.net/npm/@litertjs/core/wasm/');
+        
+        window.yoloModel = await litertCore.loadAndCompile("model.tflite", {
+            accelerator: backend === "webgpu" ? "webgpu" : "wasm"
+        });
+        window.litertCore = litertCore;
+
         window.yoloRuntime = { ready: true, backend, liveDetectionSupported, error: null };
-        console.log(`BugScanner AI sẵn sàng với backend ${backend}.`);
+        console.log(`BugScanner AI sẵn sàng với LiteRT.js (backend: ${backend}).`);
         return window.yoloRuntime;
     } catch (error) {
         console.error("Lỗi khi tải mô hình AI:", error);
@@ -77,14 +89,37 @@ window.detectBugsJS = async function(sourceElement) {
         const tensor = tf.tidy(() => tf.browser.fromPixels(sourceElement)
             .resizeBilinear([INPUT_SIZE, INPUT_SIZE])
             .div(255.0)
-            .expandDims(0));
-        const predictions = window.yoloModel.execute(tensor);
+            .expandDims(0)
+            .transpose([0, 3, 1, 2])); // Chuyển sang NCHW (1x3x896x896) cho LiteRT mới
+
+        // Trích xuất mảng Float32Array từ TFJS Tensor
+        const inputFloatArray = await tensor.data();
+        
+        // Tạo Tensor của LiteRT.js và chạy mô hình (Không thông qua interop)
+        const litertTensor = new window.litertCore.Tensor(inputFloatArray, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+        const outputs = await window.yoloModel.run([litertTensor]);
+        
+        // Giải phóng tensor đầu vào của LiteRT
+        litertTensor.delete();
+        
+        // Lấy kết quả đầu ra
+        const output = Array.isArray(outputs) ? outputs[0] : Object.values(outputs)[0];
+        const outputData = await output.data();
+        
+        // Cố gắng lấy shape, nếu API chưa hoàn thiện thì tự tính toán
+        const outputShape = output.shape || [1, outputData.length / 16464, 16464];
+        output.delete();
+        
+        // Đưa mảng Float32Array trở lại môi trường TFJS để dùng các hàm tính toán của TFJS
+        const tfjsOutput = tf.tensor(outputData, outputShape);
+
         const transposed = tf.tidy(() => {
-            const output = Array.isArray(predictions) ? predictions[0] : predictions;
-            return output.shape[1] < output.shape[2] ? output.squeeze().transpose() : output.squeeze();
+            return tfjsOutput.shape[1] < tfjsOutput.shape[2] ? tfjsOutput.squeeze().transpose() : tfjsOutput.squeeze();
         });
         const data = await transposed.array();
-        tf.dispose([tensor, predictions, transposed]);
+        
+        // Giải phóng bộ nhớ TFJS
+        tf.dispose([tensor, tfjsOutput, transposed]);
 
         const boxes = [];
         const scores = [];

@@ -17,6 +17,12 @@ object ChatPromptSuggestions {
         "Khi chưa chắc loài côn trùng, tôi nên làm gì?"
     )
 
+    /**
+     * Sinh danh sách câu hỏi gợi ý được cá nhân hóa dựa trên tên của sinh vật.
+     *
+     * @param bug Đối tượng sinh vật đang làm ngữ cảnh.
+     * @return Danh sách các câu hỏi gợi ý phù hợp.
+     */
     fun promptsForBug(bug: BugInfo?): List<String> {
         val name = bug?.name?.takeIf { it.isNotBlank() } ?: return defaultPrompts
         return listOf(

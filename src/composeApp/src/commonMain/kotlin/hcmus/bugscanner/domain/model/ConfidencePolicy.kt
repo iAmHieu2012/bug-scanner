@@ -1,5 +1,13 @@
 package hcmus.bugscanner.domain.model
 
+/**
+ * Lớp chứa thông tin giải thích chi tiết về mức độ tin cậy của kết quả nhận diện.
+ *
+ * @property label Nhãn hiển thị mức độ tin cậy đầy đủ.
+ * @property shortLabel Nhãn rút gọn cho UI không gian hẹp.
+ * @property percentText Chuỗi phần trăm hiển thị (VD: "85%").
+ * @property guidance Lời khuyên hành động tương ứng với độ tin cậy.
+ */
 data class ConfidenceExplanation(
     val label: String,
     val shortLabel: String,
@@ -7,7 +15,16 @@ data class ConfidenceExplanation(
     val guidance: String
 )
 
+/**
+ * Policy xử lý logic phân loại và tạo lời giải thích dựa trên điểm số tin cậy (Confidence).
+ */
 object ConfidencePolicy {
+    /**
+     * Chuyển đổi điểm số tin cậy (0.0 - 1.0) thành đối tượng giải thích chi tiết.
+     *
+     * @param confidence Điểm số nhận diện trả về từ mô hình AI.
+     * @return Đối tượng [ConfidenceExplanation] chứa thông tin hiển thị.
+     */
     fun explain(confidence: Float): ConfidenceExplanation {
         val normalized = confidence.coerceIn(0f, 1f)
         val percent = "${(normalized * 100).toInt()}%"

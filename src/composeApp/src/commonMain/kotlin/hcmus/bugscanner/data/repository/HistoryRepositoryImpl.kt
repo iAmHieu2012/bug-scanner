@@ -71,6 +71,22 @@ class HistoryRepositoryImpl(
     }
 
     /**
+     * Xóa một bản ghi lịch sử dựa trên ID của nó.
+     *
+     * @param historyId Mã định danh duy nhất của bản ghi lịch sử.
+     * @return `true` nếu xóa thành công, ngược lại `false`.
+     */
+    override suspend fun deleteHistory(historyId: String): Boolean {
+        return try {
+            historyCollection.document(historyId).delete()
+            true
+        } catch (e: Exception) {
+            println("Lỗi deleteHistory: ${e.message}")
+            false
+        }
+    }
+
+    /**
      * Tải mảng byte ảnh trực tiếp lên máy chủ ImgBB bằng giao thức Multipart Form.
      *
      * @param userId Mã định danh người dùng.
@@ -109,7 +125,11 @@ class HistoryRepositoryImpl(
     }
 
     /**
-     * Lưu lịch sử ngoại tuyến khi không có mạng.
+     * Lưu lịch sử ngoại tuyến khi thiết bị mất kết nối mạng.
+     *
+     * @param userId Mã định danh Firebase UID của người dùng.
+     * @param history Khối dữ liệu lịch sử cần lưu trữ.
+     * @param imageBytes Dữ liệu hình ảnh dạng byte array.
      */
     @OptIn(ExperimentalEncodingApi::class)
     override suspend fun saveOfflineHistory(userId: String, history: ScanHistory, imageBytes: ByteArray) {

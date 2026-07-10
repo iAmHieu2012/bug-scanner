@@ -69,6 +69,59 @@ object WebScanProvider : PlatformScanProvider {
     }
 
     /**
+     * Đăng ký trình xử lý (Listener) để bắt sự kiện dán ảnh (Paste) từ khay nhớ tạm trên trình duyệt.
+     * Tự động giải mã ảnh dán và trả về mảng byte.
+     *
+     * @param onImageBytesPasted Callback trả về mảng byte của ảnh sau khi được người dùng dán thành công.
+     */
+    @Composable
+    override fun registerClipboardImagePasteHandler(onImageBytesPasted: (ByteArray) -> Unit) {
+        DisposableEffect(onImageBytesPasted) {
+            val listener: (Event) -> Unit = listener@{ event ->
+                fun readClipboardFile(file: dynamic) {
+                    val reader = FileReader()
+                    reader.onload = {
+                        val buffer = reader.result as org.khronos.webgl.ArrayBuffer
+                        onImageBytesPasted(Int8Array(buffer).unsafeCast<ByteArray>())
+                        null
+                    }
+                    reader.readAsArrayBuffer(file)
+                    event.preventDefault()
+                }
+
+                val clipboardData = event.asDynamic().clipboardData ?: return@listener
+                val items = clipboardData.items
+                val length = (items?.length as? Int) ?: 0
+                for (index in 0 until length) {
+                    val item = items[index] ?: continue
+                    val type = item.type as? String ?: ""
+                    if (type.startsWith("image/")) {
+                        val file = item.getAsFile() ?: continue
+                        readClipboardFile(file)
+                        return@listener
+                    }
+                }
+
+                val files = clipboardData.files
+                val fileLength = (files?.length as? Int) ?: 0
+                for (index in 0 until fileLength) {
+                    val file = files[index] ?: continue
+                    val type = file.type as? String ?: ""
+                    if (type.startsWith("image/")) {
+                        readClipboardFile(file)
+                        return@listener
+                    }
+                }
+            }
+
+            kotlinx.browser.window.addEventListener("paste", listener)
+            onDispose {
+                kotlinx.browser.window.removeEventListener("paste", listener)
+            }
+        }
+    }
+
+    /**
      * Hàm xin quyền truy cập Camera trên nền tảng Web.
      * Trình duyệt xử lý quyền tự động khi gọi Video API, nên hàm này gọi thẳng vào block xử lý thành công.
      *

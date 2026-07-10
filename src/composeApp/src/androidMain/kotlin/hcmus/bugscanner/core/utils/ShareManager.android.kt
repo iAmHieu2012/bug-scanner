@@ -27,6 +27,8 @@ class AndroidShareManager(private val context: Context) : ShareManager {
      * @param bugName Tên phổ thông của côn trùng.
      * @param scientificName Tên khoa học của côn trùng.
      * @param imageBytes Mảng byte của hình ảnh côn trùng đã quét (có thể null nếu chỉ share chữ).
+     * @param confidenceLabel Độ tin cậy của kết quả nhận diện.
+     * @param harmfulnessLabel Mức độ gây hại của côn trùng.
      * @param appLink Đường dẫn tải app hoặc trang web để người dùng khác click vào.
      */
     override fun shareBugInfo(
@@ -37,14 +39,11 @@ class AndroidShareManager(private val context: Context) : ShareManager {
         harmfulnessLabel: String,
         appLink: String
     ) {
-        val extraLines = listOf(
-            confidenceLabel.takeIf { it.isNotBlank() }?.let { "Độ tin cậy: $it" },
-            harmfulnessLabel.takeIf { it.isNotBlank() }?.let { "Mức gây hại: $it" }
-        ).filterNotNull()
         val shareText = buildString {
             appendLine("Tôi vừa phát hiện ra loài: $bugName trên BugScanner.")
             appendLine("Tên khoa học: $scientificName.")
-            extraLines.forEach { appendLine(it) }
+            if (confidenceLabel.isNotBlank()) appendLine("Độ tin cậy: $confidenceLabel")
+            if (harmfulnessLabel.isNotBlank()) appendLine("Mức gây hại: $harmfulnessLabel")
             appendLine()
             append("Khám phá ngay tại: $appLink")
         }
@@ -59,7 +58,8 @@ class AndroidShareManager(private val context: Context) : ShareManager {
                     val cachePath = File(context.externalCacheDir ?: context.cacheDir, "shared_images")
                     cachePath.mkdirs()
 
-                    val file = File(cachePath, "bug_scanned_image.jpg")
+                    val timestamp = System.currentTimeMillis()
+                    val file = File(cachePath, "bug_scanned_image_$timestamp.jpg")
                     FileOutputStream(file).use { stream ->
                         stream.write(imageBytes)
                     }
@@ -70,7 +70,7 @@ class AndroidShareManager(private val context: Context) : ShareManager {
                     type = "image/jpeg"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     putExtra(Intent.EXTRA_TEXT, shareText)
-                    clipData = ClipData.newRawUri("", uri)
+                    clipData = ClipData("BugScanner Image", arrayOf("image/jpeg"), ClipData.Item(uri))
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 } catch (e: Exception) {
                     e.printStackTrace()

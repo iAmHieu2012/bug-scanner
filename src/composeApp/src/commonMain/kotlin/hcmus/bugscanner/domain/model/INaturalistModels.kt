@@ -48,7 +48,18 @@ data class INaturalistTaxon(
     val observationsCount: Int = 0,
 
     @SerialName("wikipedia_url")
-    val wikipediaUrl: String? = null
+    val wikipediaUrl: String? = null,
+
+    @SerialName("taxon_photos")
+    val taxonPhotos: List<INaturalistTaxonPhoto>? = null
+)
+
+/**
+ * DTO bọc ảnh phụ từ danh sách taxon_photos.
+ */
+@Serializable
+data class INaturalistTaxonPhoto(
+    val photo: INaturalistPhoto? = null
 )
 
 /**

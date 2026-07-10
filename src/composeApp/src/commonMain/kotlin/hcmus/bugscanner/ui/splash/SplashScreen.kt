@@ -27,12 +27,14 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
     val scale = remember { Animatable(0.5f) }
+    var isAnimationFinished by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = true) {
         scale.animateTo(
             targetValue = 1.2f,
             animationSpec = tween(durationMillis = 800)
         )
+        isAnimationFinished = true
         delay(1000.milliseconds)
         onSplashFinished()
     }
@@ -75,6 +77,18 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                 modifier = Modifier.scale(scale.value)
             )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            if (isAnimationFinished) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 3.dp
+                )
+            } else {
+                Spacer(modifier = Modifier.size(32.dp))
+            }
         }
     }
 }

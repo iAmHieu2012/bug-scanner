@@ -2,10 +2,20 @@ package hcmus.bugscanner.ui.encyclopedia
 
 import hcmus.bugscanner.domain.model.BugInfo
 
+/**
+ * Policy xử lý logic tìm kiếm và lọc danh sách sinh vật bách khoa.
+ */
 object SearchQueryPolicy {
     private val asciiQuery = Regex("""^[A-Za-z][A-Za-z\s-]*$""")
     private val scientificName = Regex("""^[A-Z][a-z]+\s[a-z][a-z-]+$""")
 
+    /**
+     * Kiểm tra xem chuỗi tìm kiếm có cần dịch sang tiếng Anh bằng AI Groq hay không.
+     * Chỉ dịch nếu chuỗi là tiếng Việt (chứa dấu hoặc nằm ngoài định dạng tên khoa học).
+     *
+     * @param query Từ khóa tìm kiếm của người dùng.
+     * @return `true` nếu cần gọi Groq AI để dịch, ngược lại `false`.
+     */
     fun shouldTranslateWithGroq(query: String): Boolean {
         val cleanQuery = query.trim()
         return cleanQuery.isNotBlank() &&
@@ -13,6 +23,14 @@ object SearchQueryPolicy {
             !asciiQuery.matches(cleanQuery)
     }
 
+    /**
+     * Lọc danh sách sinh vật dựa trên từ khóa tìm kiếm tiếng Việt không dấu.
+     * Quét qua nhiều trường thông tin như tên, đặc điểm, cây trồng, v.v.
+     *
+     * @param bugs Danh sách bách khoa gốc.
+     * @param query Từ khóa tìm kiếm thô.
+     * @return Danh sách các sinh vật khớp với từ khóa.
+     */
     fun filterBugs(bugs: List<BugInfo>, query: String): List<BugInfo> {
         val normalizedQuery = normalize(query)
         if (normalizedQuery.isBlank()) return bugs

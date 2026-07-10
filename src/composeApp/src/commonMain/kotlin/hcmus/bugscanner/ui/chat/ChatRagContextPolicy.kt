@@ -1,33 +1,38 @@
 package hcmus.bugscanner.ui.chat
 
 import hcmus.bugscanner.domain.model.BugInfo
-import hcmus.bugscanner.domain.model.HarmfulnessPolicy
+import hcmus.bugscanner.domain.model.HarmfulnessLevel
 
 /**
- * Builds the grounded encyclopedia context sent to Gemini.
+ * Lớp chịu trách nhiệm xây dựng ngữ cảnh bách khoa toàn thư (RAG) để gửi làm System Prompt cho AI.
  */
 object ChatRagContextPolicy {
-    private const val BASE_SYSTEM_INSTRUCTION =
-        "Bạn là BugScanner AI, một trợ lý ảo chuyên nghiệp về sinh học và côn trùng học. " +
-            "Luôn trả lời bằng tiếng Việt tự nhiên. Hãy trả lời ngắn gọn, thân thiện và chính xác. " +
-            "Đối tượng chính là nông dân và người dùng phổ thông, nên hãy dùng từ dễ hiểu. " +
-            "Khi nhận được ảnh, hãy phân tích kỹ các đặc điểm sinh học trên ảnh để tư vấn. " +
-            "Không nhắc đến tên mô hình, bộ dữ liệu, mã lớp, nhãn mô hình, nguồn API phân loại hoặc chi tiết kỹ thuật nội bộ trừ khi người dùng hỏi trực tiếp về cách hệ thống hoạt động. " +
-            "Tuyệt đối không sử dụng định dạng Markdown như in đậm ** hoặc tiêu đề #. " +
-            "Nếu cần liệt kê hoặc chia ý, chỉ sử dụng một dấu gạch ngang (-) ở đầu dòng."
+    private const val DEFAULT_BASE_PROMPT = "Bạn là trợ lý BugScanner. Luôn trả lời bằng tiếng Việt, ngắn gọn, thực tế và chỉ dựa trên dữ liệu đáng tin cậy."
+    private const val DEFAULT_RAG_PROMPT = "Ưu tiên sử dụng ngữ cảnh từ cơ sở dữ liệu BugScanner. Nếu dữ liệu chưa đủ, hãy nói rõ là chưa có thông tin thay vì tự bịa."
 
-    fun systemInstruction(contextBug: BugInfo?): String {
+    fun systemInstruction(contextBug: BugInfo?): String =
+        systemInstruction(DEFAULT_BASE_PROMPT, DEFAULT_RAG_PROMPT, contextBug)
+
+    /**
+     * Xây dựng nội dung System Prompt cho Gemini bằng cách kết hợp câu lệnh gốc và ngữ cảnh bách khoa.
+     *
+     * @param basePrompt Câu lệnh hệ thống gốc (thường lấy từ cấu hình động).
+     * @param ragPrompt Câu lệnh hướng dẫn AI sử dụng RAG context (từ cấu hình động).
+     * @param contextBug Thông tin chi tiết của sinh vật để AI dùng làm cơ sở tham chiếu.
+     * @return Chuỗi System Prompt đã hoàn thiện để gửi cho Gemini.
+     */
+    fun systemInstruction(basePrompt: String, ragPrompt: String, contextBug: BugInfo?): String {
         val context = contextBug?.takeIf { it.hasUsefulContext() }?.toGeminiContext()
         return if (context == null) {
-            BASE_SYSTEM_INSTRUCTION
+            basePrompt
         } else {
             buildString {
-                appendLine(BASE_SYSTEM_INSTRUCTION)
+                appendLine(basePrompt)
                 appendLine()
                 appendLine("Ngữ cảnh từ cơ sở dữ liệu BugScanner:")
                 appendLine(context)
                 appendLine()
-                append("Ưu tiên sử dụng ngữ cảnh trên khi trả lời câu hỏi về loài này. Nếu thông tin trong ngữ cảnh chưa đủ, hãy nói rõ phần nào cần kiểm chứng thêm thay vì bịa thêm dữ kiện. Hãy chuyển nội dung nguồn thành lời tư vấn đơn giản, không lặp lại văn bản kỹ thuật.")
+                append(ragPrompt)
             }
         }
     }
@@ -35,7 +40,7 @@ object ChatRagContextPolicy {
     private fun BugInfo.hasUsefulContext(): Boolean =
         listOf(name, englishName, scientificName, description, identification, danger, treatment, season, wikiUrl)
             .any { it.isNotBlank() } ||
-            listOf(affectedCrops, hostPlants, damageSymptoms, identificationTips, whereToFind, safeActions, ipmNotes)
+            listOf(affectedCrops, hostPlants, damageSymptoms, identificationTips, whereToFind, safeActions, ipmNotes, sourceRefs)
                 .any { it.isNotEmpty() }
 
     private fun BugInfo.toGeminiContext(): String {
@@ -51,9 +56,10 @@ object ChatRagContextPolicy {
             "Thường thấy ở" to whereToFind.joinClean(),
             "Thời điểm thường gặp" to season,
             "Mức độ gây hại" to danger,
-            "Nhóm trong ứng dụng" to HarmfulnessPolicy.fromValue(harmfulnessLevel).label,
+            "Nhóm trong ứng dụng" to HarmfulnessLevel.fromValue(harmfulnessLevel).label,
             "Việc nên làm" to listOf(treatment, safeActions.joinClean(), ipmNotes.joinClean()).joinClean(),
-            "Nguồn tham khảo" to sourceRefs.joinClean().ifBlank { wikiUrl }
+            "Nguồn tham khảo" to sourceRefs.joinClean().ifBlank { wikiUrl },
+            "Bách khoa (Wiki)" to wikiUrl
         )
 
         return lines

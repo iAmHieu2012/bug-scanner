@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import hcmus.bugscanner.core.utils.TimeUtils.formatTimestamp
 import hcmus.bugscanner.domain.model.ConfidencePolicy
-import hcmus.bugscanner.domain.model.HarmfulnessPolicy
+import hcmus.bugscanner.domain.model.HarmfulnessLevel
 import hcmus.bugscanner.domain.model.ScanHistory
 import hcmus.bugscanner.domain.model.ScanSource
 import hcmus.bugscanner.ui.components.BugImage
@@ -56,15 +57,18 @@ fun HistoryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(top = 24.dp, start = 16.dp, end = 16.dp)
     ) {
         ScreenHeader(
             title = "Lịch sử khám phá",
             subtitle = "Những loài côn trùng bạn đã tìm thấy",
-            leadingIcon = Icons.Rounded.History
+            leadingIcon = Icons.Rounded.History,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
         )
 
-        if (isSavingHistory || saveMessage != null) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            if (isSavingHistory || saveMessage != null) {
             Spacer(modifier = Modifier.height(12.dp))
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -107,22 +111,31 @@ fun HistoryScreen(
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 if (maxWidth > 600.dp) {
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 300.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(historyList) { item: ScanHistory ->
-                            HistoryItemCard(item, onClick = { onItemClick(item) })
+                            columns = GridCells.Adaptive(minSize = 300.dp),
+                            contentPadding = PaddingValues(bottom = 100.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(historyList) { item: ScanHistory ->
+                                HistoryItemCard(
+                                    item = item,
+                                    onClick = { onItemClick(item) },
+                                    onDeleteClick = { historyViewModel.deleteHistory(item.id) }
+                                )
+                            }
                         }
-                    }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = 100.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(historyList) { item: ScanHistory ->
-                            HistoryItemCard(item, onClick = { onItemClick(item) })
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(bottom = 100.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(historyList) { item: ScanHistory ->
+                                HistoryItemCard(
+                                    item = item,
+                                    onClick = { onItemClick(item) },
+                                    onDeleteClick = { historyViewModel.deleteHistory(item.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -136,13 +149,14 @@ fun HistoryScreen(
  *
  * @param item Khối dữ liệu chứa thông tin của một lần nhận diện.
  * @param onClick Hàm kích hoạt khi nhấn vào thẻ để xem chi tiết.
+ * @param onDeleteClick Hàm kích hoạt khi nhấn vào nút xóa.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
+fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit, onDeleteClick: () -> Unit = {}) {
     val dateString = formatTimestamp(item.timestamp)
     val confidence = ConfidencePolicy.explain(item.confidence)
-    val harmfulness = HarmfulnessPolicy.fromValue(item.harmfulnessLevel)
+    val harmfulness = HarmfulnessLevel.fromValue(item.harmfulnessLevel)
     val source = ScanSource.fromValue(item.source)
 
     Card(
@@ -202,15 +216,29 @@ fun HistoryItemCard(item: ScanHistory, onClick: () -> Unit) {
                 }
             }
 
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = "Xem chi tiết",
-                tint = MaterialTheme.colorScheme.outlineVariant
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = "Xóa lịch sử",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = "Xem chi tiết",
+                    tint = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
         }
     }
 }
 
+/**
+ * Thành phần UI dạng huy hiệu (Badge) nhỏ để hiển thị các nhãn trạng thái của côn trùng.
+ *
+ * @param text Nội dung văn bản ngắn gọn hiển thị trong huy hiệu.
+ */
 @Composable
 private fun HistoryBadge(text: String) {
     Surface(
