@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -45,7 +46,7 @@ fun EncyclopediaScreen(
     onBugSelected: (BugInfo) -> Unit = {},
     onAskAI: (String) -> Unit = {}
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
     var bugToEdit by remember { mutableStateOf<BugInfo?>(null) }
     var bugToDelete by remember { mutableStateOf<BugInfo?>(null) }
     var isAddingNew by remember { mutableStateOf(false) }
@@ -102,13 +103,13 @@ fun EncyclopediaScreen(
             ) {
                 Tab(
                     selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 },
+                    onClick = { viewModel.selectedTabIndex.value = 0 },
                     text = { Text("Khám phá", fontWeight = FontWeight.Bold) },
                     icon = { Icon(Icons.Rounded.GridView, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 },
+                    onClick = { viewModel.selectedTabIndex.value = 1 },
                     text = { Text("Tra cứu", fontWeight = FontWeight.Bold) },
                     icon = { Icon(Icons.Rounded.Search, contentDescription = null) }
                 )
@@ -196,6 +197,12 @@ fun ExploreTab(
     val selectedHarmfulness by viewModel.selectedHarmfulnessFilter.collectAsState()
     val showOnlyYolo by viewModel.showOnlyYoloDetectable.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    LaunchedEffect(searchQuery) {
+        if (exploreList.isEmpty() && searchQuery.isNotBlank()) {
+            viewModel.onExploreSearchQueryChange(searchQuery)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
