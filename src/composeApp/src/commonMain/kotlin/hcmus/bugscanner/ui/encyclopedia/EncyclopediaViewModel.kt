@@ -81,12 +81,16 @@ class EncyclopediaViewModel(
 
     private var searchJob: Job? = null
 
-    init {
-        fetchExploreList()
-    }
-
     private var currentLimit = 30
     private var hasMoreExplore = true
+
+    init {
+        viewModelScope.launch {
+            combine(selectedHarmfulnessFilter, showOnlyYoloDetectable) { _, _ -> }.collect {
+                fetchExploreList()
+            }
+        }
+    }
 
     /**
      * Tải danh sách mặc định các loài côn trùng từ Firebase để hiển thị ở Tab Khám phá.
@@ -96,7 +100,12 @@ class EncyclopediaViewModel(
         hasMoreExplore = true
         viewModelScope.launch {
             _isLoading.value = true
-            val list = repository.getExploreInsects(limit = currentLimit)
+            val list = repository.getExploreInsects(
+                searchQuery = _exploreSearchQuery.value.trim(),
+                limit = currentLimit,
+                harmfulnessLevel = selectedHarmfulnessFilter.value,
+                yoloOnly = showOnlyYoloDetectable.value
+            )
             _exploreList.value = list
             _isLoading.value = false
         }
@@ -110,7 +119,12 @@ class EncyclopediaViewModel(
         currentLimit += 30
         viewModelScope.launch {
             // Không set _isLoading = true ở đây để tránh chớp màn hình, chỉ tải ngầm thêm dữ liệu
-            val list = repository.getExploreInsects(searchQuery = _exploreSearchQuery.value.trim(), limit = currentLimit)
+            val list = repository.getExploreInsects(
+                searchQuery = _exploreSearchQuery.value.trim(), 
+                limit = currentLimit,
+                harmfulnessLevel = selectedHarmfulnessFilter.value,
+                yoloOnly = showOnlyYoloDetectable.value
+            )
             if (list.size <= _exploreList.value.size) {
                 hasMoreExplore = false
             }
@@ -131,7 +145,12 @@ class EncyclopediaViewModel(
         exploreSearchJob = viewModelScope.launch {
             delay(500.milliseconds)
             _isLoading.value = true
-            val list = repository.getExploreInsects(searchQuery = query.trim(), limit = currentLimit)
+            val list = repository.getExploreInsects(
+                searchQuery = query.trim(), 
+                limit = currentLimit,
+                harmfulnessLevel = selectedHarmfulnessFilter.value,
+                yoloOnly = showOnlyYoloDetectable.value
+            )
             _exploreList.value = list
             _isLoading.value = false
         }

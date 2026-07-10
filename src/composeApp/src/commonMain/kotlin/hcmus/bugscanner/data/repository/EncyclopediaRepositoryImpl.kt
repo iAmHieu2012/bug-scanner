@@ -41,22 +41,32 @@ class EncyclopediaRepositoryImpl(
      * @param limit Giới hạn số lượng kết quả trả về để tối ưu hiệu suất.
      * @return Danh sách các [BugInfo]. Trả về mảng rỗng nếu lỗi mạng hoặc không có dữ liệu.
      */
-    override suspend fun getExploreInsects(searchQuery: String, limit: Int): List<BugInfo> {
-        return try {
+    override suspend fun getExploreInsects(searchQuery: String, limit: Int, harmfulnessLevel: String?, yoloOnly: Boolean): List<BugInfo> {
+        // Lọc cục bộ cho yoloOnly vì mảng YoloConstants.LABELS có 32 phần tử (quá giới hạn 30 của toán tử 'in' trên Firebase)
+        fun applyYoloFilter(list: List<BugInfo>): List<BugInfo> {
+            if (!yoloOnly) return list
+            return list.filter { bug ->
+                val lowerScientificName = bug.scientificName.lowercase()
+                hcmus.bugscanner.ml.YoloConstants.LABELS.any { it.lowercase() == lowerScientificName }
+            }
+        }
+
+        try {
+            var baseQuery: dev.gitlive.firebase.firestore.Query = encyclopediaCollection
+            if (harmfulnessLevel != null && harmfulnessLevel != "Tất cả") {
+                baseQuery = baseQuery.where { "harmfulnessLevel" equalTo harmfulnessLevel }
+            }
+
             if (searchQuery.isNotBlank()) {
-                val searchStr = searchQuery.trim()
-                val lowerStr = searchStr.lowercase()
-                val capitalizedStr = lowerStr.replaceFirstChar { it.uppercase() }
-                val titleCaseStr = lowerStr.split(" ").joinToString(" ") { word ->
-                    word.replaceFirstChar { it.uppercase() }
-                }
+                val variations = listOf(
+                    searchQuery,
+                    searchQuery.lowercase(),
+                    searchQuery.replaceFirstChar { it.uppercase() }
+                ).distinct()
                 
-                val searchVariations = setOf(searchStr, lowerStr, capitalizedStr, titleCaseStr)
                 val results = mutableListOf<BugInfo>()
-                
-                for (variation in searchVariations) {
-                    if (results.size >= limit) break
-                    val snapshot = encyclopediaCollection
+                for (variation in variations) {
+                    val snapshot = baseQuery
                         .orderBy("name")
                         .startAtFieldValues { add(variation) }
                         .endAtFieldValues { add(variation + "\uf8ff") }
@@ -66,32 +76,48 @@ class EncyclopediaRepositoryImpl(
                     results.addAll(snapshot.documents.map { it.data<BugInfoEntity>().toDomain() })
                 }
                 
-                val finalResults = results.distinctBy { it.id }.take(limit)
+                val distinctResults = results.distinctBy { it.id }.take(limit)
+                val finalResults = applyYoloFilter(distinctResults)
+                
                 if (finalResults.isEmpty()) {
-                    return getFallbackData().filter { 
+                    var localMatches = getFallbackData()
+                    if (harmfulnessLevel != null && harmfulnessLevel != "Tất cả") {
+                        localMatches = localMatches.filter { it.harmfulnessLevel == harmfulnessLevel }
+                    }
+                    localMatches = localMatches.filter { 
                         it.name.contains(searchQuery, ignoreCase = true) || 
                         it.scientificName.contains(searchQuery, ignoreCase = true) 
-                    }.take(limit)
+                    }
+                    return applyYoloFilter(localMatches).take(limit)
                 }
                 return finalResults
             } else {
-                val snapshot = encyclopediaCollection.orderBy("name").limit(limit).get()
+                val snapshot = baseQuery.orderBy("name").limit(limit).get()
                 val finalResults = snapshot.documents.map { it.data<BugInfoEntity>().toDomain() }
-                if (finalResults.isEmpty()) {
-                    return getFallbackData().take(limit)
+                val filteredResults = applyYoloFilter(finalResults)
+                
+                if (filteredResults.isEmpty()) {
+                    var fallback = getFallbackData()
+                    if (harmfulnessLevel != null && harmfulnessLevel != "Tất cả") {
+                        fallback = fallback.filter { it.harmfulnessLevel == harmfulnessLevel }
+                    }
+                    return applyYoloFilter(fallback).take(limit)
                 }
-                return finalResults
+                return filteredResults
             }
         } catch (e: Exception) {
             println("Lỗi tải danh sách Khám phá (Rớt mạng hoặc Firebase lỗi), dùng Fallback: ${e.message}")
-            val fallback = getFallbackData()
+            var fallback = getFallbackData()
+            if (harmfulnessLevel != null && harmfulnessLevel != "Tất cả") {
+                fallback = fallback.filter { it.harmfulnessLevel == harmfulnessLevel }
+            }
             if (searchQuery.isNotBlank()) {
-                return fallback.filter { 
+                fallback = fallback.filter { 
                     it.name.contains(searchQuery, ignoreCase = true) || 
                     it.scientificName.contains(searchQuery, ignoreCase = true) 
-                }.take(limit)
+                }
             }
-            return fallback.take(limit)
+            return applyYoloFilter(fallback).take(limit)
         }
     }
 

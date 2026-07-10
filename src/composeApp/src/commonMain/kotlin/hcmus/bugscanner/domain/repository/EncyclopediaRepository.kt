@@ -11,9 +11,11 @@ interface EncyclopediaRepository {
      *
      * @param searchQuery Từ khóa tìm kiếm. Để trống nếu muốn lấy danh sách mặc định.
      * @param limit Số lượng bản ghi tối đa trả về trong một lần gọi (Pagination).
+     * @param harmfulnessLevel Lọc theo độ nguy hiểm (Tất cả, Có hại, Ít hại, Có lợi)
+     * @param yoloOnly Chỉ lấy các loài có thể nhận diện qua YOLO
      * @return Danh sách các đối tượng [BugInfo].
      */
-    suspend fun getExploreInsects(searchQuery: String = "", limit: Int = 20): List<BugInfo>
+    suspend fun getExploreInsects(searchQuery: String = "", limit: Int = 30, harmfulnessLevel: String? = null, yoloOnly: Boolean = false): List<BugInfo>
 
     /**
      * Truy vấn thông tin chi tiết của một loài côn trùng dựa vào tên phổ thông.
