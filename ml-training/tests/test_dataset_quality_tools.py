@@ -129,6 +129,59 @@ class DatasetQualityToolsTest(unittest.TestCase):
             self.assertTrue((out_dir / "images" / "rice_thrips").exists())
             self.assertFalse((out_dir / "images" / "aphid").exists())
 
+    def test_prepare_roboflow_package_resolves_review_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            queue = root / "queue"
+            source = root / "source"
+            real_delphacid = source / "delphacid.jpg"
+            real_thrips = source / "thrips.jpg"
+            write_file(real_delphacid, "delphacid image")
+            write_file(real_thrips, "thrips image")
+            queued_delphacid = queue / "images" / "_review" / "fixture" / "Delphacidae" / "delphacid.jpg"
+            queued_thrips = queue / "images" / "_review" / "fixture" / "Thripidae" / "thrips.jpg"
+            queued_delphacid.parent.mkdir(parents=True, exist_ok=True)
+            queued_thrips.parent.mkdir(parents=True, exist_ok=True)
+            queued_delphacid.symlink_to(real_delphacid)
+            queued_thrips.symlink_to(real_thrips)
+            write_file(
+                queue / "metadata" / "review_manifest.csv",
+                "\n".join([
+                    "source_name,source_class,suggested_targets,source_path,queued_path,license,source_url",
+                    f"fixture,Delphacidae,whitebacked_planthopper;small_brown_planthopper,{real_delphacid},images/_review/fixture/Delphacidae/delphacid.jpg,CC BY 4.0,https://example.com/delphacid",
+                    f"fixture,Thripidae,rice_thrips;thrips,{real_thrips},{queued_thrips},CC BY 4.0,https://example.com/thrips",
+                    "",
+                ]),
+            )
+
+            out_dir = root / "roboflow"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "prepare_roboflow_weakclass_package.py"),
+                    "--queue",
+                    str(queue),
+                    "--output",
+                    str(out_dir),
+                    "--quota",
+                    "Delphacidae=1,Thripidae=1",
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            copied = out_dir / "images" / "Delphacidae" / "delphacid.jpg"
+            self.assertTrue(copied.exists())
+            self.assertFalse(copied.is_symlink())
+            self.assertEqual(copied.read_text(encoding="utf-8"), "delphacid image")
+            rows = read_csv(out_dir / "metadata" / "upload_manifest.csv")
+            self.assertEqual([row["source_class"] for row in rows], ["Delphacidae", "Thripidae"])
+            self.assertEqual(rows[0]["suggested_targets"], "whitebacked_planthopper;small_brown_planthopper")
+            self.assertTrue((out_dir / "README.md").exists())
+
     def test_practical_builder_writes_image_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

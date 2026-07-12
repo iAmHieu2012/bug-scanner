@@ -137,70 +137,6 @@ quality_thresholds:
   critical_train_images: 50
   min_val_images: 30
   min_test_images: 30
-ip102:
-  class_map:
-    0: rice_leaf_folder
-    1: rice_leaf_caterpillar
-    2: rice_stem_maggot
-    3: rice_stem_borer
-    4: rice_stem_borer
-    5: rice_gall_midge
-    6: rice_stem_maggot
-    7: brown_planthopper
-    8: whitebacked_planthopper
-    9: small_brown_planthopper
-    11: green_leafhopper
-    12: rice_thrips
-    13: rice_bug
-    14: soil_grub
-    15: mole_cricket
-    16: wireworm
-    18: cutworm
-    19: cutworm
-    20: cutworm
-    21: spider_mite
-    22: corn_borer
-    23: armyworm
-    24: aphid
-    27: aphid
-    28: aphid
-    29: aphid
-    37: flea_beetle
-    38: cabbage_caterpillar
-    39: armyworm
-    48: locust_grasshopper
-    54: thrips
-    56: cabbage_caterpillar
-    58: hairy_caterpillar
-    64: scale_mealybug
-    68: longhorn_borer
-    69: green_leafhopper
-    70: mirid_bug
-    71: whitefly
-    74: spider_mite
-    76: scale_mealybug
-    77: scale_mealybug
-    78: scale_mealybug
-    79: scale_mealybug
-    81: scale_mealybug
-    82: whitefly
-    83: fruit_fly
-    84: fruit_fly
-    85: fruit_fly
-    86: armyworm
-    88: citrus_leafminer
-    89: aphid
-    90: aphid
-    91: aphid
-    92: thrips
-    94: mango_hopper
-    95: mango_hopper
-    96: mango_borer_weevil
-    97: mango_borer_weevil
-    98: mango_hopper
-    99: mango_borer_weevil
-    100: mango_borer_weevil
-    101: leafhopper_general
 external_yolo_sources:
 - name: common-rice-pests-philippines
   root: datasets/common-rice-pests-philippines-download/Common Rice Pests -Philippines-.v1-raw-data.yolov8/Common
@@ -256,6 +192,30 @@ external_yolo_sources:
   root: datasets/candidate-downloads/roboflow/spider-mite
   class_map:
     Spider Mite: spider_mite
+- name: roboflow-thrips
+  root: datasets/candidate-downloads/roboflow/thrips
+  class_map:
+    Thrips: thrips
+- name: roboflow-planthopper-wbph-candidate
+  root: datasets/candidate-downloads/roboflow/planthopper
+  class_map:
+    '1': whitebacked_planthopper
+- name: manual-rice-thrips-detection-6
+  root: datasets/manual/extracted/rice_pest_detection_6_v1i_yolov11
+  class_map:
+    rice thrips: rice_thrips
+- name: manual-small-brown-plant-hopper
+  root: datasets/manual/extracted/small_brown_plant_hopper_yolov11
+  class_map:
+    small_brown_plant_hopper: small_brown_planthopper
+- name: manual-red-hairy-caterpillar-thesis
+  root: datasets/manual/extracted/Pest_detection_thesis_yolov11
+  class_map:
+    Red_Hairy_Catterpillar_C: hairy_caterpillar
+- name: manual-black-hairy-caterpillar
+  root: datasets/manual/extracted/Pest_Detection_v4i_yolov11
+  class_map:
+    Black hairy caterpillar: hairy_caterpillar
 - name: roboflow-longhorn
   root: datasets/candidate-downloads/roboflow/longhorn
   class_map:
@@ -277,6 +237,19 @@ external_yolo_sources:
   root: datasets/candidate-downloads/roboflow/cabbage-pest
   class_map:
     cabbage pest: cabbage_caterpillar
+- name: roboflow-v4-weak-reviewed
+  root: datasets/v4-weak-reviewed-yolo
+  class_map:
+    rice_thrips: rice_thrips
+    thrips: thrips
+    whitebacked_planthopper: whitebacked_planthopper
+    white backed planthopper: whitebacked_planthopper
+    small_brown_planthopper: small_brown_planthopper
+    small brown planthopper: small_brown_planthopper
+    hairy_caterpillar: hairy_caterpillar
+    hairy caterpillar: hairy_caterpillar
+    cabbage_caterpillar: cabbage_caterpillar
+    cabbage caterpillar: cabbage_caterpillar
 external_mask_sources:
 - name: aphid-generalization-masks
   image_root: datasets/candidate-downloads/aphid-generalization/data_generalization/Aphid Detection Dataset/image
